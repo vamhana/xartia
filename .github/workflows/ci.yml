@@ -151,24 +151,57 @@ jobs:
         run: pnpm tsx scripts/seed-base.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
 
       - name: Smoke — система
-        run: pnpm tsx scripts/test-system.ts
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-system.ts 2>&1 | tee /tmp/smoke-test-system.log
       - name: Smoke — витрина
-        run: pnpm tsx scripts/test-public.ts
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-public.ts 2>&1 | tee /tmp/smoke-test-public.log
       - name: Smoke — регистрация
-        run: pnpm tsx scripts/test-register.ts
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-register.ts 2>&1 | tee /tmp/smoke-test-register.log
       - name: Smoke — паспорт
-        run: pnpm tsx scripts/test-passport.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-passport.log
       - name: Smoke — коллектив
-        run: pnpm tsx scripts/test-collective.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-collective.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-collective.log
       - name: Smoke — роль при приёме
-        run: pnpm tsx scripts/test-onboarding-role.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-onboarding-role.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-onboarding-role.log
       - name: Smoke — Шлюз
-        run: pnpm tsx scripts/test-gateway.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-gateway.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-gateway.log
       - name: Smoke — уведомления
-        run: pnpm tsx scripts/test-notification-link.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-notification-link.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-notification-link.log
       - name: Smoke — задачи
-        run: pnpm tsx scripts/test-tasks.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-tasks.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-tasks.log
 
       - name: Логи API при падении
+        if: failure()
+        run: |
+          tail -200 /tmp/api.log || true
+          {
+            echo '### Причина падения (строки ✗ из smoke-логов)'
+            echo '```'
+            grep -h '✗' /tmp/smoke-*.log 2>/dev/null | head -10 || echo '(✗ не найдены)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Аннотация видна через API без доступа к логам — по ней понятно,
+          # какой шаг и какая проверка упали.
+          grep -h '✗' /tmp/smoke-*.log 2>/dev/null | head -5 | while IFS= read -r line; do
+            echo "::error title=Smoke::${line}"
+          done
+
         if: failure()
         run: tail -200 /tmp/api.log
