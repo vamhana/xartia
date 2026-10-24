@@ -138,6 +138,118 @@ function formatMs(ms: number): string {
 
 // ─── Страница ────────────────────────────────────────────────────
 
+interface PlanDeviationRow {
+  planId: string;
+  externalId: string;
+  title: string;
+  total: number;
+  done: number;
+  overdue: number;
+  expectedDone: number;
+  status: 'behind' | 'on_track' | 'ahead';
+}
+
+/**
+ * Отклонения планов — рабочий индикатор балансировки.
+ * По Хартии балансировка не решает за направление: она замечает отклонение
+ * и поднимает сигнал, чтобы направление проверило участок.
+ */
+function DeviationsBlock(): ReactElement {
+  const qc = useQueryClient();
+  const q = useApiQuery<{ data: PlanDeviationRow[]; meta: { total: number } }>(
+    ['balance', 'deviations'],
+    '/plans/deviations?only_behind=true',
+  );
+
+  const signalM = useMutation({
+    mutationFn: (planId: string) =>
+      apiPost(`/plans/${planId}/deviation/signal`, {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['balance', 'deviations'] });
+      void qc.invalidateQueries({ queryKey: ['signals'] });
+    },
+  });
+
+  const rows = q.data?.data ?? [];
+
+  return (
+    <Card
+      title="Отклонения планов"
+      subtitle="Балансировка замечает — сигнал поднимает направлению, решение за ним"
+    >
+      {q.isLoading ? (
+        <Spinner />
+      ) : rows.length === 0 ? (
+        <p style={styles.muted}>
+          Отклонений нет: все активные планы идут в графике.
+        </p>
+      ) : (
+        <Table<PlanDeviationRow>
+          data={rows}
+          getRowId={(r) => r.planId}
+          columns={[
+            {
+              key: 'title',
+              title: 'План',
+              render: (r) => (
+                <div>
+                  <div>{r.title}</div>
+                  <div style={styles.muted}>{r.externalId}</div>
+                </div>
+              ),
+            },
+            {
+              key: 'progress',
+              title: 'Принято',
+              width: 120,
+              align: 'right',
+              render: (r) => `${r.done} / ${r.total}`,
+            },
+            {
+              key: 'overdue',
+              title: 'Просрочено',
+              width: 120,
+              align: 'right',
+              render: (r) => (
+                <span style={{ color: r.overdue > 0 ? colors.danger : colors.textMuted }}>
+                  {r.overdue}
+                </span>
+              ),
+            },
+            {
+              key: 'expected',
+              title: 'Ожидалось',
+              width: 120,
+              align: 'right',
+              render: (r) => r.expectedDone,
+            },
+            {
+              key: 'action',
+              title: '',
+              width: 160,
+              render: (r) => (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={signalM.isPending}
+                  onClick={() => signalM.mutate(r.planId)}
+                >
+                  Сигнал направлению
+                </Button>
+              ),
+            },
+          ]}
+        />
+      )}
+      {signalM.isError && (
+        <p style={{ color: colors.warning, fontSize: 13, marginTop: 8 }}>
+          {signalM.error instanceof Error ? signalM.error.message : 'Не удалось поднять сигнал'}
+        </p>
+      )}
+    </Card>
+  );
+}
+
 export function BalancePage(): ReactElement {
   const qc = useQueryClient();
   const user = useUser();
@@ -330,6 +442,8 @@ export function BalancePage(): ReactElement {
 
       {/* Пульс + Индексы */}
       <div style={styles.twoCol}>
+        <DeviationsBlock />
+
         <Card title="Пульс">
           {pulseChartData.length === 0 ? (
             <p style={styles.muted}>Нет данных</p>

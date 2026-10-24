@@ -458,6 +458,7 @@
 - **`DELETE /daily-plans/:id/tasks/:task_id` — `plan:A`** — не `plan:E`. Согласовано с сервисом (`removeTaskFromDailyPlan`).
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.08 test-external-id-sequence, I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks. |
 
+|2026-10-24 (отклонения): GET /plans/deviations (only_behind, lead_direction_id), GET /plans/:id/deviation, POST /plans/:id/deviation/signal — балансировка поднимает сигнал направлению, повторный в течение 24 часов → 409.
 |A.1.07.01|API|REST|TypeScript|src/api/tasks/controller.ts|C.0.07.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5|
 |Описание: Контроллер Tasks. **9 эндпоинтов** (из 11 заявленных): список, мои, карточка, создание, assign, take, submit, accept, return. Отсутствуют `PATCH /tasks/:id`, `POST /tasks/:id/change-priority` (roadmap — нет сервисных функций `update`/`changePriority`). Права: `task:C` (create, assign), `otc:C` (accept, return). **`take`/`submit` — self-service** (только `authMiddleware`, проверка `assignedTo` в сервисе). **Rate-limit (`api.write`) на 6 мутациях** (create, assign, take, submit, accept, return). `uuidIdParams`, `taskStatusSchema`, `prioritySchema` из L.0.01.03. 5 Zod-схем. **`createBody.description` — max(5000)**, `required_competencies` — max(50). |
 |Публичный API:
@@ -10295,6 +10296,12 @@
 |Описание: Связь «сигнал → план» и куратор плана: plans.signal_id (nullable, FK signals) и plans.curator_id (FK participants) + индексы для обратного поиска. Не UNIQUE: у сигнала может быть несколько планов-этапов.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (plans), D.2.01.05 (signals), D.2.01.02 (participants).
 |↘ ПРЕДОСТАВЛЯЕТ: C.0.06.02 (createPlanService с signalId/curatorId, getPlanProgress), C.0.10.02 (сигнал отдаёт план), F.4.02.06 (блок «План по сигналу»).
+|C.0.06.03|Core|Service|TypeScript|src/core/plans/deviation.ts|C.0.06.02|v.0.0.01|Draft|—|
+|Описание: Отклонения плана: overdue (истёкшие сроки), expectedDone (по времени от создания до последнего чекпоинта), diff, breached-чекпоинты; статус behind/on_track/ahead. Список отклонений по активным планам и защита от повторного сигнала (24 часа).
+|Публичный API:
+- computeDeviation(planId), listDeviations({leadDirectionId, onlyBehind}), hasRecentDeviationSignal(planId, hours).
+|↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), D.2.01.03 (tasks, plan_tasks), C.0.10.02 (signals — маркер [план:<id>]).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/deviations, GET /plans/:id/deviation, POST /plans/:id/deviation/signal), F.4.02.10 (блок «Отклонения планов»), I.9.04.57.
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -11283,6 +11290,7 @@
 - WS-подписка на 'balance' — нет fallback, если backend не эмитит события.
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
+|2026-10-24: блок «Отклонения планов» — список отстающих планов (принято/всего, просрочено, ожидалось) и кнопка «Сигнал направлению»; пустое состояние «все планы в графике».
 |F.4.02.11|Frontend|Page|React|src/web/pages/Verification.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.10, F.4.99.12|v.0.0.01|Draft|III.2|
 |Описание: Панель Верификации. 5 табов: аудиты, перепроверки, аудит кода, целостность, gateway-suspend. Проверка прав через useRights (audit:C, audit:E, audit:A). Тональная инфраструктура: Table, Modal, Form, MetricCard.|
 |Публичный API:
@@ -24118,6 +24126,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |Публичный API: pnpm tsx scripts/test-signal-plan.ts <phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), C.0.10.02 (signals), L.0.01.11 (уведомления).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — сигнал → план» в I.1.01.16 и I.9.02.18.
+|I.9.04.57|Infra|Test|TypeScript|scripts/test-plan-deviation.ts|C.0.06.03|v.0.0.01|Draft|—|
+|Описание: Тест отклонений: план с чекпоинтом в прошлом → задача с истёкшим сроком → GET /plans/:id/deviation = behind → план в /plans/deviations → POST сигнал направлению (маркер [план:<id>]) → повторный сигнал 409.
+|Публичный API: pnpm tsx scripts/test-plan-deviation.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.06.03 (deviation), C.0.06.02 (plans), C.0.10.02 (signals).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — отклонения плана» в I.1.01.16 и I.9.02.18.
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:

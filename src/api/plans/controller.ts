@@ -14,6 +14,11 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import {
+  computeDeviation, hasRecentDeviationSignal, listDeviations,
+} from '../../core/plans/deviation.js';
+import { createSignalService } from '../../core/signals/service.js';
+import { ConflictError } from '../../core/errors.js';
+import {
   listPlans, getById, createPlanService,
   approvePlanService, activatePlanService, stopPlanService,
   getDailyPlan,
@@ -55,6 +60,11 @@ const createBody = z.object({
 
 const stopBody = z.object({ reason: z.string().min(1).max(500) });
 
+const deviationsQuery = z.object({
+  lead_direction_id: uuidSchema.optional(),
+  only_behind: z.enum(['true', 'false']).optional(),
+});
+
 const dailyListQuery = z.object({
   direction_id: uuidSchema.optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -87,6 +97,77 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
       audit_id: req.auditId,
     });
   });
+
+  // GET /plans/deviations — что отстаёт. Объявлен выше /plans/:id, чтобы
+  // статический сегмент не воспринимался как UUID.
+  app.get(
+    '/plans/deviations',
+    { preHandler: [authMiddleware, validateQuery(deviationsQuery)] },
+    async (req, reply) => {
+      const q = req.query as z.infer<typeof deviationsQuery>;
+      const result = await listDeviations({
+        ...(q.lead_direction_id ? { leadDirectionId: q.lead_direction_id } : {}),
+        ...(q.only_behind === 'true' ? { onlyBehind: true } : {}),
+      });
+      reply.send({ data: result.data, meta: { total: result.total }, audit_id: req.auditId });
+    },
+  );
+
+  // GET /plans/:id/deviation — отклонение по одному плану.
+  app.get(
+    '/plans/:id/deviation',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const deviation = await computeDeviation(p.id);
+      reply.send({ ...deviation, audit_id: req.auditId });
+    },
+  );
+
+  // POST /plans/:id/deviation/signal — балансировка поднимает сигнал
+  // направлению. Это её работа по Хартии: заметить отклонение и не решать
+  // за направление, а позвать его проверить.
+  app.post(
+    '/plans/:id/deviation/signal',
+    {
+      preHandler: [
+        authMiddleware,
+        writeLimit,
+        requireRight('signal', 'C'),
+        validateParams(uuidIdParams),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const deviation = await computeDeviation(p.id);
+      if (deviation.status !== 'behind') {
+        throw new ConflictError('План не отстаёт — сигнал не требуется');
+      }
+
+      const recent = await hasRecentDeviationSignal(p.id);
+      if (recent) {
+        throw new ConflictError('Сигнал по этому плану уже поднят', { signalId: recent });
+      }
+
+      const overduePart = deviation.overdue > 0
+        ? `просрочено задач: ${deviation.overdue}.`
+        : 'пройденные чекпоинты не закрыты.';
+      const signal = await createSignalService({
+        type: 'problem',
+        description: `[план:${deviation.planId}] ${deviation.title}: ${overduePart} `
+          + `Принято ${deviation.done} из ${deviation.total}, ожидалось ${deviation.expectedDone}.`,
+        justification:
+          `Балансировка: план ${deviation.externalId} отстаёт от графика. `
+          + 'Просьба проверить участок и при необходимости усилить его.',
+        priority: deviation.overdue > 3 ? 'high' : 'standard',
+        directions: [deviation.leadDirectionId],
+        leadDirectionId: deviation.leadDirectionId,
+      }, auth.participantId);
+
+      reply.status(201).send({ ...signal, audit_id: req.auditId });
+    },
+  );
 
   app.get('/plans/:id', { preHandler: [authMiddleware, validateParams(uuidIdParams)] }, async (req, reply) => {
     const p = req.params as z.infer<typeof uuidIdParams>;
