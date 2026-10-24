@@ -141,8 +141,8 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuthContext(req);
       const p = req.params as z.infer<typeof uuidIdParams>;
       const deviation = await computeDeviation(p.id);
-      if (deviation.status !== 'behind') {
-        throw new ConflictError('План не отстаёт — сигнал не требуется');
+      if (deviation.status === 'on_track') {
+        throw new ConflictError('План идёт в графике — сигнал не требуется');
       }
 
       const recent = await hasRecentDeviationSignal(p.id);
@@ -150,17 +150,22 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
         throw new ConflictError('Сигнал по этому плану уже поднят', { signalId: recent });
       }
 
-      const overduePart = deviation.overdue > 0
-        ? `просрочено задач: ${deviation.overdue}.`
-        : 'пройденные чекпоинты не закрыты.';
+      const behind = deviation.status === 'behind';
+      const facts = behind
+        ? (deviation.overdue > 0
+            ? `просрочено задач: ${deviation.overdue}.`
+            : 'пройденные чекпоинты не закрыты.')
+        : `идёт быстрее графика: принято ${deviation.done} из ${deviation.total}, ожидалось ${deviation.expectedDone}.`;
+
       const signal = await createSignalService({
-        type: 'problem',
-        description: `[план:${deviation.planId}] ${deviation.title}: ${overduePart} `
-          + `Принято ${deviation.done} из ${deviation.total}, ожидалось ${deviation.expectedDone}.`,
-        justification:
-          `Балансировка: план ${deviation.externalId} отстаёт от графика. `
-          + 'Просьба проверить участок и при необходимости усилить его.',
-        priority: deviation.overdue > 3 ? 'high' : 'standard',
+        type: behind ? 'problem' : 'idea',
+        description: `[план:${deviation.planId}] ${deviation.title}: ${facts}`,
+        justification: behind
+          ? `Балансировка: план ${deviation.externalId} отстаёт от графика. `
+            + 'Просьба проверить участок и при необходимости усилить его.'
+          : `Балансировка: план ${deviation.externalId} идёт быстрее графика. `
+            + 'Проверьте, можно ли перенести опыт на отстающие участки и подтянуть их.',
+        priority: behind && deviation.overdue > 3 ? 'high' : 'standard',
         directions: [deviation.leadDirectionId],
         leadDirectionId: deviation.leadDirectionId,
       }, auth.participantId);

@@ -459,6 +459,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.08 test-external-id-sequence, I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks. |
 
 |2026-10-24 (отклонения): GET /plans/deviations (only_behind, lead_direction_id), GET /plans/:id/deviation, POST /plans/:id/deviation/signal — балансировка поднимает сигнал направлению, повторный в течение 24 часов → 409.
+|2026-10-24 (опережение): сигнал поднимается и когда план идёт быстрее графика (status ahead) — «проверьте, можно ли перенести опыт на отстающие участки». on_track → 409.
 |A.1.07.01|API|REST|TypeScript|src/api/tasks/controller.ts|C.0.07.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5|
 |Описание: Контроллер Tasks. **9 эндпоинтов** (из 11 заявленных): список, мои, карточка, создание, assign, take, submit, accept, return. Отсутствуют `PATCH /tasks/:id`, `POST /tasks/:id/change-priority` (roadmap — нет сервисных функций `update`/`changePriority`). Права: `task:C` (create, assign), `otc:C` (accept, return). **`take`/`submit` — self-service** (только `authMiddleware`, проверка `assignedTo` в сервисе). **Rate-limit (`api.write`) на 6 мутациях** (create, assign, take, submit, accept, return). `uuidIdParams`, `taskStatusSchema`, `prioritySchema` из L.0.01.03. 5 Zod-схем. **`createBody.description` — max(5000)**, `required_competencies` — max(50). |
 |Публичный API:
@@ -11291,6 +11292,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |2026-10-24: блок «Отклонения планов» — список отстающих планов (принято/всего, просрочено, ожидалось) и кнопка «Сигнал направлению»; пустое состояние «все планы в графике».
+|2026-10-24 (опережение): в таблице отклонений колонка «Статус» (Отстаёт / Быстрее) и кнопка меняет подпись — «Сигнал: отставание» / «Сигнал: быстрее».
 |F.4.02.11|Frontend|Page|React|src/web/pages/Verification.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.10, F.4.99.12|v.0.0.01|Draft|III.2|
 |Описание: Панель Верификации. 5 табов: аудиты, перепроверки, аудит кода, целостность, gateway-suspend. Проверка прав через useRights (audit:C, audit:E, audit:A). Тональная инфраструктура: Table, Modal, Form, MetricCard.|
 |Публичный API:

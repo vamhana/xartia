@@ -45,7 +45,7 @@
 ========================================================================
 2. ФАЙЛЫ БЕЗ БЛОКОВ: 2
 ========================================================================
-  docs/journey.md [13611 б]
+  docs/journey.md [14156 б]
   scripts/test-journey.ts [8024 б]
 
 ========================================================================
@@ -57,7 +57,7 @@
   A.1.03.01        src/api/directions/controller.ts [2240 б]
   A.1.04.01        src/api/cells/controller.ts [5949 б]
   A.1.05.01        src/api/mandates/controller.ts [10040 б]
-  A.1.06.01        src/api/plans/controller.ts [11506 б]
+  A.1.06.01        src/api/plans/controller.ts [11925 б]
   A.1.07.01        src/api/tasks/controller.ts [7159 б]
   A.1.08.01        src/api/reports/controller.ts [4195 б]
   A.1.09.01        src/api/otc/controller.ts [6151 б]
@@ -128,7 +128,7 @@
   C.0.05.02        src/core/mandates/service.ts [16464 б]
   C.0.06.01        src/core/plans/entity.ts [4103 б]
   C.0.06.02        src/core/plans/service.ts [23556 б]
-  C.0.06.03        src/core/plans/deviation.ts [6617 б]
+  C.0.06.03        src/core/plans/deviation.ts [6876 б]
   C.0.07.01        src/core/tasks/entity.ts [4736 б]
   C.0.07.02        src/core/tasks/service.ts [20267 б]
   C.0.08.01        src/core/reports/entity.ts [2103 б]
@@ -254,7 +254,7 @@
   F.4.02.07        src/web/pages/Goods.tsx [21825 б]
   F.4.02.08        src/web/pages/OTC.tsx [13221 б]
   F.4.02.09        src/web/pages/Regimes.tsx [28909 б]
-  F.4.02.10        src/web/pages/Balance.tsx [30603 б]
+  F.4.02.10        src/web/pages/Balance.tsx [31003 б]
   F.4.02.11        src/web/pages/Verification.tsx [35558 б]
   F.4.02.12        src/web/pages/Archive.tsx [31679 б]
   F.4.02.13        src/web/pages/Justice.tsx [44558 б]
@@ -497,7 +497,7 @@
   I.9.04.53        scripts/test-onboarding-role.ts [4754 б]
   I.9.04.54        scripts/test-notification-link.ts [6751 б]
   I.9.04.56        scripts/test-signal-plan.ts [7129 б]
-  I.9.04.57        scripts/test-plan-deviation.ts [5826 б]
+  I.9.04.57        scripts/test-plan-deviation.ts [7903 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]

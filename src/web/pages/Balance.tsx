@@ -158,7 +158,7 @@ function DeviationsBlock(): ReactElement {
   const qc = useQueryClient();
   const q = useApiQuery<{ data: PlanDeviationRow[]; meta: { total: number } }>(
     ['balance', 'deviations'],
-    '/plans/deviations?only_behind=true',
+    '/plans/deviations',
   );
 
   const signalM = useMutation({
@@ -224,9 +224,19 @@ function DeviationsBlock(): ReactElement {
               render: (r) => r.expectedDone,
             },
             {
+              key: 'status',
+              title: 'Статус',
+              width: 130,
+              render: (r) => (
+                <Badge tone={r.status === 'behind' ? 'danger' : 'info'}>
+                  {r.status === 'behind' ? 'Отстаёт' : 'Быстрее'}
+                </Badge>
+              ),
+            },
+            {
               key: 'action',
               title: '',
-              width: 160,
+              width: 190,
               render: (r) => (
                 <Button
                   variant="secondary"
@@ -234,7 +244,7 @@ function DeviationsBlock(): ReactElement {
                   loading={signalM.isPending}
                   onClick={() => signalM.mutate(r.planId)}
                 >
-                  Сигнал направлению
+                  {r.status === 'behind' ? 'Сигнал: отставание' : 'Сигнал: быстрее'}
                 </Button>
               ),
             },

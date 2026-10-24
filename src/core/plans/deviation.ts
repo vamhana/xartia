@@ -106,7 +106,9 @@ export async function computeDeviation(planId: UUID): Promise<PlanDeviation> {
   let status: DeviationStatus = 'on_track';
   if (overdue > 0 || breached.length > 0) {
     status = 'behind';
-  } else if (diff > threshold) {
+  } else if (diff > 0 && diff >= threshold) {
+    // На маленьких планах порог = 1, поэтому «строго больше» не срабатывал:
+    // одна досрочно принятая задача из одной — уже опережение.
     status = 'ahead';
   }
 

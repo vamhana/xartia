@@ -124,6 +124,44 @@ async function main(): Promise<void> {
   if (dup.status === 409) { ok('повторный сигнал не создан (409)'); }
   else { fail(`повторный сигнал → ${dup.status}`); }
 
+  // Быстрее графика: план, где задачи уже приняты, а срок ещё не вышел.
+  // Балансировка должна заметить и это — чтобы направление перенесло опыт
+  // на отстающие участки.
+  const fastPlan = await call<{ id: string; externalId: string }>(
+    'POST', '/plans',
+    {
+      type: 'standard',
+      title: `Быстрый план ${Date.now().toString().slice(-5)}`,
+      expected_result: 'Проверка опережения',
+      lead_direction_id: dir.id,
+    },
+    token,
+  );
+  if (fastPlan.status !== 201) { fail(`fast plan → ${fastPlan.status}`); return; }
+  await call('POST', `/plans/${fastPlan.data.id}/approve`, {}, token);
+  await call('POST', `/plans/${fastPlan.data.id}/activate`, {}, token);
+  const fastTask = await call<{ id: string }>(
+    'POST', '/tasks',
+    { direction_id: dir.id, plan_id: fastPlan.data.id, description: 'Сделано досрочно', priority: 'standard' },
+    token,
+  );
+  if (fastTask.status === 201) {
+    await query(`UPDATE tasks SET status = 'accepted' WHERE id = $1`, [fastTask.data.id]);
+    const devFast = await call<{ status: string; done: number }>(
+      'GET', `/plans/${fastPlan.data.id}/deviation`, undefined, token,
+    );
+    if (devFast.data.status === 'ahead') { ok('опережение распознано (ahead)'); }
+    else { fail(`ожидали ahead, получили ${devFast.data.status}`); }
+
+    const fastSig = await call<{ externalId: string }>(
+      'POST', `/plans/${fastPlan.data.id}/deviation/signal`, {}, token,
+    );
+    if (fastSig.status === 201) { ok(`сигнал об опережении ${fastSig.data.externalId}`); }
+    else { fail(`сигнал об опережении → ${fastSig.status}`); }
+  } else {
+    fail(`fast task → ${fastTask.status}`);
+  }
+
   console.log('\n✅ done');
 }
 
