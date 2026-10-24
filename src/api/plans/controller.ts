@@ -14,6 +14,9 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import {
+  computePlanBranches, listPlanBranches,
+} from '../../core/plans/branches.js';
+import {
   computeDeviation, hasRecentDeviationSignal, listDeviations,
 } from '../../core/plans/deviation.js';
 import { createSignalService } from '../../core/signals/service.js';
@@ -98,6 +101,17 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
     });
   });
 
+  // GET /plans/branches — параллельные ветки планов (дом №1 … дом №20).
+  app.get(
+    '/plans/branches',
+    { preHandler: [authMiddleware, validateQuery(z.object({ lead_direction_id: uuidSchema.optional() }))] },
+    async (req, reply) => {
+      const q = req.query as { lead_direction_id?: string };
+      const data = await listPlanBranches(q.lead_direction_id as never);
+      reply.send({ data, meta: { total: data.length }, audit_id: req.auditId });
+    },
+  );
+
   // GET /plans/deviations — что отстаёт. Объявлен выше /plans/:id, чтобы
   // статический сегмент не воспринимался как UUID.
   app.get(
@@ -110,6 +124,17 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
         ...(q.only_behind === 'true' ? { onlyBehind: true } : {}),
       });
       reply.send({ data: result.data, meta: { total: result.total }, audit_id: req.auditId });
+    },
+  );
+
+  // GET /plans/:id/branches — ветки одного плана.
+  app.get(
+    '/plans/:id/branches',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const data = await computePlanBranches(p.id);
+      reply.send({ ...data, audit_id: req.auditId });
     },
   );
 

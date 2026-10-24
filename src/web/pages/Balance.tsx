@@ -260,6 +260,197 @@ function DeviationsBlock(): ReactElement {
   );
 }
 
+interface BranchRow {
+  planId: string;
+  planExternalId: string;
+  planTitle: string;
+  branches: Array<{
+    taskId: string;
+    externalId: string;
+    title: string;
+    total: number;
+    done: number;
+    overdue: number;
+    status: 'behind' | 'on_track' | 'ahead';
+  }>;
+}
+
+/**
+ * Ветки планов: «20 домов» — это 20 параллельных участков. Общий прогресс
+ * скрывает, что дом №3 на крыше, а дом №11 стоит на фундаменте.
+ */
+function BranchesBlock(): ReactElement {
+  const q = useApiQuery<{ data: BranchRow[] }>(['balance', 'branches'], '/plans/branches');
+  const rows = (q.data?.data ?? []).flatMap((p) =>
+    p.branches.map((b) => ({ ...b, planTitle: p.planTitle, planExternalId: p.planExternalId })),
+  );
+
+  return (
+    <Card title="Ветки планов" subtitle="Каждый участок виден отдельно: кто отстаёт, кто уже закончил">
+      {q.isLoading ? (
+        <Spinner />
+      ) : rows.length === 0 ? (
+        <p style={styles.muted}>
+          Веток нет: планы пока не разбиты на параллельные участки
+          (корневая задача + подзадачи).
+        </p>
+      ) : (
+        <Table<(typeof rows)[number]>
+          data={rows}
+          getRowId={(r) => r.taskId}
+          columns={[
+            {
+              key: 'plan',
+              title: 'План',
+              render: (r) => (
+                <div>
+                  <div>{r.planTitle}</div>
+                  <div style={styles.muted}>{r.planExternalId}</div>
+                </div>
+              ),
+            },
+            {
+              key: 'branch',
+              title: 'Ветка',
+              render: (r) => (
+                <div>
+                  <div>{r.title}</div>
+                  <div style={styles.muted}>{r.externalId}</div>
+                </div>
+              ),
+            },
+            {
+              key: 'progress',
+              title: 'Принято',
+              width: 110,
+              align: 'right',
+              render: (r) => `${r.done} / ${r.total}`,
+            },
+            {
+              key: 'overdue',
+              title: 'Просрочено',
+              width: 120,
+              align: 'right',
+              render: (r) => (
+                <span style={{ color: r.overdue > 0 ? colors.danger : colors.textMuted }}>
+                  {r.overdue}
+                </span>
+              ),
+            },
+            {
+              key: 'status',
+              title: 'Статус',
+              width: 130,
+              render: (r) => (
+                <Badge tone={r.status === 'behind' ? 'danger' : r.status === 'ahead' ? 'success' : 'info'}>
+                  {r.status === 'behind' ? 'Отстаёт' : r.status === 'ahead' ? 'Готово' : 'В работе'}
+                </Badge>
+              ),
+            },
+          ]}
+        />
+      )}
+    </Card>
+  );
+}
+
+interface OverdueTaskRow {
+  id: string;
+  externalId: string;
+  description: string;
+  directionNumber: number | null;
+  daysLate: number;
+  status: string;
+}
+
+/**
+ * Задачи, не сданные в ОТК: срок истёк, отчёта нет. ОТК нечего проверять,
+ * пока работа не передана — это разрыв в контуре, и его видит балансировка.
+ */
+function OverdueBlock(): ReactElement {
+  const qc = useQueryClient();
+  const q = useApiQuery<{ data: OverdueTaskRow[]; meta: { total: number } }>(
+    ['balance', 'overdue'],
+    '/tasks/overdue',
+  );
+  const scanM = useMutation({
+    mutationFn: () => apiPost<{ data: { tasks: number; created: number; skipped: number } }>(
+      '/tasks/overdue/scan',
+      {},
+    ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['balance', 'overdue'] });
+      void qc.invalidateQueries({ queryKey: ['signals'] });
+    },
+  });
+  const rows = q.data?.data ?? [];
+
+  return (
+    <Card
+      title="Не сданы в ОТК"
+      subtitle="Срок истёк, отчёта нет: ОТК нечего проверять — сигнал направлению"
+    >
+      {q.isLoading ? (
+        <Spinner />
+      ) : rows.length === 0 ? (
+        <p style={styles.muted}>Все задачи в срок переданы на проверку.</p>
+      ) : (
+        <>
+          <Table<OverdueTaskRow>
+            data={rows}
+            getRowId={(r) => r.id}
+            columns={[
+              {
+                key: 'task',
+                title: 'Задача',
+                render: (r) => (
+                  <div>
+                    <div>{r.description}</div>
+                    <div style={styles.muted}>{r.externalId}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'direction',
+                title: 'Направление',
+                width: 130,
+                render: (r) => (r.directionNumber ? `№${r.directionNumber}` : '—'),
+              },
+              {
+                key: 'late',
+                title: 'Просрочка',
+                width: 120,
+                align: 'right',
+                render: (r) => `${r.daysLate} дн.`,
+              },
+            ]}
+          />
+          <div style={{ marginTop: 12 }}>
+            <Button
+              variant="secondary"
+              loading={scanM.isPending}
+              onClick={() => scanM.mutate()}
+            >
+              Поднять сигналы направлениям
+            </Button>
+            {scanM.data && (
+              <span style={{ ...styles.muted, marginLeft: 12 }}>
+                задач {scanM.data.data.tasks}, новых сигналов {scanM.data.data.created}
+                {scanM.data.data.skipped > 0 ? `, пропущено ${scanM.data.data.skipped}` : ''}
+              </span>
+            )}
+            {scanM.isError && (
+              <span style={{ color: colors.warning, marginLeft: 12 }}>
+                {scanM.error instanceof Error ? scanM.error.message : 'Ошибка'}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
 export function BalancePage(): ReactElement {
   const qc = useQueryClient();
   const user = useUser();
@@ -453,6 +644,10 @@ export function BalancePage(): ReactElement {
       {/* Пульс + Индексы */}
       <div style={styles.twoCol}>
         <DeviationsBlock />
+
+        <BranchesBlock />
+
+        <OverdueBlock />
 
         <Card title="Пульс">
           {pulseChartData.length === 0 ? (

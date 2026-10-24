@@ -460,6 +460,7 @@
 
 |2026-10-24 (отклонения): GET /plans/deviations (only_behind, lead_direction_id), GET /plans/:id/deviation, POST /plans/:id/deviation/signal — балансировка поднимает сигнал направлению, повторный в течение 24 часов → 409.
 |2026-10-24 (опережение): сигнал поднимается и когда план идёт быстрее графика (status ahead) — «проверьте, можно ли перенести опыт на отстающие участки». on_track → 409.
+
 |A.1.07.01|API|REST|TypeScript|src/api/tasks/controller.ts|C.0.07.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5|
 |Описание: Контроллер Tasks. **9 эндпоинтов** (из 11 заявленных): список, мои, карточка, создание, assign, take, submit, accept, return. Отсутствуют `PATCH /tasks/:id`, `POST /tasks/:id/change-priority` (roadmap — нет сервисных функций `update`/`changePriority`). Права: `task:C` (create, assign), `otc:C` (accept, return). **`take`/`submit` — self-service** (только `authMiddleware`, проверка `assignedTo` в сервисе). **Rate-limit (`api.write`) на 6 мутациях** (create, assign, take, submit, accept, return). `uuidIdParams`, `taskStatusSchema`, `prioritySchema` из L.0.01.03. 5 Zod-схем. **`createBody.description` — max(5000)**, `required_competencies` — max(50). |
 |Публичный API:
@@ -525,6 +526,8 @@
 - **`POST /tasks/:id/submit` — создание Report** — внутри сервиса (C.0.08.02), контроллер не импортирует.
 - **`POST /tasks/:id/accept` — начисление +1 Поток** — через триггер `trg_flow_balance` (INSERT `flow_transactions` в сервисе).
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks, I.9.04.05 test-connections, I.9.04.24 test-verification. |
+
+|2026-10-25: GET /tasks/overdue (список не сданных в ОТК) и POST /tasks/overdue/scan — сигналы направлениям по просрочкам с защитой 24 часа, уведомление балансировке.
 
 |A.1.08.01|API|REST|TypeScript|src/api/reports/controller.ts|C.0.08.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5, II.7|
 |Описание: Контроллер Reports. **4 эндпоинта** из 5 заявленных (отсутствует `GET /reports/:id/upload-url` — presigned S3, roadmap). **JSON-контракт с `media_url`** (не multipart). **`requireRight('report','V')` на всех GET** — было: любой авторизованный читал любой отчёт с `media/geolocation/comment`. **`writeLimit` на POST**. `uuidIdParams`/`uuidTaskParams` из L.0.01.03 (было локальные схемы). **`media_url` — `max(2048)`**, **`geolocation.lat/lon` — min/max** (`-90..90`/`-180..180`). Валидация type↔comment/media_url — в сервисе (`chk_report_type_media` — последняя линия). Проверка «отчёт может сдать только assignee» — в сервисе (`B2`: `ForbiddenError`, не `ConflictError`). |
@@ -2106,6 +2109,7 @@
 |2026-10-24: + GET /admin/registration-requests (очередь, superRefine на статусы) и POST /admin/registration-requests/:request_id/accept (requireArchitect; создаёт участника через C.0.02.02, welcome-задачу через C.0.02.03, возвращает temporary_password и welcome_task; повторный приём → 409).
 
 |2026-10-24 (роль): в accept добавлено необязательное поле role — после создания участника вызывается assignRole (S.0.01.03) для направления заявки; при отсутствии роли в направлении или конфликте приём не отменяется, в ответе role: null и предупреждение в лог. Ответ дополнен полем role.
+
 |A.1.36.01|API|REST|TypeScript|src/api/chat/controller.ts|C.0.36.02, L.0.01.03, A.1.99.01, A.1.99.06|v.0.0.02|Draft|—|
 |Описание: Контроллер Chat. **17 маршрутов**. `requireRight` **не используется осознанно** — `rights_matrix` не покрывает чат-ресурс; доступ через `canAccessChannel` внутри C.0.36.02. Внутренний комментарий шапки говорит `A.1.99.09 (неявный)` — ошибка нумерации; канонический ID A.1.36.01. **P1–P4** (v0.0.02): `GET /channels/:id`, `GET /channels/:id/members`, `GET /messages/:id` — access-check через `canAccessChannel` → **403** при отсутствии; `POST /channels/:id/join` — access-check для не-direct (direct → 409 от сервиса). **Используются rich-формы**: `listMyChannelsRich` (GET /channels), `getChannelHistoryRich` (GET /channels/:id/messages), `listChannelMembersRich` (GET /channels/:id/members). **`POST /channels/:id/messages` возвращает сырой `ChatMessage`** (без `senderName`/`replyTo`); rich — только через GET-историю. Порядок регистрации: специфичные роуты (`/direct`, `/direction/:id`, `/cell/:id`, `/council/:id`, `/project/:id`) ДО `/channels/:id`; `by-string` — в конце (4 сегмента пути, не конфликтует с `/channels/:id`).
 |Публичный API:
@@ -2190,6 +2194,7 @@
 |↙ ПОТРЕБЛЯЕТ: C.0.02.02 (getById), S.0.01.03 (getEffectiveRoles, hasRole), S.0.01.01 (issueTokens).
 |↘ ПРЕДОСТАВЛЯЕТ: кнопку «Войти как» в F.4.04.03 и возврат сессии в F.4.99.19 (через F.4.99.30).
 |Реализация: проверка NODE_ENV на этапе регистрации роутов, а не в хендлере — в production этих путей нет в таблице маршрутов вообще.
+
 |A.1.90.01|API|System|TypeScript|src/api/system/health.ts|L.0.01.08, L.0.01.09, A.1.90.03|v.0.0.01|Draft|—|
 |Описание: Health-check контроллер. Liveness и startup probe для K8s, расширенная readiness-проверка. Все эндпоинты публичные — без authMiddleware, без requireRight (K8s probe не может логиниться). Rate limit не применяется. ВАЖНО: readiness проверяет ТОЛЬКО БД (primary + replica) и Redis; S3-проверка (заявленная в старой спеке) отсутствует. Version берётся из A.1.90.03 version.ts, а не из C.0.01.03.
 |Публичный API (эндпоинты):
@@ -2727,6 +2732,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.47 (B1, render via /panels/:id/render).
 
 |2026-10-24: выбор панели вынесен в pickPanel(): контекст (точный → normal) важнее, внутри контекста — специфичность (роль → направление → глобальная). Раньше бралась «первая normal по updated_at», из-за чего ОТК мог увидеть обзор направления вместо своей очереди.
+
 |A.1.98.02|API|UI-Components|TypeScript|src/api/ui/controller.ts|C.0.26.02, L.0.01.04|v.0.0.01|Draft|VIII.1|
 |Описание: UI-контроллер. Отдача UI-компонентов, схем, локализации. Единый источник UI-данных. Синхронизация с клиентом.
 |Публичный API (эндпоинты):
@@ -3003,6 +3009,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.18 test-rate-limit.ts.|
 
 |2026-10-24: RATE_LIMIT_ENABLED=false наконец читается — раньше переменная была только в .env.example и k8s-configmap, а middleware её игнорировал. Из-за этого в CI, где она выставлена, smoke-проверки падали на 429 RATE_LIMIT (запись отчёта).
+
 |A.1.99.06|API|Middleware|TypeScript|src/api/middleware/validation.ts|C.0.01.02|v.0.0.02|Draft|I.1.9|
 |Описание: Middleware валидации Zod. 4 экспорта: `validationMiddleware(options)` — универсальный, `validateBody/Query/Params(schema)` — обёртки. Порядок: params → query → body. Замена `request.<field> = result.data` (применяет Zod-коэрсию, defaults, transform; отсекает unknown). `mapIssues` использует `error.issues` (совместимо с Zod 3 и Zod 4; `errors` удалён в v4). Русские сообщения об ошибках.|
 |Публичный API (экспорты):
@@ -3624,6 +3631,7 @@
 |2026-10-24: createFromRequest возвращает { participant, temporaryPassword } (пароль показывается один раз); добавлены listRegistrationRequests() — очередь заявок с маской телефона — и nextWaveNumber(wave) для приёма без ручного номера.
 
 |2026-10-24 (путь участника): заявка рассылается четырём функциям — инкубация (Совет направления 11), балансировка (BALANCER), ноология (NOOLOG #6), верификация (VERIFIER #13); если у функции никого нет — Первому Архитектору. При приёме куратор направления получает «назначьте наставника», балансировка — +1 участник.
+
 |C.0.02.03|Core|Common|TypeScript|src/core/onboarding/service.ts|C.0.07.01, C.0.07.02|v.0.0.01|Draft|—|
 |Описание: Онбординг. Создаёт welcome-задачу «Первый день» и сразу назначает её новому участнику. Отдельной сущности «онбординг» нет: используется обычный домен задач (C.0.07), поэтому задача видна в /tasks, по ней работает отчёт и ОТК.
 |Публичный API:
@@ -4120,6 +4128,21 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.08 test-external-id-sequence, I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks. |
 
 |2026-10-24 (сигнал → план): createPlanService принимает signalId и curatorId, пишет их в plans; после создания уведомляет куратора («Вы куратор плана») и автора сигнала («По вашему сигналу создан план»). Добавлен getPlanProgress — считает задачи по tasks.plan_id и plan_tasks, отдаётся в GET /signals/:id.
+
+|C.0.06.03|Core|Service|TypeScript|src/core/plans/deviation.ts|C.0.06.02|v.0.0.01|Draft|—|
+|Описание: Отклонения плана: overdue (истёкшие сроки), expectedDone (по времени от создания до последнего чекпоинта), diff, breached-чекпоинты; статус behind/on_track/ahead. Список отклонений по активным планам и защита от повторного сигнала (24 часа).
+|Публичный API:
+- computeDeviation(planId), listDeviations({leadDirectionId, onlyBehind}), hasRecentDeviationSignal(planId, hours).
+|↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), D.2.01.03 (tasks, plan_tasks), C.0.10.02 (signals — маркер [план:<id>]).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/deviations, GET /plans/:id/deviation, POST /plans/:id/deviation/signal), F.4.02.10 (блок «Отклонения планов»), I.9.04.57.
+
+|C.0.06.04|Core|Service|TypeScript|src/core/plans/branches.ts|C.0.06.02|v.0.0.01|Draft|—|
+|Описание: Ветки плана — параллельные участки (дом №1 … дом №20). Для каждой корневой задачи с подзадачами считается прогресс, просрочки и статус ветки; список веток по активным планам для панели балансировки.
+|Публичный API:
+- computePlanBranches(planId), listPlanBranches(directionId?), countBehindBranches(planId).
+|↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), D.2.01.03 (tasks.parent_task_id).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/branches, GET /plans/:id/branches), F.4.02.10 (блок «Ветки планов»).
+
 |C.0.07.01|Core|Domain|TypeScript|src/core/tasks/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.5|
 |Описание: Доменная сущность Задача. Таблица переходов статусов. Deadline вычисляется в createTask. Отсутствует changePriority.
 |Публичный API:
@@ -4251,6 +4274,15 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks, I.9.04.05 test-connections, I.9.04.24 test-verification. |
 
 |2026-10-24: назначение/сдача/приёмка/возврат задачи отправляют уведомление (send в lib/notifications) с data.link — колокольчик открывает событие. Сдача уведомляет роль OTC направления. Ошибка отправки не отменяет доменную операцию (try/catch + лог).
+|2026-10-25 (начисление): приёмка начисляет Поток в acceptTaskService — раньше это делал только ОТК-сервис, и приёмка через /tasks/:id/accept оставляла исполнителя без Потока.
+
+|C.0.07.04|Core|Service|TypeScript|src/core/tasks/overdue.ts|C.0.07.02|v.0.0.01|Draft|—|
+|Описание: Задачи, не сданные в ОТК: срок истёк, статус created/assigned/in_progress. Плюс защита от повторного сигнала по направлению (24 часа, маркер [просрочка:<directionId>]).
+|Публичный API:
+- listUnsubmittedTasks(directionId?), hasRecentOverdueSignal(directionId, hours).
+|↙ ПОТРЕБЛЯЕТ: C.0.07.02 (tasks), C.0.10.02 (signals).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.07.01 (GET /tasks/overdue, POST /tasks/overdue/scan), F.4.02.10 (блок «Не сданы в ОТК»), I.9.04.58.
+
 |C.0.08.01|Core|Domain|TypeScript|src/core/reports/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|II.5, II.7|
 |Описание: Доменная сущность Отчёт. Минимальная: createReport, canBeSubmittedBy, getMediaKey. Отсутствуют validateReport и attachMedia.
 |Публичный API:
@@ -4489,6 +4521,8 @@
 |2026-10-24: getQueue отдаёт artifactUrl (r.artifact_url) — ревьюер видит ссылку на PR в очереди ОТК.
 
 |2026-10-24 (апелляция): appeal() уведомляет роль OTC направления — «Апелляция на решение ОТК» (priority high, link /otc).
+|2026-10-25: убрано двойное начисление Потока в decide() — оно переехало в acceptTaskService (единственный путь приёмки).
+
 |C.0.10.01|Core|Domain|TypeScript|src/core/signals/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.1|
 |Описание: Доменная сущность Сигнал. 8 из 11 заявленных функций. Отсутствуют respond, setLeadDirection, escalateToArbitration. Добавлены canTransition, changeStatus.
 |Публичный API:
@@ -4632,6 +4666,7 @@
 
 |2026-10-24: уведомления по сигналам — создание уведомляет Совет направления (sendToRole COUNCIL_MEMBER, direction = lead/directions[0]), ответ уведомляет автора сигнала (signal.response_added, link /signals), эскалация — снова Совет. Все отправки best-effort: падение не отменяет доменную операцию.
 |2026-10-24: GET /signals/:id отдаёт связанный план с прогрессом (plan: {...} | null) — путь «сигнал → план → задачи» открывается одним запросом.
+
 |C.0.11.01|Core|Domain|TypeScript|src/core/connections/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|II.3|
 |Описание: Доменная сущность Коннект. 10 функций. Диагностика — 1 час. Позиции: не более одной на направление. Переход started→diagnostics при 2 позициях.
 |Публичный API:
@@ -6650,6 +6685,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.47 (B2, B3, B4, B5, B6, B8, B9, B37 unit, B38 integration).
 
 |2026-10-24: listMyPanels и getMyPanelById матчат роль панели по ИМЕНИ роли, а не по id: в таблице roles одна функция заведена отдельной строкой на каждое направление, из-за чего панель «Роль: OTC» не была видна ОТК другого направления.
+
 |C.0.26.03|Core|Domain|TypeScript|src/core/constructor/data-loaders.ts|C.0.26.01, C.0.26.02, C.0.01.01, C.0.01.04, ~28 доменных сервисов|v.0.0.02|Draft|VIII.1|
 |Описание: Реестр data loaders для виджетов Конструктора. **28 доменов, ~93 loader'а**. Каждый loader вызывается от имени участника — фильтры по направлению/участнику/роли применяются здесь. Формат данных «натуральный» (Card → объект, Table/List/Chart/Timeline/Tree → массив, Metric/Progress/Circular → `{ value, max? }`, Map → массив `{ id, lat, lon, label?, type? }`). Ошибки loader'а не роняют панель — `Promise.allSettled` в C.0.26.02.loadPanelData. **`LoaderContext.directionId: UUID | null`** — участник без направления; **`DIRECTION_SCOPED`** — набор entity, для которых `directionId=null` → пустой результат.
 |Публичный API:
@@ -6702,6 +6738,7 @@
 
 |2026-10-24: добавлен loader-алиас для entity balance (как main_balance) — библиотечный виджет chart/balance ссылался на entity balance, loader отсутствовал и виджет попадал в missingEntities.
 |2026-10-24: добавлен loader-алиас alance (как main_balance) — библиотечный виджет chart/balance ссылается на entity balance, loader отсутствовал и виджет попадал в missingEntities.
+
 |C.0.27.01|Core|Domain|TypeScript|src/core/planetary/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|IV.7, V.6|
 |Описание: Доменная сущность Планетарный уровень. **5 функций** + 5 type-alias + 7 интерфейсов. Чистые функции, без БД. **Импортов C.0.01.03 (Constants) нет** (старая спека ошибочно указывала).
 |Публичный API:
@@ -6863,6 +6900,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно через I.9.04.38.
 
 |2026-10-24: assignIntegratorService стал идемпотентным (проверка mentor_id+direction_id) — UNIQUE-индекса в схеме нет, и повторное назначение создавало вторую строку, из-за чего ученик «терялся» в старой.
+
 |C.0.28.02|Core|Domain|TypeScript|src/core/convergence/service.ts|C.0.28.01, C.0.14.02 (dynamic), C.0.24.02 (dynamic), C.0.19.02 (dynamic), C.0.27.02 (dynamic), C.0.01.02, C.0.01.04, C.0.01.05, L.0.01.01, L.0.01.05, L.0.01.09|v.0.0.03|Draft|V.7, I.7.2, I.7.4.1, I.7.4.3, I.7.4.4, I.7.7.4, I.7.8.1|
 |Описание: Сервис Convergence. Переход внешнего государства (V.7). **20 публичных функций** + 5 интерфейсов (`PlanFilter`, `CreatePlanInput`, `ConvertDebtsInput`, `ConvertAssetsInput`, `ConvertWeaponsInput`) + 2 реэкспорта (`CONVERGENCE_MAX_MONTHS`, `type StageCriteria`) + 6 приватных row-mappers (`rowToPlan`, `rowToCouncil`, `rowToDebt`, `rowToAsset`, `rowToWeapon`, `rowToCulture`) + 1 хелпер (`bestEffort`). **`CONVERGENCE_MAX_STAGE = CONVERGENCE_STAGES - 1`** (B.7). **`advanceStage(planId, targetStage, requesterId)`** — targetStage из контроллера (B.6). Интеграции — best-effort dynamic import: C.0.14.02 (`flows.addFlow` в `convertDebts`), C.0.24.02 (`gateway.acceptAsset` в `convertAssets`), C.0.19.02 (`verification.createAuditService` в `convertWeapons` и `auditProgress`), C.0.27.02 (`planetary.accreditCommunity` в `complete` — TODO).
 |Публичный API:
@@ -7845,6 +7883,7 @@
 
 |2026-10-24: seedWidgets стал идемпотентным по (type, entity) и включает my_tasks/otc_queue/total_flow; добавлен seedPanels — создаёт панели направлений/ролей/кризисные и наполняет виджетами те, что пусты. Причина: на чистой базе миграции 017/034 пропускаются без Архитектора, и после bootstrap панели оставались пустыми.
 |2026-10-24 (роли 15–17): seedRoles больше не ограничивается направлениями 1–14 — направления 15 «Внешний шлюз», 16 «Сетевая экосистема», 17 «Правозащита» тоже получают базовые роли и ASSOCIATED. Иначе участник такого направления не мог получить роль, а тест Шлюза падал на «Role ASSOCIATED not found».
+
 |C.0.36.01|Core|Domain|TypeScript|src/core/chat/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|—|
 |Описание: Доменная сущность Chat. **9 функций** + 1 type-alias (`ChatChannelType`) + 4 интерфейса (`ChatChannel`, `ChatChannelMember`, `ChatAttachment`, `ChatMessage`). Нормализация direct через сортировку UUID. Валидация сообщений и вложений. Комментарий шапки: `C.0.36.01 (неявный)` — ошибка нумерации; канонический ID C.0.36.01.
 |Публичный API:
@@ -8769,6 +8808,7 @@
 - assignMentorService(menteeId, mentorId, requesterId), listMentorRegistry(directionId?), getMenteeCard(menteeId).
 |↙ ПОТРЕБЛЯЕТ: C.0.28.01 (assignIntegratorService, addIntegratorMenteeService, listIntegrators), A.1.35.01 (admin-роуты), L.0.01.11 (уведомления).
 |↘ ПРЕДОСТАВЛЯЕТ: PATCH /admin/participants/:id {mentor_id}, GET /admin/mentors, GET /admin/participants/:id/mentee-card; проверка — scripts/test-journey.ts (I.9.04.55).
+
 |D.2.01.01|DB|Migration|SQL|db/migrations/001_extensions.sql|—|v.0.0.01|Draft|D.2.01.02|
 |Описание: Первая миграция. Устанавливает 5 PostgreSQL-расширений, без которых не поднимается ни одна последующая миграция. Идемпотентна (IF NOT EXISTS). Завершается DO-блоком, который выводит список установленных расширений через RAISE NOTICE. Дополняет удалённые D.1.* schema: pgcrypto (gen_random_uuid, шифрование PII), postgis (GEOGRAPHY для participants.geolocation, tasks.location, reports.geolocation, cultural_centers.location), pg_trgm (триграммный поиск в справочниках), btree_gist (TSTZRANGE-индексы: balance_metrics.period, mood_metrics.period), uuid-ossp (резерв).
 |Публичный API (расширения):
@@ -10289,20 +10329,17 @@
 |Публичный API: DDL/DML — DO-блок; панели + panel_widgets, ссылки на widgets по (type, entity).
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (panels, panel_widgets, widgets, roles, directions).
 |↘ ПРЕДОСТАВЛЯЕТ: рабочие места для C.0.26.02 (listMyPanels/render) и F.4.98.01 (Workspace).
+
 |D.2.01.35|DB|Migration|SQL|db/migrations/035_role_widgets.sql|D.2.01.03|v.0.0.01|Draft|—|
 |Описание: Виджеты под роли: добавляет table/my_tasks, table/otc_queue, metric/total_flow; в панели ASSOCIATED общий список задач заменён на «Мои задачи», в OTC/VERIFIER/KEEPER — на «Очередь на проверку»; проставляет человеческие заголовки через overrides.title.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (widgets, panel_widgets), D.2.01.34 (панели ролей).
 |↘ ПРЕДОСТАВЛЯЕТ: роль-специфичные данные для панелей (C.0.26.03 loader my_tasks/otc_queue).
+
 |D.2.01.36|DB|Migration|SQL|db/migrations/036_plan_signal_curator.sql|D.2.01.03|v.0.0.01|Draft|—|
 |Описание: Связь «сигнал → план» и куратор плана: plans.signal_id (nullable, FK signals) и plans.curator_id (FK participants) + индексы для обратного поиска. Не UNIQUE: у сигнала может быть несколько планов-этапов.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (plans), D.2.01.05 (signals), D.2.01.02 (participants).
 |↘ ПРЕДОСТАВЛЯЕТ: C.0.06.02 (createPlanService с signalId/curatorId, getPlanProgress), C.0.10.02 (сигнал отдаёт план), F.4.02.06 (блок «План по сигналу»).
-|C.0.06.03|Core|Service|TypeScript|src/core/plans/deviation.ts|C.0.06.02|v.0.0.01|Draft|—|
-|Описание: Отклонения плана: overdue (истёкшие сроки), expectedDone (по времени от создания до последнего чекпоинта), diff, breached-чекпоинты; статус behind/on_track/ahead. Список отклонений по активным планам и защита от повторного сигнала (24 часа).
-|Публичный API:
-- computeDeviation(planId), listDeviations({leadDirectionId, onlyBehind}), hasRecentDeviationSignal(planId, hours).
-|↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), D.2.01.03 (tasks, plan_tasks), C.0.10.02 (signals — маркер [план:<id>]).
-|↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/deviations, GET /plans/:id/deviation, POST /plans/:id/deviation/signal), F.4.02.10 (блок «Отклонения планов»), I.9.04.57.
+
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -10821,6 +10858,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно E2E. |
 
 |2026-10-24: поддержка ?plan_id= — страница показывает задачи конкретного плана («Задачи плана») с возвратом к «Мои задачи».
+
 |F.4.02.04|Frontend|Page|React|src/web/pages/Report.tsx|F.4.99.03, F.4.99.20, F.4.99.22, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.12|v.0.0.01|Draft|II.5, II.7|
 |Описание: Форма отчёта по задаче. Поддерживает три типа (`text`, `photo`, `video`), комментарий (обязателен для text), URL медиа (обязателен для photo/video), опциональная геолокация. При отправке: `POST /tasks/:id/reports` → `POST /tasks/:id/submit` → `navigate('/tasks')`. Если задача не в `in_progress`, показывает сообщение о невозможности подать отчёт (отдельные тексты для `submitted` и `returned`). Загрузка файлов через presigned URL — НЕ реализована, медиа задаётся как URL вручную.
 |Публичный API:
@@ -11017,6 +11055,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно E2E.|
 
 |2026-10-24: блок «План по сигналу» — если плана нет, кнопка «Создать план» (форма: название, ожидаемый результат, куратор); если есть — статус, прогресс и переход «Задачи плана» (/tasks?plan_id=).
+
 |F.4.02.07|Frontend|Page|React|src/web/pages/Goods.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.05, F.4.99.06, F.4.99.11, F.4.99.12, F.4.99.20, F.4.99.24|v.0.0.02|Draft|I.1.5, II.6|
 |Описание: Блага. Список + фильтр по статусу + создание + детальная панель с actions (test/approve/liquidate/component/history). URL-sync `?selected=<id>`. Тройная подпись проектных ресурсов — НЕ реализована (отдельная итерация). |
 |Публичный API:
@@ -11293,6 +11332,8 @@
 
 |2026-10-24: блок «Отклонения планов» — список отстающих планов (принято/всего, просрочено, ожидалось) и кнопка «Сигнал направлению»; пустое состояние «все планы в графике».
 |2026-10-24 (опережение): в таблице отклонений колонка «Статус» (Отстаёт / Быстрее) и кнопка меняет подпись — «Сигнал: отставание» / «Сигнал: быстрее».
+|2026-10-25: блоки «Ветки планов» (каждый участок отдельно) и «Не сданы в ОТК» (список + «Поднять сигналы направлениям»).
+
 |F.4.02.11|Frontend|Page|React|src/web/pages/Verification.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.10, F.4.99.12|v.0.0.01|Draft|III.2|
 |Описание: Панель Верификации. 5 табов: аудиты, перепроверки, аудит кода, целостность, gateway-suspend. Проверка прав через useRights (audit:C, audit:E, audit:A). Тональная инфраструктура: Table, Modal, Form, MetricCard.|
 |Публичный API:
@@ -11664,6 +11705,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |2026-10-24: вкладка «Обзор» стала первой и открывается по умолчанию: KPI (доход, расход, баланс, активы, ждут решения, самодостаточность), баннер «Что такое Шлюз», последние сделки; пустой контур объясняется, а не выглядит поломкой. Сводка считается на клиенте из /gateway/transactions и /gateway/assets — отдельный endpoint дублировал бы данные.
+
 |F.4.02.17|Frontend|Page|React|src/web/pages/Quanta.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.05, F.4.99.07, F.4.99.10, F.4.99.12, F.4.99.20, F.4.99.24, F.4.99.25, F.4.99.26|v.0.0.03|Draft|IV.3, I.3.3.1|
 |Описание: Панель Quanta. **3 таба**: Каталог / Обязательные / Обнаружение. **Master-detail** в «Каталоге» по образцу Signals.tsx. Жизненный цикл: detected → audit → testing → scaling → active → cancelled. Полная реализация. **~30 KB**, ~600 строк, локальный Modal, useRights. |
 |Публичный API:
@@ -12434,6 +12476,7 @@
 |Реализация: welcome-задача определяется по префиксу описания «Первый день» (её создаёт C.0.02.03); взятие задачи мутирует /tasks/:id/take и инвалидирует ['tasks','my'].
 
 |2026-10-24: убран редирект на /workspace, когда welcome-задачи нет: пункт меню «Первый день» выглядел сломанным (клик — и выбрасывало). Теперь показывается состояние «онбординг пройден» со ссылками на задачи, коллектив, чат и панель.
+
 |F.4.02.29|Frontend|Page|React|src/web/pages/Collective.tsx|A.1.37.01|v.0.0.01|Draft|—|
 |Описание: Страница «Коллектив» (/collective): счётчики, таблица людей с направлениями/статусами/ролями, полосы численности по 17 направлениям, чипы ролей, лента событий из audit_log.
 |Публичный API:
@@ -12773,6 +12816,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
 
 |2026-10-24: список участников прокручивается отдельно от карточки (listScroll, overflowY: auto) — при сотне строк нижние строки и пагинация были недоступны. Добавлена dev-кнопка «Войти как» (A.1.39.01) с сохранением своей сессии.
+
 |F.4.04.04|Web|Admin Mandates|TypeScript|src/web/pages/admin/MandatesPage.tsx|F.4.99.02, F.4.99.03, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.20, F.4.99.12, F.4.04.09|v.0.0.01|Draft|F.4.01.01, F.4.04.01, A.1.35.01, A.1.05.01|
 |Описание: Мандаты — список + фильтры (function/status/direction_id/holder_id) + создание (CreateMandateModal → POST /admin/delegate) + side panel с ротацией (POST /mandates/:id/rotate) и отзывом (DELETE /mandates/:id?reason=…). Состояние в URL: function/status/direction_id/holder_id/page/selected. Использует ParticipantPicker (F.4.04.09).|
 |Публичный API:
@@ -14288,6 +14332,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан. Косвенно — F.4.99.17 Layout, F.4.99.19 Header.|
 
 |2026-10-24: клик по уведомлению ведёт на событие: расширена карта ссылок (crisis/regime → /regimes, semantic → /semantic, integrity → /verification, gateway → /gateway, community → /planetary) и добавлен фолбэк по data.taskId/reportId/signalId. Выпадашка закрывается после перехода.
+
 |F.4.99.16|Frontend|UI|React|src/web/components/ui/Search.tsx|F.4.99.05, F.4.99.12, F.4.99.23, A.1.95.01|v.0.0.02|Draft|I.1.10|
 |Описание: Компонент поиска. **4 экспорта**: `Search` (компактный триггер в Header), `CommandPalette` (модальное окно Cmd+K), `useSearch` (хук с debounce 300 мс + React Query), `useSearchShortcut` (глобальный listener Cmd+K). **Без cmdk** — свой код. История запросов в localStorage (`xartia.search.history`, max 10). `paletteStore` — глобальный синглтон открытия/закрытия. |
 |Публичный API:
@@ -14469,6 +14514,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно E2E.|
 
 |2026-10-24: в dev-режиме в шапке появляется кнопка «← Вернуться», если сессия была подменена через /dev/impersonate (см. F.4.99.30).
+
 |F.4.99.20|Frontend|Hook|TypeScript|src/web/hooks/useApi.ts|F.4.99.12|v.0.0.01|Draft|F.4.02.*, F.4.99.*|
 |Описание: Обёртка над TanStack Query + api-client. Единый интерфейс для GET/POST/PATCH/DELETE из React-компонентов с автогенерацией ключей кэша и инвалидацией связанных запросов по мутациям. Используется всеми F.4.02.* страницами. Не покрывает optimistic updates и retry-политику — это берётся из QueryClient (F.4.01.01). Дублирующиеся импорты `@tanstack/react-query` — стилистическая мелочь, работает.
 |Публичный API:
@@ -14869,6 +14915,7 @@
 
 |2026-10-24: заголовок виджета — человеческий (карта WIDGET_TITLES + overrides.title), а не «table · tasks».
 |2026-10-24 (empty-state): если данных у виджета нет (null, [], {data: []}), вместо пустой рамки показывается заголовок и подсказка EMPTY_HINTS («Задач нет — возьмите из очереди направления», «Очередь пуста — проверять нечего» и т.д.).
+
 |F.4.99.28|Frontend|UI|TypeScript|src/web/components/ui/PanelCanvas.constants.ts|F.4.99.05|v.0.0.02|Draft|VIII.1|
 |Описание: Константы PanelCanvas, вынесенные в отдельный модуль. Причина выделения — vite-plugin-react (Fast Refresh) требует, чтобы файл экспортировал либо только компоненты, либо только не-компоненты. PanelCanvas.tsx экспортирует компонент PanelCanvas, поэтому все константы (COLS, ZOOM_LEVELS, SCREEN_SIZES, BASE_ROW_HEIGHT и т.д.) вынесены сюда. Обеспечивает корректную работу HMR без полной перезагрузки страницы. Также используется DndManager'ом и потребителями (Constructor.tsx, Workspace.tsx) для тулбаров.|
 |Публичный API:
@@ -14984,6 +15031,7 @@
 |↙ ПОТРЕБЛЯЕТ: F.4.99.01 (api/client: loadTokensFromStorage, setTokens).
 |↘ ПРЕДОСТАВЛЯЕТ: F.4.04.03 (кнопка «Войти как»), F.4.99.19 (кнопка «← Вернуться»).
 |Реализация: sessionStorage, а не localStorage — подмена не переживает закрытие вкладки. В production файл не вызывается: кнопки скрыты по import.meta.env.DEV.
+
 |I.0.01.01|Infra|Docker|Dockerfile|docker/Dockerfile.api|I.0.01.02, M.0.01.06|v.0.0.01|Draft|—|
 |Описание: Dockerfile для Core API (Fastify + TypeScript). Multi-stage сборка (builder → runtime). Node 20 alpine. Non-root user. Минимальный образ.
 |Публичный API (стадии):
@@ -15616,6 +15664,7 @@
 |2026-10-24: добавлен сервис minio (bitnami/minio, MINIO_DEFAULT_BUCKETS=charter-media,charter-archive,charter-gateway) и шаг «Базовые справочники» (I.9.02.19). Без хранилища smoke-тест задач падал на «Артефакт не сохранился»: S3-хранилище — обязательная часть контура отчёта.
 |2026-10-24 (minio): хранилище поднимается шагом docker run coollabsio/minio (образ minio/minio недоступен на Docker Hub, quay.io требует авторизацию), бакеты создаёт I.9.02.20. Первая попытка через services с bitnami/minio падала: образа больше нет в Docker Hub.
 |2026-10-24 (диагностика): каждый smoke-шаг пишет вывод в /tmp/smoke-*.log (tee + pipefail), а при падении строки ✗ публикуются аннотацией check-run — логи джоба требуют токена (403), аннотации читаются публичным API.
+
 |I.2.01.01|Infra|Monitoring|YAML|monitoring/prometheus.yml|I.5.07.01|v.0.0.01|Draft|—|
 |Описание: Prometheus конфиг. Сбор метрик со всех сервисов. Scrape интервалы. Service discovery через K8s.
 |Публичный API (элементы):
@@ -20626,11 +20675,13 @@ Status Draft: файл есть, но работоспособность не п
 |Публичный API: pnpm tsx scripts/seed-base.ts <phone> <password>; идемпотентен (повторный вызов возвращает нули).
 |↙ ПОТРЕБЛЯЕТ: C.0.35.02 (seedTemplates через POST /admin/seed), A.1.02.01 (auth/login).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Базовые справочники» в I.1.01.16 и I.9.02.18 (ci-local).
+
 |I.9.02.20|Infra|Script|TypeScript|scripts/ensure-buckets.ts|L.0.01.07|v.0.0.01|Draft|—|
 |Описание: Создаёт бакеты S3/MinIO (charter-media, charter-archive, charter-gateway), если их нет. Идемпотентно: HeadBucket → CreateBucket.
 |Публичный API: pnpm tsx scripts/ensure-buckets.ts; читает S3_ENDPOINT/S3_ACCESS_KEY/S3_SECRET_KEY/S3_BUCKET_*.
 |↙ ПОТРЕБЛЯЕТ: L.0.01.07 (S3-конфигурация).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Бакеты S3» в I.1.01.16; артефакт отчёта (C.0.29.01).
+
 |I.9.03.01|Infra|Tools|TypeScript|scripts/lib/ws-env.ts|L.0.01.08|v.0.0.01|Draft|T.1.01.*|
 |Описание: Библиотека загрузки WS-тестового окружения. Приоритет: `.ws-test-env.json` (если свежий по `WS_TEST_EXPIRES_AT`) → env-переменные (`WS_TEST_TOKEN`, `WS_TEST_PID`, `WS_TEST_DIR`, ...) → ошибка. Файл приоритетнее env, потому что env в `cmd.exe` не обновляется автоматически, и старые значения могут перебивать свежие из `I.9.02.06`. Экспортирует `loadWsEnv()` и `isTokenExpired()`. Не подключается к Redis, несмотря на зависимость `L.0.01.08` в старой спеке.
 |Публичный API:
@@ -23902,6 +23953,7 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 ТЕСТОВОЕ ПОКРЫТИЕ: A.1.24.01, C.0.24.02, S.0.01.07 (косвенно) — B2, B3, B4 (partial), B5, B6, B7, B8, B10, B24.
 
 |2026-10-24: скрипт включён в CI («Smoke — Шлюз») — проходит совет, сделки (approve/audit, B3/B4), активы, Гаранта, Свидетелей, Оборону, самодостаточность и роспуск; чистит за собой состояние.
+
 |I.9.04.47|Infra|Tools|TypeScript|scripts/test-constructor.ts|A.1.26.01, A.1.98.01, C.0.26.01, C.0.26.02, C.0.26.03, L.0.01.01, L.0.01.09, L.0.01.12, L.0.01.xx (redis), S.0.xx (encryption/password)|v0.0.01|Draft|A.1.26.01, A.1.98.01|
 |Описание: CLI-тест Конструктора. **~22 секции**: setup (worker, roles, container/leaf widget) → panel create/get/list/patch/delete → widgets (root/container/leaf, B8 listWidgets entity, B4 cycle, B5 cascade) → publish/versions (B6) → B2 (patch/delete active → 409) → B38 (contextual: global normal + role-specific crisis, exact priority + fallback) → B37 (checkRightInMatrix unit) → B1 (/panels/me scoping) → render (with 404) → rights-matrix CRUD (create/dup 409/list) → cache invalidate (B9) → widgets library. Cleanup по `MARKER='CONSTRUCTOR-TEST:'`.
 |Публичный API:
@@ -24118,21 +24170,31 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |Публичный API: pnpm tsx scripts/test-onboarding-role.ts <architect_phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: A.1.01.01, A.1.03.01 (/roles), A.1.35.01 (accept с role), S.0.01.03 (assignRole).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: onboarding-role» в I.1.01.16 и I.9.02.18.
+
 |I.9.04.54|Infra|Test|TypeScript|scripts/test-notification-link.ts|C.0.07.02|v.0.0.01|Draft|—|
 |Описание: Smoke-тест «уведомление → переход к событию»: назначение задачи самому себе → в /notifications/history появляется task.assigned с data.link=/tasks/<id>/report → PATCH /notifications/:id/read → статус сохраняется.
 |Публичный API: pnpm tsx scripts/test-notification-link.ts <phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: C.0.07.02 (уведомления задач), A.1.07.01 (tasks), A.1.96.01 (notifications/history, read).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: notifications» в I.1.01.16 и I.9.02.18.
+
 |I.9.04.56|Infra|Test|TypeScript|scripts/test-signal-plan.ts|C.0.06.02|v.0.0.01|Draft|—|
 |Описание: Сквозной тест пути сигнала: сигнал → план с signal_id и curator_id → из сигнала виден план → GET /plans?signal_id → уведомления куратору и автору → утверждение/активация → задача в плане → прогресс в сигнале.
 |Публичный API: pnpm tsx scripts/test-signal-plan.ts <phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), C.0.10.02 (signals), L.0.01.11 (уведомления).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — сигнал → план» в I.1.01.16 и I.9.02.18.
+
 |I.9.04.57|Infra|Test|TypeScript|scripts/test-plan-deviation.ts|C.0.06.03|v.0.0.01|Draft|—|
 |Описание: Тест отклонений: план с чекпоинтом в прошлом → задача с истёкшим сроком → GET /plans/:id/deviation = behind → план в /plans/deviations → POST сигнал направлению (маркер [план:<id>]) → повторный сигнал 409.
 |Публичный API: pnpm tsx scripts/test-plan-deviation.ts <phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: C.0.06.03 (deviation), C.0.06.02 (plans), C.0.10.02 (signals).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — отклонения плана» в I.1.01.16 и I.9.02.18.
+
+|I.9.04.58|Infra|Test|TypeScript|scripts/test-branches-otc.ts|C.0.06.04|v.0.0.01|Draft|—|
+|Описание: Тест «стройки»: план с двумя ветками (один дом сдан, второй отстаёт) → ветки и behindCount → приёмка ОТК начисляет Поток исполнителю → задача с истёкшим сроком и без отчёта попадает в /tasks/overdue → scan поднимает сигналы направлениям.
+|Публичный API: pnpm tsx scripts/test-branches-otc.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.06.04 (branches), C.0.07.04 (overdue), C.0.07.02 (accept), C.0.09.02 (OTC).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — ветки и приёмка ОТК» в I.1.01.16 и I.9.02.18.
+
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:

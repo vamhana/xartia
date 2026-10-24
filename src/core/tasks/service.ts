@@ -19,6 +19,7 @@
 import { query, queryOne, isUniqueViolation } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
 import { logger } from '../../lib/logger.js';
+import { awardForAcceptedTask } from '../flows/service.js';
 import { send as sendNotification, sendToRole } from '../../lib/notifications.js';
 import {
   emitTaskAssigned,
@@ -511,6 +512,18 @@ export async function acceptTaskService(taskId: UUID, requesterId: UUID): Promis
 
   const finalTask = await getById(taskId);
   await emitTaskAccepted(toWsPayload(finalTask));
+
+  // Приёмка = начисление Потока. Раньше это делал только ОТК-сервис, и при
+  // приёмке через /tasks/:id/accept Поток не начислялся. Теперь начисление
+  // живёт в единственном месте — здесь.
+  if (finalTask.assignedTo) {
+    try {
+      await awardForAcceptedTask(finalTask.assignedTo, taskId, requesterId);
+    } catch (e) {
+      logger.warn({ err: e, taskId }, 'flow award on accept failed');
+    }
+  }
+
   if (finalTask.assignedTo) {
     await notifySafely(
       finalTask.assignedTo,

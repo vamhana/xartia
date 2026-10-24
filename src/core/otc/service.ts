@@ -28,7 +28,6 @@ import {
 import { sendToRole } from '../../lib/notifications.js';
 import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError } from '../errors.js';
-import { awardForAcceptedTask } from '../flows/service.js';
 import { Role } from '../roles.js';
 import { getById as getReportById } from '../reports/service.js';
 import { getById as getTaskById, acceptTaskService, returnTaskService } from '../tasks/service.js';
@@ -176,7 +175,6 @@ export async function decide(
   if (input.verdict === 'accepted' || input.verdict === 'crisis_protocol') {
     await acceptTaskService(report.taskId, otcId);
     if (task.assignedTo) {
-      await awardForAcceptedTask(task.assignedTo, report.taskId, otcId);
     }
   } else {
     await returnTaskService(report.taskId, input.comment ?? 'Возвращено ОТК', otcId);
@@ -258,7 +256,6 @@ export async function crisisDecide(
   if (entity.verdict === 'crisis_protocol') {
     await acceptTaskService(report.taskId, otcId);
     if (task.assignedTo) {
-      await awardForAcceptedTask(task.assignedTo, report.taskId, otcId);
     }
   } else {
     await returnTaskService(report.taskId, 'Кризисная проверка не пройдена', otcId);

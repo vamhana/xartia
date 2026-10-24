@@ -21,6 +21,15 @@ import {
   acceptTaskService, returnTaskService,
 } from '../../core/tasks/service.js';
 import { uuidIdParams, uuidSchema, prioritySchema, taskStatusSchema } from '../../lib/validators.js';
+import { createSignalService } from '../../core/signals/service.js';
+import { send as sendNotification } from '../../lib/notifications.js';
+import { logger } from '../../lib/logger.js';
+import { listParticipantsWithRole } from '../../security/rbac.js';
+import { Role } from '../../core/roles.js';
+import {
+  hasRecentOverdueSignal,
+  listUnsubmittedTasks,
+} from '../../core/tasks/overdue.js';
 import { mustGetLimit } from '../../security/rate-limit.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
@@ -74,6 +83,81 @@ export async function registerTasksRoutes(app: FastifyInstance): Promise<void> {
     const tasks = await listMyTasks(auth.participantId);
     reply.send({ data: tasks, audit_id: req.auditId });
   });
+
+  // GET /tasks/overdue — задачи, не сданные в ОТК (срок истёк, отчёта нет).
+  // Объявлен выше /tasks/:id, чтобы статический сегмент не приняли за UUID.
+  app.get(
+    '/tasks/overdue',
+    { preHandler: [authMiddleware, validateQuery(z.object({ direction_id: uuidSchema.optional() }))] },
+    async (req, reply) => {
+      const q = req.query as { direction_id?: string };
+      const data = await listUnsubmittedTasks(q.direction_id as never);
+      reply.send({ data, meta: { total: data.length }, audit_id: req.auditId });
+    },
+  );
+
+  // POST /tasks/overdue/scan — балансировка поднимает сигналы направлениям.
+  app.post(
+    '/tasks/overdue/scan',
+    { preHandler: [authMiddleware, writeLimit, requireRight('signal', 'C')] },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const tasks = await listUnsubmittedTasks();
+      const byDirection = new Map<string, typeof tasks>();
+      for (const t of tasks) {
+        const list = byDirection.get(t.directionId) ?? [];
+        list.push(t);
+        byDirection.set(t.directionId, list);
+      }
+
+      let created = 0;
+      let skipped = 0;
+      for (const [directionId, list] of byDirection) {
+        const recent = await hasRecentOverdueSignal(directionId as never);
+        if (recent) {skipped += 1; continue;}
+
+        const worst = list[0]!;
+        try {
+          await createSignalService({
+            type: 'problem',
+            description: `[просрочка:${directionId}] Не сданы в ОТК: ${list.length} задач(и). `
+              + `Самая старая: ${worst.externalId} — просрочена на ${worst.daysLate} дн.`,
+            justification:
+              'Балансировка: задачи идут по сроку, но не переданы на проверку. '
+              + 'ОТК нечего проверять, пока отчёт не сдан — просьба разобрать участок.',
+            priority: list.length > 3 ? 'high' : 'standard',
+            directions: [directionId as never],
+            leadDirectionId: directionId as never,
+          }, auth.participantId);
+          created += 1;
+        } catch (e) {
+          logger.warn({ err: e, directionId }, 'overdue signal failed');
+        }
+      }
+
+      // Балансировка получает уведомление — она держит индикатор.
+      try {
+        const balancers = await listParticipantsWithRole(Role.BALANCER);
+        for (const recipientId of balancers) {
+          await sendNotification({
+            recipientId,
+            type: 'tasks.overdue',
+            priority: 'standard',
+            title: 'Задачи не сданы в ОТК',
+            body: `Просрочено и не передано на проверку: ${tasks.length}. Новых сигналов: ${created}.`,
+            data: { link: '/balance' },
+          });
+        }
+      } catch (e) {
+        logger.warn({ err: e }, 'overdue notification failed');
+      }
+
+      reply.send({
+        data: { tasks: tasks.length, directions: byDirection.size, created, skipped },
+        audit_id: req.auditId,
+      });
+    },
+  );
 
   app.get('/tasks/:id', { preHandler: [authMiddleware, validateParams(uuidIdParams)] }, async (req, reply) => {
     const p = req.params as z.infer<typeof uuidIdParams>;
