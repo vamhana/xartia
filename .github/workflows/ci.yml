@@ -112,9 +112,13 @@ jobs:
             fi
             sleep 1
           done
-          docker run --rm --network host --entrypoint sh minio/mc:latest -c \
-            "mc alias set ci http://localhost:9000 ci-minio ci-minio-secret && \
-             mc mb --ignore-existing ci/charter-media ci/charter-archive ci/charter-gateway"
+          # minio/mc собран на ubi-micro: shell внутри нет. Алиас не переживает
+          # контейнер, поэтому передаём хост через MC_HOST_<alias> в env и
+          # создаём все бакеты одной командой.
+          docker run --rm --network host \
+            -e MC_HOST_ci=http://ci-minio:ci-minio-secret@localhost:9000 \
+            minio/mc:latest \
+            mb --ignore-existing ci/charter-media ci/charter-archive ci/charter-gateway
 
       # 017_seed_widgets.sql требует участника, поэтому миграции идут
       # в два прохода: схема → Архитектор → сиды.
