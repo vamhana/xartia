@@ -104,7 +104,7 @@ jobs:
           docker run -d --name ci-minio -p 9000:9000 \
             -e MINIO_ROOT_USER=ci-minio \
             -e MINIO_ROOT_PASSWORD=ci-minio-secret \
-            minio/minio:latest server /data
+            coollabsio/minio:latest server /data
           for i in $(seq 1 40); do
             if curl -fsS http://localhost:9000/minio/health/live >/dev/null; then
               echo "MinIO поднялся за ${i}s"
@@ -112,13 +112,9 @@ jobs:
             fi
             sleep 1
           done
-          # minio/mc собран на ubi-micro: shell внутри нет. Алиас не переживает
-          # контейнер, поэтому передаём хост через MC_HOST_<alias> в env и
-          # создаём все бакеты одной командой.
-          docker run --rm --network host \
-            -e MC_HOST_ci=http://ci-minio:ci-minio-secret@localhost:9000 \
-            minio/mc:latest \
-            mb --ignore-existing ci/charter-media ci/charter-archive ci/charter-gateway
+
+      - name: Бакеты S3
+        run: pnpm tsx scripts/ensure-buckets.ts
 
       # 017_seed_widgets.sql требует участника, поэтому миграции идут
       # в два прохода: схема → Архитектор → сиды.

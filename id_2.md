@@ -15586,6 +15586,7 @@
 |Реализация: ENCRYPTION_KEY/PHONE_HASH_KEY/INTEGRITY_HMAC_KEY — фиксированные base64 от 32 нулевых байт (только CI); при падении печатаются последние 200 строк лога API.
 
 |2026-10-24: добавлен сервис minio (bitnami/minio, MINIO_DEFAULT_BUCKETS=charter-media,charter-archive,charter-gateway) и шаг «Базовые справочники» (I.9.02.19). Без хранилища smoke-тест задач падал на «Артефакт не сохранился»: S3-хранилище — обязательная часть контура отчёта.
+|2026-10-24 (minio): хранилище поднимается шагом docker run coollabsio/minio (образ minio/minio недоступен на Docker Hub, quay.io требует авторизацию), бакеты создаёт I.9.02.20. Первая попытка через services с bitnami/minio падала: образа больше нет в Docker Hub.
 |I.2.01.01|Infra|Monitoring|YAML|monitoring/prometheus.yml|I.5.07.01|v.0.0.01|Draft|—|
 |Описание: Prometheus конфиг. Сбор метрик со всех сервисов. Scrape интервалы. Service discovery через K8s.
 |Публичный API (элементы):
@@ -20596,6 +20597,11 @@ Status Draft: файл есть, но работоспособность не п
 |Публичный API: pnpm tsx scripts/seed-base.ts <phone> <password>; идемпотентен (повторный вызов возвращает нули).
 |↙ ПОТРЕБЛЯЕТ: C.0.35.02 (seedTemplates через POST /admin/seed), A.1.02.01 (auth/login).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Базовые справочники» в I.1.01.16 и I.9.02.18 (ci-local).
+|I.9.02.20|Infra|Script|TypeScript|scripts/ensure-buckets.ts|L.0.01.07|v.0.0.01|Draft|—|
+|Описание: Создаёт бакеты S3/MinIO (charter-media, charter-archive, charter-gateway), если их нет. Идемпотентно: HeadBucket → CreateBucket.
+|Публичный API: pnpm tsx scripts/ensure-buckets.ts; читает S3_ENDPOINT/S3_ACCESS_KEY/S3_SECRET_KEY/S3_BUCKET_*.
+|↙ ПОТРЕБЛЯЕТ: L.0.01.07 (S3-конфигурация).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Бакеты S3» в I.1.01.16; артефакт отчёта (C.0.29.01).
 |I.9.03.01|Infra|Tools|TypeScript|scripts/lib/ws-env.ts|L.0.01.08|v.0.0.01|Draft|T.1.01.*|
 |Описание: Библиотека загрузки WS-тестового окружения. Приоритет: `.ws-test-env.json` (если свежий по `WS_TEST_EXPIRES_AT`) → env-переменные (`WS_TEST_TOKEN`, `WS_TEST_PID`, `WS_TEST_DIR`, ...) → ошибка. Файл приоритетнее env, потому что env в `cmd.exe` не обновляется автоматически, и старые значения могут перебивать свежие из `I.9.02.06`. Экспортирует `loadWsEnv()` и `isTokenExpired()`. Не подключается к Redis, несмотря на зависимость `L.0.01.08` в старой спеке.
 |Публичный API:
