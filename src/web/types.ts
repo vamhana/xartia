@@ -128,6 +128,17 @@ export interface Signal {
   leadDirectionId: UUID | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
+  /** План, выросший из сигнала (если уже создан), с прогрессом по задачам. */
+  plan?: SignalPlanSummary | null;
+}
+
+export interface SignalPlanSummary {
+  id: UUID;
+  externalId: string;
+  title: string;
+  status: string;
+  curatorId: UUID | null;
+  progress: { total: number; done: number; inWork: number } | null;
 }
 
 export interface SignalResponse {

@@ -45,6 +45,7 @@ export function TasksPage(): ReactElement {
 
   const [searchParams] = useSearchParams();
   const selectedFromUrl = searchParams.get('selected');
+  const planIdFromUrl = searchParams.get('plan_id');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,6 +58,13 @@ export function TasksPage(): ReactElement {
     ['tasks', 'my'],
     '/tasks/my',
     { refetchInterval: 30_000 },
+  );
+
+  // Задачи конкретного плана: сюда ведёт «сигнал → план → задачи».
+  const planTasksQuery = useApiQuery<{ data: Task[]; meta: { total: number } }>(
+    ['tasks', 'plan', planIdFromUrl ?? ''],
+    `/tasks?plan_id=${planIdFromUrl ?? ''}&per_page=200`,
+    { enabled: !!planIdFromUrl },
   );
 
   const dailyPlanQuery = useApiQuery<{ data: DailyPlan | null; audit_id: string }>(
@@ -80,10 +88,13 @@ export function TasksPage(): ReactElement {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const tasks = useMemo(() => {
-    const list = [...(myTasksQuery.data?.data ?? [])];
+    const source = planIdFromUrl
+      ? (planTasksQuery.data?.data ?? [])
+      : (myTasksQuery.data?.data ?? []);
+    const list = [...source];
     list.sort(sortTasks);
     return list;
-  }, [myTasksQuery.data]);
+  }, [myTasksQuery.data, planTasksQuery.data, planIdFromUrl]);
 
   // Прокрутка к выделенной задаче (после загрузки списка).
   useEffect(() => {
@@ -103,7 +114,8 @@ export function TasksPage(): ReactElement {
     }
   };
 
-  if (myTasksQuery.isLoading) {return <Spinner label="Загрузка задач…" />;}
+  const loading = planIdFromUrl ? planTasksQuery.isLoading : myTasksQuery.isLoading;
+  if (loading) {return <Spinner label="Загрузка задач…" />;}
   if (myTasksQuery.isError) {
     return (
       <Card title="Ошибка" variant="outlined">
@@ -120,13 +132,18 @@ export function TasksPage(): ReactElement {
 
       <div style={styles.headerRow}>
         <h1 style={styles.h1}>
-          Мои задачи
+          {planIdFromUrl ? 'Задачи плана' : 'Мои задачи'}
           {tasks.length > 0 && <span style={styles.count}>({tasks.length})</span>}
         </h1>
+        {planIdFromUrl && (
+          <Button variant="ghost" onClick={() => navigate('/tasks')}>
+            Все мои задачи
+          </Button>
+        )}
         <Button
           variant="secondary"
-          onClick={() => void myTasksQuery.refetch()}
-          loading={myTasksQuery.isFetching}
+          onClick={() => void (planIdFromUrl ? planTasksQuery.refetch() : myTasksQuery.refetch())}
+          loading={planIdFromUrl ? planTasksQuery.isFetching : myTasksQuery.isFetching}
         >
           Обновить
         </Button>

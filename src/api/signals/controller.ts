@@ -21,6 +21,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { routeSignal } from '../../core/connectivity/service.js';
+import { getPlanProgress, listPlans } from '../../core/plans/service.js';
 import {
   listSignals, getById, createSignalService, respondService,
   listResponses, markAsEscalated,
@@ -98,7 +99,17 @@ export async function registerSignalsRoutes(app: FastifyInstance): Promise<void>
   app.get('/signals/:id', { preHandler: [authMiddleware, validateParams(uuidIdParams)] }, async (req, reply) => {
     const p = req.params as z.infer<typeof uuidIdParams>;
     const signal = await getById(p.id);
-    reply.send({ ...signal, audit_id: req.auditId });
+    // Сигнал без плана — это идея, которая ещё не стала работой. Отдаём план
+    // (если он уже создан) вместе с прогрессом, чтобы путь «сигнал → план →
+    // задачи» открывался одним запросом, а не тремя экранами.
+    const plans = await listPlans({ signalId: p.id, page: 1, perPage: 5 });
+    const plan = plans.data[0] ?? null;
+    const progress = plan ? await getPlanProgress(plan.id) : null;
+    reply.send({
+      ...signal,
+      plan: plan ? { ...plan, progress } : null,
+      audit_id: req.auditId,
+    });
   });
 
   app.post(

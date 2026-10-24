@@ -13,6 +13,8 @@
 
 import { query, queryOne, isUniqueViolation, transaction } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
+import { logger } from '../../lib/logger.js';
+import { send as sendNotification } from '../../lib/notifications.js';
 import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ValidationError } from '../errors.js';
 import type { UUID, PlanType, PlanStatus, Priority, TaskStatus, ISODateTime } from '../types.js';
@@ -26,6 +28,8 @@ interface PlanRow {
   title: string;
   expected_result: string;
   lead_direction_id: string;
+  signal_id: string | null;
+  curator_id: string | null;
   status: PlanStatus;
   criteria: Record<string, unknown>;
   checkpoints: PlanCheckpoint[] | null;
@@ -44,6 +48,8 @@ function rowToPlan(row: PlanRow): Plan {
     title: row.title,
     expectedResult: row.expected_result,
     leadDirectionId: row.lead_direction_id,
+    signalId: row.signal_id,
+    curatorId: row.curator_id,
     status: row.status,
     criteria: row.criteria,
     checkpoints: row.checkpoints ?? [],
@@ -56,6 +62,7 @@ function rowToPlan(row: PlanRow): Plan {
 }
 
 const PLAN_COLUMNS = `id, external_id, type, title, expected_result, lead_direction_id,
+                      signal_id, curator_id,
                       status, criteria, checkpoints, stop_conditions, approved_by, approved_at,
                       created_at, updated_at`;
 
@@ -63,6 +70,8 @@ export interface PlanFilter {
   type?: PlanType;
   status?: PlanStatus;
   leadDirectionId?: UUID;
+  signalId?: UUID;
+  curatorId?: UUID;
   page?: number;
   perPage?: number;
 }
@@ -86,6 +95,14 @@ export async function listPlans(filter: PlanFilter = {}): Promise<{ data: Plan[]
   if (filter.leadDirectionId) {
     params.push(filter.leadDirectionId);
     conditions.push(`lead_direction_id = $${params.length}`);
+  }
+  if (filter.signalId) {
+    params.push(filter.signalId);
+    conditions.push(`signal_id = $${params.length}`);
+  }
+  if (filter.curatorId) {
+    params.push(filter.curatorId);
+    conditions.push(`curator_id = $${params.length}`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -123,6 +140,10 @@ export interface CreatePlanRequest {
   title: string;
   expectedResult: string;
   leadDirectionId: UUID;
+  /** Сигнал-основание: план отвечает на конкретный сигнал. */
+  signalId?: UUID;
+  /** Куратор-человек: с него спрашивают за отклонения. */
+  curatorId?: UUID;
   criteria?: Record<string, unknown>;
   checkpoints?: PlanCheckpoint[];
   stopConditions?: Record<string, unknown>;
@@ -165,6 +186,8 @@ export async function createPlanService(
       title: input.title,
       expectedResult: input.expectedResult,
       leadDirectionId: input.leadDirectionId,
+      signalId: input.signalId ?? null,
+      curatorId: input.curatorId ?? null,
       ...(input.criteria ? { criteria: input.criteria } : {}),
       ...(input.checkpoints ? { checkpoints: input.checkpoints } : {}),
       ...(input.stopConditions ? { stopConditions: input.stopConditions } : {}),
@@ -174,8 +197,9 @@ export async function createPlanService(
       await query(
         `INSERT INTO plans
            (id, external_id, type, title, expected_result, lead_direction_id,
+            signal_id, curator_id,
             status, criteria, checkpoints, stop_conditions)
-         VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10, $11)`,
         [
           entity.id,
           entity.externalId,
@@ -183,6 +207,8 @@ export async function createPlanService(
           entity.title,
           entity.expectedResult,
           entity.leadDirectionId,
+          entity.signalId,
+          entity.curatorId,
           JSON.stringify(entity.criteria),
           JSON.stringify(entity.checkpoints),
           JSON.stringify(entity.stopConditions),
@@ -195,8 +221,42 @@ export async function createPlanService(
         action: 'plans.create',
         entityType: 'plan',
         entityId: entity.id,
-        newValue: { external_id: entity.externalId, type: entity.type },
+        newValue: {
+          external_id: entity.externalId,
+          type: entity.type,
+          signal_id: entity.signalId,
+          curator_id: entity.curatorId,
+        },
       });
+
+      // Связь «сигнал → план» должна быть видна обеим сторонам: куратор
+      // узнаёт, что он отвечает за исполнение, автор сигнала — что его идея
+      // не потерялась. Ссылка ведёт к сигналу, где теперь виден план.
+      const signalLink = entity.signalId ? `/signals?selected=${entity.signalId}` : '/tasks';
+      if (entity.curatorId) {
+        await notifySafely(
+          entity.curatorId,
+          'plan.curator_assigned',
+          'Вы куратор плана',
+          `${entity.title} (${entity.externalId}). Отклонения и прогресс — на вас.`,
+          { planId: entity.id, signalId: entity.signalId, link: signalLink },
+        );
+      }
+      if (entity.signalId) {
+        try {
+          const { getById: getSignal } = await import('../signals/service.js');
+          const signal = await getSignal(entity.signalId);
+          await notifySafely(
+            signal.initiatorId,
+            'plan.created_from_signal',
+            'По вашему сигналу создан план',
+            `${signal.externalId} → ${entity.title} (${entity.externalId}).`,
+            { planId: entity.id, signalId: entity.signalId, link: signalLink },
+          );
+        } catch (e) {
+          logger.warn({ err: e, planId: entity.id }, 'plan: signal lookup failed');
+        }
+      }
 
       return entity;
     } catch (e) {
@@ -562,4 +622,65 @@ export async function removeTaskFromDailyPlan(
     entityId: planId,
     newValue: { task_id: taskId },
   });
+}
+/**
+ * Уведомление — побочный эффект: сбой доставки не отменяет создание плана.
+ */
+async function notifySafely(
+  recipientId: UUID,
+  type: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await sendNotification({
+      recipientId,
+      type,
+      priority: 'standard',
+      title,
+      body,
+      data,
+    });
+  } catch (e) {
+    logger.warn({ err: e, recipientId, type }, 'plan notification failed');
+  }
+}
+
+export interface PlanProgress {
+  planId: UUID;
+  total: number;
+  done: number;
+  inWork: number;
+}
+
+/**
+ * Прогресс плана по его задачам. Считается из plan_tasks + tasks.
+ * Нужен, чтобы «сигнал → план → прогресс» можно было увидеть одним взглядом,
+ * а не собирать по крупицам из списка задач.
+ */
+export async function getPlanProgress(planId: UUID): Promise<PlanProgress> {
+  // Задача может быть привязана к плану двумя путями: tasks.plan_id (так
+  // создаёт createTaskService) и plan_tasks (декомпозиция). Считаем оба,
+  // иначе прогресс «не видит» только что созданную задачу.
+  const row = await queryOne<{ total: string; done: string; in_work: string }>(
+    `WITH plan_task_ids AS (
+       SELECT t.id, t.status FROM tasks t WHERE t.plan_id = $1
+       UNION
+       SELECT t.id, t.status
+         FROM plan_tasks pt JOIN tasks t ON t.id = pt.task_id
+        WHERE pt.plan_id = $1
+     )
+     SELECT COUNT(*)::text AS total,
+            COUNT(*) FILTER (WHERE status = 'accepted')::text AS done,
+            COUNT(*) FILTER (WHERE status IN ('assigned','in_progress','submitted'))::text AS in_work
+       FROM plan_task_ids`,
+    [planId],
+  );
+  return {
+    planId,
+    total: parseInt(row?.total ?? '0', 10),
+    done: parseInt(row?.done ?? '0', 10),
+    inWork: parseInt(row?.in_work ?? '0', 10),
+  };
 }

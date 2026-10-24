@@ -6,7 +6,7 @@
 
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent, type ReactElement } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { apiPost } from '../api/client';
 import { Badge } from '../components/ui/Badge';
@@ -293,6 +293,8 @@ function SignalDetail({
         />
       )}
 
+      <PlanBlock signal={signal} onChanged={onChanged} />
+
       <Card title={`Ответы направлений (${responses.length})`}>
         {responses.length === 0 ? (
           <div style={styles.empty}>Пока нет ответов</div>
@@ -323,6 +325,173 @@ function SignalDetail({
         )}
       </Card>
     </>
+  );
+}
+
+
+// -------- План по сигналу --------
+
+/**
+ * Сигнал без плана — просто идея. Здесь видно, стал ли сигнал работой:
+ * куратор, статус плана, прогресс по задачам. Если плана нет — его можно
+ * создать прямо отсюда, чтобы путь не обрывался на «решение принято».
+ */
+function PlanBlock({
+  signal,
+  onChanged,
+}: {
+  signal: Signal;
+  onChanged: () => void;
+}): ReactElement {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const plan = signal.plan ?? null;
+
+  if (plan) {
+    const progress = plan.progress;
+    return (
+      <Card title="План по сигналу" subtitle={`${plan.externalId} · ${plan.status}`}>
+        <div style={styles.field}>
+          <div style={styles.fieldLabel}>Название</div>
+          <div style={styles.fieldText}>{plan.title}</div>
+        </div>
+        <div style={styles.field}>
+          <div style={styles.fieldLabel}>Прогресс</div>
+          <div style={styles.fieldText}>
+            {progress && progress.total > 0
+              ? `принято ${progress.done} из ${progress.total}, в работе ${progress.inWork}`
+              : 'задач пока нет — план создан, декомпозиция впереди'}
+          </div>
+        </div>
+        <div style={styles.detailActions}>
+          <Button variant="secondary" onClick={() => navigate(`/tasks?plan_id=${plan.id}`)}>
+            Задачи плана
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card title="План по сигналу" subtitle="Пока не создан">
+        <p style={styles.dim}>
+          План фиксирует ожидаемый результат, куратора и чекпоинты. Без него
+          сигнал остаётся идеей: некому отвечать за сроки и отклонения.
+        </p>
+        <div style={styles.detailActions}>
+          <Button onClick={() => setOpen(true)}>Создать план</Button>
+        </div>
+        {error && <div style={styles.error}>{error}</div>}
+      </Card>
+      {open && (
+        <CreatePlanForSignalForm
+          signal={signal}
+          onCancel={() => setOpen(false)}
+          onCreated={() => {
+            setOpen(false);
+            onChanged();
+          }}
+          onError={setError}
+        />
+      )}
+    </>
+  );
+}
+
+function CreatePlanForSignalForm({
+  signal,
+  onCancel,
+  onCreated,
+  onError,
+}: {
+  signal: Signal;
+  onCancel: () => void;
+  onCreated: () => void;
+  onError: (msg: string) => void;
+}): ReactElement {
+  const [title, setTitle] = useState(signal.description.slice(0, 120));
+  const [expected, setExpected] = useState('');
+  const [curatorId, setCuratorId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const peopleQ = useApiQuery<{
+    data: Array<{ id: string; name: string; externalId: string }>;
+  }>(['participants', 'plan-curators'], '/participants?per_page=100');
+
+  const onSubmit = async (e: FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!title.trim() || !expected.trim()) {
+      onError('Нужны название и ожидаемый результат');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await apiPost('/plans', {
+        type: 'standard',
+        title: title.trim(),
+        expected_result: expected.trim(),
+        lead_direction_id: signal.leadDirectionId ?? signal.directions[0],
+        signal_id: signal.id,
+        ...(curatorId ? { curator_id: curatorId } : {}),
+      });
+      onCreated();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Не удалось создать план');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card title="Новый план по сигналу" subtitle={signal.externalId}>
+      <form onSubmit={(e) => void onSubmit(e)}>
+        <div style={styles.fieldGroup}>
+          <div style={styles.fieldLabel}>Название *</div>
+          <textarea
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            rows={2}
+            style={styles.textarea}
+            disabled={submitting}
+          />
+        </div>
+        <div style={styles.fieldGroup}>
+          <div style={styles.fieldLabel}>Ожидаемый результат *</div>
+          <textarea
+            value={expected}
+            onChange={(e) => setExpected(e.target.value)}
+            rows={3}
+            style={styles.textarea}
+            placeholder="Что должно появиться, чтобы план считался выполненным"
+            disabled={submitting}
+          />
+        </div>
+        <div style={styles.fieldGroup}>
+          <div style={styles.fieldLabel}>Куратор</div>
+          <select
+            value={curatorId}
+            onChange={(e) => setCuratorId(e.target.value)}
+            style={styles.select}
+            disabled={submitting}
+          >
+            <option value="">— назначить позже —</option>
+            {(peopleQ.data?.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.externalId})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={styles.detailActions}>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+            Отмена
+          </Button>
+          <Button type="submit" loading={submitting}>Создать план</Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 

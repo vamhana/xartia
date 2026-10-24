@@ -16,6 +16,10 @@ export interface Plan {
   title: string;
   expectedResult: string;
   leadDirectionId: UUID;
+  /** Сигнал, из которого вырос план (nullable: бывают плановые работы). */
+  signalId: UUID | null;
+  /** Конкретный человек-куратор, а не направление. */
+  curatorId: UUID | null;
   status: PlanStatus;
   criteria: Record<string, unknown>;
   checkpoints: PlanCheckpoint[];
@@ -33,6 +37,8 @@ export interface CreatePlanInput {
   title: string;
   expectedResult: string;
   leadDirectionId: UUID;
+  signalId?: UUID | null;
+  curatorId?: UUID | null;
   criteria?: Record<string, unknown>;
   checkpoints?: PlanCheckpoint[];
   stopConditions?: Record<string, unknown>;
@@ -57,6 +63,8 @@ export function createPlan(input: CreatePlanInput): Plan {
     title: input.title.trim(),
     expectedResult: input.expectedResult.trim(),
     leadDirectionId: input.leadDirectionId,
+    signalId: input.signalId ?? null,
+    curatorId: input.curatorId ?? null,
     status: 'draft',
     criteria: input.criteria ?? {},
     checkpoints: input.checkpoints ?? [],

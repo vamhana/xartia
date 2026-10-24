@@ -32,6 +32,8 @@ const listQuery = z.object({
   type: planTypeSchema.optional(),
   status: planStatusSchema.optional(),
   lead_direction_id: uuidSchema.optional(),
+  signal_id: uuidSchema.optional(),
+  curator_id: uuidSchema.optional(),
   page: z.coerce.number().int().min(1).default(1),
   per_page: z.coerce.number().int().min(1).max(200).default(20),
 });
@@ -41,6 +43,8 @@ const createBody = z.object({
   title: z.string().min(1).max(255),
   expected_result: z.string().min(1),
   lead_direction_id: uuidSchema,
+  signal_id: uuidSchema.optional(),
+  curator_id: uuidSchema.optional(),
   criteria: z.record(z.unknown()).optional(),
   checkpoints: z.array(z.object({
     at: z.string().datetime({ offset: true }),
@@ -73,6 +77,8 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
       ...(q.type ? { type: q.type } : {}),
       ...(q.status ? { status: q.status } : {}),
       ...(q.lead_direction_id ? { leadDirectionId: q.lead_direction_id } : {}),
+      ...(q.signal_id ? { signalId: q.signal_id } : {}),
+      ...(q.curator_id ? { curatorId: q.curator_id } : {}),
       page: q.page, perPage: q.per_page,
     });
     reply.send({
@@ -99,6 +105,8 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
         title: b.title,
         expectedResult: b.expected_result,
         leadDirectionId: b.lead_direction_id,
+        ...(b.signal_id ? { signalId: b.signal_id } : {}),
+        ...(b.curator_id ? { curatorId: b.curator_id } : {}),
         ...(b.criteria ? { criteria: b.criteria } : {}),
         ...(b.checkpoints ? { checkpoints: b.checkpoints } : {}),
         ...(b.stop_conditions ? { stopConditions: b.stop_conditions } : {}),

@@ -4117,6 +4117,7 @@
 - **`tasks` идентифицируются по UUID** (`id`), а `externalId` — по regex (`TASK-YYYY-MM-DD-NNN`). В `daily_plan_tasks` хранится `task_id` (UUID). Ок.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.08 test-external-id-sequence, I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks. |
 
+|2026-10-24 (сигнал → план): createPlanService принимает signalId и curatorId, пишет их в plans; после создания уведомляет куратора («Вы куратор плана») и автора сигнала («По вашему сигналу создан план»). Добавлен getPlanProgress — считает задачи по tasks.plan_id и plan_tasks, отдаётся в GET /signals/:id.
 |C.0.07.01|Core|Domain|TypeScript|src/core/tasks/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.5|
 |Описание: Доменная сущность Задача. Таблица переходов статусов. Deadline вычисляется в createTask. Отсутствует changePriority.
 |Публичный API:
@@ -4628,6 +4629,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.20 test-signals.ts (B2, B4, B1), I.9.04.11 test-jury (idea-сигнал). |
 
 |2026-10-24: уведомления по сигналам — создание уведомляет Совет направления (sendToRole COUNCIL_MEMBER, direction = lead/directions[0]), ответ уведомляет автора сигнала (signal.response_added, link /signals), эскалация — снова Совет. Все отправки best-effort: падение не отменяет доменную операцию.
+|2026-10-24: GET /signals/:id отдаёт связанный план с прогрессом (plan: {...} | null) — путь «сигнал → план → задачи» открывается одним запросом.
 |C.0.11.01|Core|Domain|TypeScript|src/core/connections/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|II.3|
 |Описание: Доменная сущность Коннект. 10 функций. Диагностика — 1 час. Позиции: не более одной на направление. Переход started→diagnostics при 2 позициях.
 |Публичный API:
@@ -10289,6 +10291,10 @@
 |Описание: Виджеты под роли: добавляет table/my_tasks, table/otc_queue, metric/total_flow; в панели ASSOCIATED общий список задач заменён на «Мои задачи», в OTC/VERIFIER/KEEPER — на «Очередь на проверку»; проставляет человеческие заголовки через overrides.title.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (widgets, panel_widgets), D.2.01.34 (панели ролей).
 |↘ ПРЕДОСТАВЛЯЕТ: роль-специфичные данные для панелей (C.0.26.03 loader my_tasks/otc_queue).
+|D.2.01.36|DB|Migration|SQL|db/migrations/036_plan_signal_curator.sql|D.2.01.03|v.0.0.01|Draft|—|
+|Описание: Связь «сигнал → план» и куратор плана: plans.signal_id (nullable, FK signals) и plans.curator_id (FK participants) + индексы для обратного поиска. Не UNIQUE: у сигнала может быть несколько планов-этапов.
+|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (plans), D.2.01.05 (signals), D.2.01.02 (participants).
+|↘ ПРЕДОСТАВЛЯЕТ: C.0.06.02 (createPlanService с signalId/curatorId, getPlanProgress), C.0.10.02 (сигнал отдаёт план), F.4.02.06 (блок «План по сигналу»).
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -10806,6 +10812,7 @@
 - **`div.highlightWrapper`** — outline 2px primary, outlineOffset 4, borderRadius sm. При повторном highlight — тот же стиль (нет анимации). Ок.
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно E2E. |
 
+|2026-10-24: поддержка ?plan_id= — страница показывает задачи конкретного плана («Задачи плана») с возвратом к «Мои задачи».
 |F.4.02.04|Frontend|Page|React|src/web/pages/Report.tsx|F.4.99.03, F.4.99.20, F.4.99.22, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.12|v.0.0.01|Draft|II.5, II.7|
 |Описание: Форма отчёта по задаче. Поддерживает три типа (`text`, `photo`, `video`), комментарий (обязателен для text), URL медиа (обязателен для photo/video), опциональная геолокация. При отправке: `POST /tasks/:id/reports` → `POST /tasks/:id/submit` → `navigate('/tasks')`. Если задача не в `in_progress`, показывает сообщение о невозможности подать отчёт (отдельные тексты для `submitted` и `returned`). Загрузка файлов через presigned URL — НЕ реализована, медиа задаётся как URL вручную.
 |Публичный API:
@@ -11001,6 +11008,7 @@
 - **`direction_id` в ReplyForm** берётся из `useUser().participant.directionId` — если пользователь меняет направление, форма использует старое значение (до перерендера).
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно E2E.|
 
+|2026-10-24: блок «План по сигналу» — если плана нет, кнопка «Создать план» (форма: название, ожидаемый результат, куратор); если есть — статус, прогресс и переход «Задачи плана» (/tasks?plan_id=).
 |F.4.02.07|Frontend|Page|React|src/web/pages/Goods.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.05, F.4.99.06, F.4.99.11, F.4.99.12, F.4.99.20, F.4.99.24|v.0.0.02|Draft|I.1.5, II.6|
 |Описание: Блага. Список + фильтр по статусу + создание + детальная панель с actions (test/approve/liquidate/component/history). URL-sync `?selected=<id>`. Тройная подпись проектных ресурсов — НЕ реализована (отдельная итерация). |
 |Публичный API:
@@ -24105,6 +24113,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |Публичный API: pnpm tsx scripts/test-notification-link.ts <phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: C.0.07.02 (уведомления задач), A.1.07.01 (tasks), A.1.96.01 (notifications/history, read).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: notifications» в I.1.01.16 и I.9.02.18.
+|I.9.04.56|Infra|Test|TypeScript|scripts/test-signal-plan.ts|C.0.06.02|v.0.0.01|Draft|—|
+|Описание: Сквозной тест пути сигнала: сигнал → план с signal_id и curator_id → из сигнала виден план → GET /plans?signal_id → уведомления куратору и автору → утверждение/активация → задача в плане → прогресс в сигнале.
+|Публичный API: pnpm tsx scripts/test-signal-plan.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), C.0.10.02 (signals), L.0.01.11 (уведомления).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — сигнал → план» в I.1.01.16 и I.9.02.18.
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:
