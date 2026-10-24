@@ -47,6 +47,7 @@ interface PlanRow {
   curator_id: string | null;
   curator_name: string | null;
   lead_direction_id: string | null;
+  direction_number: number | null;
 }
 
 interface TaskRow {
@@ -158,9 +159,11 @@ export async function getOversightTree(
     : '';
   const plans = await query<PlanRow>(
     `SELECT p.id, p.external_id, p.title, p.status, p.curator_id,
-            p.lead_direction_id, curator.name AS curator_name
+            p.lead_direction_id, d.number AS direction_number,
+            curator.name AS curator_name
        FROM plans p
        LEFT JOIN participants curator ON curator.id = p.curator_id
+       LEFT JOIN directions d ON d.id = p.lead_direction_id
       WHERE p.status = 'in_progress' ${where}
       ORDER BY p.created_at DESC
       LIMIT 50`,
@@ -340,7 +343,7 @@ export async function getOversightTree(
       kind: 'plan',
       id: plan.id as UUID,
       title: plan.title,
-      subtitle: `${plan.external_id} · веток: ${branchNodes.length}`,
+      subtitle: `${plan.external_id} · направление №${plan.direction_number ?? '—'} · веток: ${branchNodes.length}`,
       coordinator: plan.curator_name,
       directionId: (plan.lead_direction_id as UUID | null) ?? null,
       planId: plan.id as UUID,
