@@ -9,7 +9,7 @@
 // (участник уже в работе), страница молча уводит на /workspace.
 
 import { useState, type ReactElement } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -39,9 +39,43 @@ export function StartPage(): ReactElement {
     t.description.startsWith(WELCOME_PREFIX),
   );
 
-  // Участник уже в работе — онбординг не нужен.
+  // Онбординг-задачи нет: не уводим со страницы, иначе пункт меню «Первый
+  // день» выглядит сломанным (клик — и тебя выбросило на другую панель).
   if (!welcome) {
-    return <Navigate to="/workspace" replace />;
+    return (
+      <div style={styles.page}>
+        <header style={styles.header}>
+          <div>
+            <h1 style={styles.h1}>Первый день</h1>
+            <p style={styles.subtitle}>
+              {passport.data?.name ?? 'Участник'} · {passport.data?.externalId ?? '—'}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => void tasks.refetch()}>
+            Обновить
+          </Button>
+        </header>
+
+        <Card
+          title="Онбординг пройден"
+          subtitle="Задачи «Первый день» нет — вы уже в обычной работе"
+        >
+          <p style={styles.muted}>
+            Что делать дальше:
+          </p>
+          <ul style={styles.links}>
+            <li><Link to="/tasks" style={styles.link}>Задачи</Link> — очередь направления и свои задачи</li>
+            <li><Link to="/collective" style={styles.link}>Коллектив</Link> — кто рядом и что происходит</li>
+            <li><Link to="/chat" style={styles.link}>Чат</Link> — вопросы и знакомство</li>
+            <li><Link to="/workspace" style={styles.link}>Рабочая панель</Link> — виджеты направления</li>
+          </ul>
+          <p style={styles.muted}>
+            Если вы только что приняты и задачи ещё нет — попросите Архитектора
+            выдать роль и задачу: это часть приёма, а не отдельная просьба.
+          </p>
+        </Card>
+      </div>
+    );
   }
 
   const isAssigned = welcome.status === 'assigned';

@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 
 
 import { useAuth } from '../../hooks/useAuth';
+import { hasDevReturn, restoreDevReturn } from '../../lib/dev';
 import { useStore } from '../../store';
 import { colors, spacing, fontSize, radius } from '../../theme';
 import { onStatusChange, getState, connect, disconnect, type WSState } from '../../ws/client';
@@ -17,6 +18,7 @@ export function Header(): ReactElement {
   const toggleTheme = useStore((s) => s.toggleTheme);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const [ws, setWs] = useState<WSState>(() => getState());
+  const [devReturn] = useState<boolean>(() => hasDevReturn());
 
   // Подписываемся на статус WS — независимо от user.
   useEffect(() => {
@@ -79,6 +81,21 @@ export function Header(): ReactElement {
         <div style={styles.userId}>{user?.participant.externalId ?? ''}</div>
       </div>
 
+      {/* Dev-вход под тестовым ником: возврат к своей сессии. */}
+      {import.meta.env.DEV && devReturn && (
+        <button
+          onClick={() => {
+            if (restoreDevReturn()) {
+              window.location.href = '/';
+            }
+          }}
+          style={styles.devReturnBtn}
+          title="Вы вошли под тестовым ником — вернуться к своей сессии"
+        >
+          ← Вернуться
+        </button>
+      )}
+
       <button onClick={() => void logout()} style={styles.logoutBtn}>
         Выйти
       </button>
@@ -134,6 +151,15 @@ const styles = {
   },
   userName: { fontSize: fontSize.sm, color: colors.text },
   userId: { fontSize: fontSize.xs, color: colors.textDim, fontFamily: 'monospace' },
+  devReturnBtn: {
+    background: 'transparent',
+    color: colors.warning,
+    border: `1px dashed ${colors.warning}`,
+    padding: '6px 10px',
+    borderRadius: radius.sm,
+    fontSize: fontSize.xs,
+    cursor: 'pointer',
+  },
   logoutBtn: {
     background: 'transparent',
     color: colors.textMuted,

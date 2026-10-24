@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   701
-  Файлов в проекте:        698
+  Блоков в спецификации:   703
+  Файлов в проекте:        700
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,9 +48,9 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 508
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 510
 ========================================================================
-  A.1.00.01        src/server.ts [15708 б]
+  A.1.00.01        src/server.ts [15803 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
   A.1.02.01        src/api/participants/controller.ts [6325 б]
   A.1.03.01        src/api/directions/controller.ts [2240 б]
@@ -89,6 +89,7 @@
   A.1.36.01        src/api/chat/controller.ts [13128 б]
   A.1.37.01        src/api/collective/controller.ts [1305 б]
   A.1.38.01        src/api/public/controller.ts [646 б]
+  A.1.39.01        src/api/dev/controller.ts [4253 б]
   A.1.90.01        src/api/system/health.ts [2024 б]
   A.1.90.02        src/api/system/metrics.ts [3450 б]
   A.1.90.03        src/api/system/version.ts [1187 б]
@@ -265,18 +266,18 @@
   F.4.02.25        src/web/pages/_ChartDemo.tsx [5645 б]
   F.4.02.26        src/web/pages/_FormDemo.tsx [2996 б]
   F.4.02.27        src/web/pages/_TableDemo.tsx [3134 б]
-  F.4.02.28        src/web/pages/Start.tsx [8234 б]
+  F.4.02.28        src/web/pages/Start.tsx [10066 б]
   F.4.02.29        src/web/pages/Collective.tsx [13539 б]
   F.4.02.30        src/web/pages/Landing.tsx [11316 б]
   F.4.02.98        src/web/pages/Otc.tsx [13221 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
   F.4.04.01        src/web/pages/admin/AdminLayout.tsx [8613 б]
-  F.4.04.02        src/web/pages/admin/DashboardPage.tsx [4562 б]
-  F.4.04.03        src/web/pages/admin/ParticipantsPage.tsx [20830 б]
-  F.4.04.04        src/web/pages/admin/MandatesPage.tsx [29069 б]
+  F.4.04.02        src/web/pages/admin/DashboardPage.tsx [4565 б]
+  F.4.04.03        src/web/pages/admin/ParticipantsPage.tsx [23694 б]
+  F.4.04.04        src/web/pages/admin/MandatesPage.tsx [29072 б]
   F.4.04.05        src/web/pages/admin/RecoveryPage.tsx [19106 б]
-  F.4.04.06        src/web/pages/admin/LogsPage.tsx [16171 б]
+  F.4.04.06        src/web/pages/admin/LogsPage.tsx [16174 б]
   F.4.04.07        src/web/pages/admin/SystemPage.tsx [7877 б]
   F.4.04.08        src/web/pages/admin/index.ts [693 б]
   F.4.04.09        src/web/pages/admin/ParticipantPicker.tsx [12465 б]
@@ -307,7 +308,7 @@
   F.4.99.16        src/web/components/ui/Search.tsx [18435 б]
   F.4.99.17        src/web/components/layout/Layout.tsx [1197 б]
   F.4.99.18        src/web/components/layout/Sidebar.tsx [5807 б]
-  F.4.99.19        src/web/components/layout/Header.tsx [4587 б]
+  F.4.99.19        src/web/components/layout/Header.tsx [5499 б]
   F.4.99.20        src/web/hooks/useApi.ts [1973 б]
   F.4.99.21        src/web/hooks/useWS.ts [1044 б]
   F.4.99.22        src/web/lib/format.ts [8316 б]
@@ -318,6 +319,7 @@
   F.4.99.27        src/web/components/ui/PanelCanvas.tsx [25981 б]
   F.4.99.28        src/web/components/ui/PanelCanvas.constants.ts [1305 б]
   F.4.99.29        src/web/components/ui/DndManager.tsx [5503 б]
+  F.4.99.30        src/web/lib/dev.ts [1584 б]
   I.0.01.01        docker/Dockerfile.api [1725 б]
   I.0.01.02        .dockerignore [2479 б]
   I.0.01.03        docker/Dockerfile.web [1228 б]
@@ -339,9 +341,9 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [262560 б]
+  I.10.05.04       tsconfig.tsbuildinfo [262914 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [131754 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [132181 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -554,9 +556,9 @@
   W.2.12.01        src/ws/chat.ts [4002 б]
   W.2.13.01        src/ws/interview.ts [5504 б]
   W.2.14.01        src/ws/psy.ts [7200 б]
-  X.0.01.07        README.md [4452 б]
-  X.0.01.08        docs/roadmap.md [25995 б]
-  X.0.01.11        docs/product-v0.1.md [19636 б]
+  X.0.01.07        README.md [6741 б]
+  X.0.01.08        docs/roadmap.md [26162 б]
+  X.0.01.11        docs/product-v0.1.md [20522 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
 
 ========================================================================
@@ -725,5 +727,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  508
+  Файлов с содержимым:  510
   Пустых файлов:        157

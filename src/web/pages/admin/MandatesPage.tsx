@@ -635,7 +635,7 @@ export default MandatesPage;
 // ─────────────────────────────────────────────────────────────────
 
 const styles = {
-  page: { display: 'flex', flexDirection: 'column', gap: spacing.md, height: '100%' } as const,
+  page: { display: 'flex', flexDirection: 'column', gap: spacing.md, minHeight: '100%' } as const,
   pageHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } as const,
   headActions: { display: 'flex', gap: spacing.sm, alignItems: 'center' } as const,
   h1: { fontSize: fontSize.xl, fontWeight: 600, margin: 0, color: colors.text } as const,

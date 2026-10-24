@@ -89,7 +89,7 @@ export function DashboardPage(): ReactElement {
 export default DashboardPage;
 
 const styles = {
-  page: { display: 'flex', flexDirection: 'column', gap: spacing.md, height: '100%' } as const,
+  page: { display: 'flex', flexDirection: 'column', gap: spacing.md, minHeight: '100%' } as const,
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } as const,
   h1: { fontSize: fontSize.xl, fontWeight: 600, margin: 0, color: colors.text } as const,
   stack: { display: 'flex', flexDirection: 'column', gap: spacing.md } as const,

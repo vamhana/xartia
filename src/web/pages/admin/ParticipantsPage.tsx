@@ -6,13 +6,14 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { apiPatch } from '../../api/client';
+import { apiPatch, apiPost, setTokens } from '../../api/client';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { Table, type Column } from '../../components/ui/Table';
 import { useApiQuery } from '../../hooks/useApi';
+import { saveDevReturn } from '../../lib/dev';
 import { colors, fontSize, radius, spacing } from '../../theme';
 
 interface ParticipantRow {
@@ -220,6 +221,33 @@ function ParticipantPanel({
     }
   };
 
+  // Dev-вход под тестовым ником: сохраняем свою сессию, получаем токен
+  // участника и перезагружаем приложение от его имени.
+  const [devBusy, setDevBusy] = useState(false);
+  const [devError, setDevError] = useState<string | null>(null);
+
+  const impersonate = async (): Promise<void> => {
+    setDevBusy(true);
+    setDevError(null);
+    try {
+      const res = await apiPost<{ access_token: string; refresh_token: string }>(
+        `/dev/impersonate/${participantId}`,
+      );
+      saveDevReturn();
+      setTokens({
+        accessToken: res.access_token,
+        refreshToken: res.refresh_token,
+        expiresAt: Date.now() + 15 * 60 * 1000,
+      });
+      window.location.href = '/';
+    } catch (e) {
+      const err = e as { message?: string };
+      setDevError(err.message ?? 'Не удалось войти под тестовым ником');
+    } finally {
+      setDevBusy(false);
+    }
+  };
+
   return (
     <aside style={styles.panel}>
       <div style={styles.panelHeader}>
@@ -328,6 +356,27 @@ function ParticipantPanel({
             </Button>
             <Button variant="ghost" onClick={onClose}>Закрыть</Button>
           </div>
+
+          {/* Dev-вход под тестовым ником: проверить продукт глазами участника.
+              В production кнопки нет (import.meta.env.DEV), а маршруты /dev/*
+              сервер не регистрирует. */}
+          {import.meta.env.DEV && (
+            <div style={styles.devBlock}>
+              <div style={styles.devHint}>
+                Тестовый вход: сессия переключится на этого участника.
+                Вернуться можно кнопкой «← Вернуться» в шапке.
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={devBusy}
+                onClick={() => void impersonate()}
+              >
+                Войти как {q.data.externalId}
+              </Button>
+              {devError && <div style={styles.error}>{devError}</div>}
+            </div>
+          )}
         </div>
       )}
     </aside>
@@ -465,13 +514,17 @@ export function ParticipantsPage(): ReactElement {
             <Card title="Ошибка"><p style={styles.error}>Не удалось загрузить список</p></Card>
           ) : (
             <>
-              <Table<ParticipantRow>
-                data={listQ.data.data}
-                columns={columns}
-                getRowId={(r) => r.id}
-                onRowClick={(r) => update({ selected: r.id })}
-                emptyMessage="Участников нет"
-              />
+              {/* Список прокручивается отдельно от карточки участника:
+                  иначе при сотне строк нижние строки и пагинация недоступны. */}
+              <div style={styles.listScroll}>
+                <Table<ParticipantRow>
+                  data={listQ.data.data}
+                  columns={columns}
+                  getRowId={(r) => r.id}
+                  onRowClick={(r) => update({ selected: r.id })}
+                  emptyMessage="Участников нет"
+                />
+              </div>
               {totalPages > 1 && (
                 <div style={styles.pager}>
                   <Button
@@ -515,7 +568,7 @@ export default ParticipantsPage;
 // ─── Styles ──────────────────────────────────────────────────────
 
 const styles = {
-  page: { display: 'flex', flexDirection: 'column', gap: spacing.md, height: '100%' } as const,
+  page: { display: 'flex', flexDirection: 'column', gap: spacing.md, minHeight: '100%' } as const,
   pageHead: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -551,6 +604,7 @@ const styles = {
   } as const,
 
   body: { display: 'flex', gap: spacing.md, flex: 1, minHeight: 0 } as const,
+  listScroll: { flex: 1, minHeight: 0, overflowY: 'auto' as const, paddingRight: 4 } as const,
   listCol: {
     flex: 1,
     minWidth: 0,
@@ -586,6 +640,15 @@ const styles = {
     padding: 4,
   } as const,
   panelBody: { padding: spacing.md, display: 'flex', flexDirection: 'column', gap: spacing.sm, overflowY: 'auto' } as const,
+  devBlock: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTop: `1px dashed `,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.sm,
+  } as const,
+  devHint: { color: colors.textDim, fontSize: fontSize.xs, lineHeight: 1.5 } as const,
   panelActions: { display: 'flex', gap: spacing.sm, marginTop: spacing.sm } as const,
 
   metaBlock: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: spacing.sm } as const,
