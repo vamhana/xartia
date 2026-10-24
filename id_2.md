@@ -7836,6 +7836,7 @@
 ИЗМЕНЕНИЯ: delegate/rotate/seedTemplates — из заглушек в реальные; bootstrap удалён.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.26 (test-admin.ts — 18 секций).
 
+|2026-10-24: seedWidgets стал идемпотентным по (type, entity) и включает my_tasks/otc_queue/total_flow; добавлен seedPanels — создаёт панели направлений/ролей/кризисные и наполняет виджетами те, что пусты. Причина: на чистой базе миграции 017/034 пропускаются без Архитектора, и после bootstrap панели оставались пустыми.
 |C.0.36.01|Core|Domain|TypeScript|src/core/chat/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|—|
 |Описание: Доменная сущность Chat. **9 функций** + 1 type-alias (`ChatChannelType`) + 4 интерфейса (`ChatChannel`, `ChatChannelMember`, `ChatAttachment`, `ChatMessage`). Нормализация direct через сортировку UUID. Валидация сообщений и вложений. Комментарий шапки: `C.0.36.01 (неявный)` — ошибка нумерации; канонический ID C.0.36.01.
 |Публичный API:
@@ -20589,6 +20590,11 @@ Status Draft: файл есть, но работоспособность не п
 |↘ ПРЕДОСТАВЛЯЕТ: воспроизводимый локальный CI; эталон для I.1.01.16.
 |Реализация: внутри шага $ErrorActionPreference=Continue — PowerShell 5.1 иначе падает на stderr от vite/pnpm; результат проверяется по $LASTEXITCODE. Файл сохранён с BOM (кириллица в 5.1).
 
+|I.9.02.19|Infra|Script|TypeScript|scripts/seed-base.ts|C.0.35.02|v.0.0.01|Draft|—|
+|Описание: Доборка базовых справочников после bootstrap Архитектора — POST /admin/seed {templates:[all]}. Нужна потому, что widgets/roles/панели зависят от существующего участника и без явного seed на чистой базе остаются пустыми.
+|Публичный API: pnpm tsx scripts/seed-base.ts <phone> <password>; идемпотентен (повторный вызов возвращает нули).
+|↙ ПОТРЕБЛЯЕТ: C.0.35.02 (seedTemplates через POST /admin/seed), A.1.02.01 (auth/login).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Базовые справочники» в I.1.01.16 и I.9.02.18 (ci-local).
 |I.9.03.01|Infra|Tools|TypeScript|scripts/lib/ws-env.ts|L.0.01.08|v.0.0.01|Draft|T.1.01.*|
 |Описание: Библиотека загрузки WS-тестового окружения. Приоритет: `.ws-test-env.json` (если свежий по `WS_TEST_EXPIRES_AT`) → env-переменные (`WS_TEST_TOKEN`, `WS_TEST_PID`, `WS_TEST_DIR`, ...) → ошибка. Файл приоритетнее env, потому что env в `cmd.exe` не обновляется автоматически, и старые значения могут перебивать свежие из `I.9.02.06`. Экспортирует `loadWsEnv()` и `isTokenExpired()`. Не подключается к Redis, несмотря на зависимость `L.0.01.08` в старой спеке.
 |Публичный API:

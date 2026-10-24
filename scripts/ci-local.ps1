@@ -79,6 +79,7 @@ if (-not $StaticOnly) {
   $password = $env:ARCHITECT_PASSWORD
   if (-not $password) { $password = 'ChangeMe123456' }
 
+  Invoke-Step 'seed: base' { pnpm tsx scripts/seed-base.ts $phone $password }
   Invoke-Step 'smoke: system' { pnpm tsx scripts/test-system.ts }
   Invoke-Step 'smoke: public' { pnpm tsx scripts/test-public.ts }
   Invoke-Step 'smoke: register' { pnpm tsx scripts/test-register.ts }

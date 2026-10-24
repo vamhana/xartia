@@ -126,6 +126,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit 1
 
+      - name: Базовые справочники
+        run: pnpm tsx scripts/seed-base.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+
       - name: Smoke — система
         run: pnpm tsx scripts/test-system.ts
       - name: Smoke — витрина

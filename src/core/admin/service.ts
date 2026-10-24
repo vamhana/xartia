@@ -457,6 +457,12 @@ export async function seedTemplates(
     if (tpl === 'all') {continue;}
     result[tpl] = await seedOne(tpl);
   }
+  // Панели (D.2.01.34) создаются миграцией, но на чистой базе библиотека
+  // виджетов ещё пуста — панели остаются без виджетов. Добиваем их здесь,
+  // после widgets, чтобы установка «с нуля» давала рабочие панели.
+  if (selected.includes('widgets')) {
+    await seedPanels();
+  }
   result.all = ALL_TEMPLATES.reduce((s, t) => s + result[t], 0);
 
   await logAction({
@@ -583,31 +589,231 @@ async function seedWidgets(): Promise<number> {
     );
   }
 
-  // Идемпотентность по образцу D.2.01.17: если widgets не пуста — пропустить.
-  const existing = await queryOne<{ c: string }>(
-    `SELECT COUNT(*)::text AS c FROM widgets`,
-  );
-  if (existing && parseInt(existing.c, 10) > 0) {
-    return 0;
-  }
-
+  // Идемпотентно по каждой паре (type, entity): на чистой базе вставляем всё,
+  // на существующей — только недостающее (например, добавленные позже
+  // my_tasks / otc_queue / total_flow из D.2.01.35).
   const rows = await query<{ x: number }>(
     `INSERT INTO widgets (type, entity, config, default_rights, created_by)
-     VALUES
-       ('metric',   'flows',       '{"label":"Основной баланс","value":0}'::jsonb, '{}'::jsonb, $1),
-       ('progress', 'capsule',     '{"label":"Капсула","max":180,"value":0}'::jsonb, '{}'::jsonb, $1),
-       ('circular', 'regimes',     '{"label":"Активный режим","max":100,"value":0}'::jsonb, '{}'::jsonb, $1),
-       ('table',    'tasks',       '{"columns":[{"key":"externalId","title":"ID"},{"key":"description","title":"Описание"},{"key":"priority","title":"Приоритет"},{"key":"status","title":"Статус"}]}'::jsonb, '{}'::jsonb, $1),
-       ('list',     'signals',     '{"titleKey":"externalId","emptyText":"Нет открытых сигналов"}'::jsonb, '{}'::jsonb, $1),
-       ('card',     'passport',    '{"fields":[{"key":"externalId","title":"ID"},{"key":"name","title":"Имя"},{"key":"directionId","title":"Направление"}]}'::jsonb, '{}'::jsonb, $1),
-       ('chart',    'balance',     '{"chartType":"line","xKey":"date","series":[{"key":"value","label":"Значение"}]}'::jsonb, '{}'::jsonb, $1),
-       ('map',      'communities', '{"zoom":4}'::jsonb, '{}'::jsonb, $1),
-       ('timeline', 'archive',     '{}'::jsonb, '{}'::jsonb, $1),
-       ('tree',     'cells',       '{}'::jsonb, '{}'::jsonb, $1)
+     SELECT v.type, v.entity, v.config::jsonb, '{}'::jsonb, $1
+       FROM (VALUES
+         ('metric',   'flows',       '{"label":"Основной баланс","value":0}'),
+         ('progress', 'capsule',     '{"label":"Капсула","max":180,"value":0}'),
+         ('circular', 'regimes',     '{"label":"Активный режим","max":100,"value":0}'),
+         ('table',    'tasks',       '{"columns":[{"key":"externalId","title":"ID"},{"key":"description","title":"Описание"},{"key":"priority","title":"Приоритет"},{"key":"status","title":"Статус"}]}'),
+         ('table',    'my_tasks',    '{"columns":[{"key":"externalId","title":"ID"},{"key":"description","title":"Описание"},{"key":"status","title":"Статус"},{"key":"deadline","title":"Срок"}]}'),
+         ('table',    'otc_queue',   '{"columns":[{"key":"externalId","title":"ID"},{"key":"description","title":"Описание"},{"key":"submittedAt","title":"Сдан"}]}'),
+         ('list',     'signals',     '{"titleKey":"externalId","emptyText":"Нет открытых сигналов"}'),
+         ('card',     'passport',    '{"fields":[{"key":"externalId","title":"ID"},{"key":"name","title":"Имя"},{"key":"directionId","title":"Направление"}]}'),
+         ('chart',    'balance',     '{"chartType":"line","xKey":"date","series":[{"key":"value","label":"Значение"}]}'),
+         ('metric',   'total_flow',  '{"label":"Поток всего","value":0}'),
+         ('map',      'communities', '{"zoom":4}'),
+         ('timeline', 'archive',     '{}'),
+         ('tree',     'cells',       '{}')
+       ) AS v(type, entity, config)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM widgets w WHERE w.type = v.type AND w.entity = v.entity
+      )
      RETURNING 1 AS x`,
     [arch],
   );
   return rows.length;
+}
+
+// -------- Панели на чистой установке --------
+//
+// Миграция D.2.01.34 создаёт панели, но на чистой базе библиотека виджетов к
+// этому моменту ещё пуста (017 пропускается без Архитектора). В результате
+// панели существуют, но пусты. Добиваем их после seedWidgets.
+
+interface PanelSpec {
+  type: string;
+  entity: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  title?: string;
+}
+
+const DIRECTION_SPECS: PanelSpec[] = [
+  { type: 'table', entity: 'tasks', x: 0, y: 0, w: 8, h: 4, title: 'Задачи направления' },
+  { type: 'list', entity: 'signals', x: 8, y: 0, w: 4, h: 4, title: 'Сигналы' },
+  { type: 'metric', entity: 'flows', x: 0, y: 4, w: 4, h: 3, title: 'Потоки' },
+  { type: 'tree', entity: 'cells', x: 4, y: 4, w: 4, h: 3, title: 'Ячейки' },
+  { type: 'timeline', entity: 'archive', x: 8, y: 4, w: 4, h: 3, title: 'Архив' },
+];
+
+const ROLE_PROFILES: Record<string, PanelSpec[]> = {
+  executor: [
+    { type: 'card', entity: 'passport', x: 0, y: 0, w: 4, h: 3, title: 'Мой паспорт' },
+    { type: 'table', entity: 'my_tasks', x: 4, y: 0, w: 8, h: 4, title: 'Мои задачи' },
+    { type: 'progress', entity: 'capsule', x: 0, y: 3, w: 4, h: 3, title: 'Капсула Потока' },
+    { type: 'list', entity: 'signals', x: 4, y: 4, w: 8, h: 3, title: 'Сигналы направления' },
+  ],
+  reviewer: [
+    { type: 'table', entity: 'otc_queue', x: 0, y: 0, w: 8, h: 4, title: 'Очередь на проверку' },
+    { type: 'list', entity: 'signals', x: 8, y: 0, w: 4, h: 4, title: 'Сигналы' },
+    { type: 'timeline', entity: 'archive', x: 0, y: 4, w: 6, h: 3, title: 'Архив' },
+    { type: 'metric', entity: 'flows', x: 6, y: 4, w: 6, h: 3, title: 'Потоки' },
+  ],
+  analyst: [
+    { type: 'chart', entity: 'balance', x: 0, y: 0, w: 6, h: 4, title: 'Баланс' },
+    { type: 'metric', entity: 'flows', x: 6, y: 0, w: 6, h: 4, title: 'Потоки' },
+    { type: 'list', entity: 'signals', x: 0, y: 4, w: 12, h: 3, title: 'Сигналы' },
+  ],
+  curator: [
+    { type: 'table', entity: 'tasks', x: 0, y: 0, w: 8, h: 4, title: 'Задачи направления' },
+    { type: 'chart', entity: 'balance', x: 8, y: 0, w: 4, h: 4, title: 'Баланс направления' },
+    { type: 'list', entity: 'signals', x: 0, y: 4, w: 6, h: 3, title: 'Сигналы' },
+    { type: 'map', entity: 'communities', x: 6, y: 4, w: 6, h: 3, title: 'Общины' },
+  ],
+  architect: [
+    { type: 'table', entity: 'tasks', x: 0, y: 0, w: 8, h: 4, title: 'Все задачи' },
+    { type: 'list', entity: 'signals', x: 8, y: 0, w: 4, h: 4, title: 'Сигналы' },
+    { type: 'chart', entity: 'balance', x: 0, y: 4, w: 4, h: 3, title: 'Мой Поток' },
+    { type: 'metric', entity: 'flows', x: 4, y: 4, w: 4, h: 3, title: 'Потоки' },
+    { type: 'tree', entity: 'cells', x: 8, y: 4, w: 4, h: 3, title: 'Ячейки' },
+    { type: 'map', entity: 'communities', x: 0, y: 7, w: 6, h: 3, title: 'Общины' },
+    { type: 'timeline', entity: 'archive', x: 6, y: 7, w: 6, h: 3, title: 'Архив' },
+  ],
+};
+
+const ROLE_PROFILE_OF: Record<string, keyof typeof ROLE_PROFILES> = {
+  ASSOCIATED: 'executor',
+  OPERATOR: 'executor',
+  NOOLOG: 'executor',
+  LIAISON: 'executor',
+  OTC: 'reviewer',
+  VERIFIER: 'reviewer',
+  KEEPER: 'reviewer',
+  BALANCER: 'analyst',
+  AGGREGATOR: 'analyst',
+  PROTOCOL_COUNCIL: 'analyst',
+  PSY: 'analyst',
+  COUNCIL_MEMBER: 'curator',
+  FIRST_ARCHITECT: 'architect',
+};
+
+const CRISIS_SPECS: PanelSpec[] = [
+  { type: 'circular', entity: 'regimes', x: 0, y: 0, w: 6, h: 4, title: 'Режимы' },
+  { type: 'list', entity: 'signals', x: 6, y: 0, w: 6, h: 4, title: 'Сигналы' },
+];
+
+async function seedPanels(): Promise<number> {
+  const arch = await getFirstArchitectId();
+  if (!arch) {return 0;}
+
+  // 1. Панели направлений. Миграция 034 пропускается, если Архитектора ещё
+  //    нет, — на чистой базе панелей не будет вовсе.
+  const dirs = await query<{ id: string; number: number; name: string }>(
+    `SELECT d.id, d.number, d.name
+       FROM directions d
+      WHERE NOT EXISTS (
+        SELECT 1 FROM panels p
+         WHERE p.direction_id = d.id AND p.role_id IS NULL AND p.context = 'normal'
+      )
+      ORDER BY d.number`,
+  );
+  for (const d of dirs) {
+    await query(
+      `INSERT INTO panels (name, role_id, direction_id, context, version, active, created_by)
+       VALUES ($1, NULL, $2, 'normal', 1, true, $3)`,
+      [`Направление ${d.number}: ${d.name}`, d.id, arch],
+    );
+  }
+
+  // 2. Панели ролей — по одной на функцию (привязка к любой строке роли).
+  for (const roleName of Object.keys(ROLE_PROFILE_OF)) {
+    const exists = await queryOne<{ x: number }>(
+      `SELECT 1 AS x FROM panels p JOIN roles r ON r.id = p.role_id
+        WHERE r.name = $1 AND p.context = 'normal' AND p.direction_id IS NULL
+        LIMIT 1`,
+      [roleName],
+    );
+    if (exists) {continue;}
+    const role = await queryOne<{ id: string }>(
+      `SELECT id FROM roles WHERE name = $1 ORDER BY direction_id LIMIT 1`,
+      [roleName],
+    );
+    if (!role) {continue;}
+    await query(
+      `INSERT INTO panels (name, role_id, direction_id, context, version, active, created_by)
+       VALUES ($1, $2, NULL, 'normal', 1, true, $3)`,
+      [`Роль: ${roleName}`, role.id, arch],
+    );
+  }
+
+  // 3. Кризисные панели.
+  for (const roleName of ['FIRST_ARCHITECT', 'COUNCIL_MEMBER']) {
+    const exists = await queryOne<{ x: number }>(
+      `SELECT 1 AS x FROM panels p JOIN roles r ON r.id = p.role_id
+        WHERE r.name = $1 AND p.context = 'crisis' LIMIT 1`,
+      [roleName],
+    );
+    if (exists) {continue;}
+    const role = await queryOne<{ id: string }>(
+      `SELECT id FROM roles WHERE name = $1 ORDER BY direction_id LIMIT 1`,
+      [roleName],
+    );
+    if (!role) {continue;}
+    await query(
+      `INSERT INTO panels (name, role_id, direction_id, context, version, active, created_by)
+       VALUES ($1, $2, NULL, 'crisis', 1, true, $3)`,
+      [`Кризис: ${roleName}`, role.id, arch],
+    );
+  }
+
+  // 4. Виджеты в панели, где их нет.
+  const empty = await query<{
+    id: string;
+    context: string;
+    role_id: string | null;
+    direction_id: string | null;
+  }>(
+    `SELECT p.id, p.context::text AS context, p.role_id, p.direction_id
+       FROM panels p
+      WHERE NOT EXISTS (SELECT 1 FROM panel_widgets pw WHERE pw.panel_id = p.id)`,
+  );
+
+  const widgetRows = await query<{ id: string; type: string; entity: string }>(
+    `SELECT id, type, entity FROM widgets`,
+  );
+  const widgetId = new Map<string, string>();
+  for (const w of widgetRows) {widgetId.set(`${w.type}/${w.entity}`, w.id);}
+
+  let inserted = 0;
+  for (const panel of empty) {
+    let specs: PanelSpec[] = [];
+    if (panel.context === 'crisis') {
+      specs = CRISIS_SPECS;
+    } else if (panel.role_id) {
+      const role = await queryOne<{ name: string }>(
+        `SELECT name FROM roles WHERE id = $1`, [panel.role_id],
+      );
+      const profile = role ? ROLE_PROFILE_OF[role.name] : undefined;
+      if (profile) {specs = ROLE_PROFILES[profile] ?? [];}
+    } else if (panel.direction_id) {
+      specs = DIRECTION_SPECS;
+    }
+
+    for (const spec of specs) {
+      const wid = widgetId.get(`${spec.type}/${spec.entity}`);
+      if (!wid) {continue;}
+      await query(
+        `INSERT INTO panel_widgets (panel_id, widget_id, position, size, overrides)
+         VALUES ($1, $2,
+                 jsonb_build_object('x', $3::int, 'y', $4::int),
+                 jsonb_build_object('w', $5::int, 'h', $6::int),
+                 $7::jsonb)`,
+        [
+          panel.id, wid, spec.x, spec.y, spec.w, spec.h,
+          JSON.stringify(spec.title ? { title: spec.title } : {}),
+        ],
+      );
+      inserted += 1;
+    }
+  }
+  return inserted;
 }
 
 async function seedContainers(): Promise<number> {
