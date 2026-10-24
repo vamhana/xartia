@@ -203,7 +203,32 @@ async function notifyRoleSafely(
   directionId?: UUID,
 ): Promise<void> {
   try {
-    await sendToRole(role, { type, priority: 'standard', title, body, data }, directionId);
+    const res = await sendToRole(
+      role,
+      { type, priority: 'standard', title, body, data },
+      directionId,
+    );
+    // В направлении может не быть Совета (ещё не избран). Сигнал не должен
+    // уходить «в никуда»: функция ложится на Архитектора (Хартия: если
+    // опытного участника нет, ответственность на Архитекторе).
+    if (res.delivered === 0) {
+      const { queryOne } = await import('../../lib/db.js');
+      const arch = await queryOne<{ id: string }>(
+        `SELECT id FROM participants
+          WHERE is_first_architect = true AND deleted_at IS NULL
+          ORDER BY created_at LIMIT 1`,
+      );
+      if (arch) {
+        await sendNotification({
+          recipientId: arch.id as UUID,
+          type,
+          priority: 'standard',
+          title,
+          body,
+          data,
+        });
+      }
+    }
   } catch (e) {
     logger.warn({ err: e, role, type }, 'signal role notification failed');
   }

@@ -404,6 +404,103 @@ function OversightBlock(): ReactElement {
   );
 }
 
+interface CouncilState {
+  directionId: string;
+  directionNumber: number | null;
+  directionName: string | null;
+  member: { participantId: string; name: string; externalId: string; score: number } | null;
+  termEndsAt: string | null;
+  electedAt: string | null;
+  fallback: { participantId: string; name: string; externalId: string } | null;
+  disqualified: Array<{ participantId: string; name: string; reason: string }>;
+}
+
+/**
+ * Совет направления: самый опытный участник по числу принятых работ.
+ * Ротация обязательна, дисквалификация возможна. Если опытного нет —
+ * функция ложится на Архитектора (и это видно прямо здесь).
+ */
+function CouncilBlock(): ReactElement {
+  const user = useUser();
+  const qc = useQueryClient();
+  const directionId = user?.participant.directionId ?? '';
+  const q = useApiQuery<CouncilState>(
+    ['balance', 'council', directionId],
+    `/council/${directionId}`,
+    { enabled: !!directionId },
+  );
+  const [error, setError] = useState<string | null>(null);
+  const electM = useMutation({
+    mutationFn: () => apiPost<CouncilState>(`/council/${directionId}/elect`, {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['balance', 'council'] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Не удалось переизбрать'),
+  });
+
+  if (!directionId) {return <></>;}
+
+  const state = q.data;
+
+  return (
+    <Card
+      title="Совет направления"
+      subtitle="Самый опытный участник по принятым работам; ротация обязательна"
+    >
+      {q.isLoading ? (
+        <Spinner />
+      ) : !state ? (
+        <p style={styles.muted}>Не удалось загрузить состояние Совета.</p>
+      ) : (
+        <>
+          {state.member ? (
+            <div style={styles.councilRow}>
+              <Badge tone="success">Советник</Badge>
+              <span style={styles.councilName}>
+                {state.member.name} ({state.member.externalId})
+              </span>
+              <span style={styles.muted}>принято работ: {state.member.score}</span>
+              {state.termEndsAt ? (
+                <span style={styles.muted}>
+                  до {new Date(state.termEndsAt).toLocaleDateString('ru-RU')}
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <div style={styles.councilRow}>
+              <Badge tone="warning">Совет не избран</Badge>
+              <span style={styles.councilName}>
+                функция у Архитектора: {state.fallback?.name ?? '—'}
+              </span>
+              <span style={styles.muted}>
+                нет участников с принятыми работами в направлении
+              </span>
+            </div>
+          )}
+          {state.disqualified.length > 0 ? (
+            <p style={styles.muted}>
+              Дисквалифицированы: {state.disqualified.map((d) => d.name).join(', ')}
+            </p>
+          ) : null}
+          <div style={{ marginTop: 10 }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={electM.isPending}
+              onClick={() => electM.mutate()}
+            >
+              Переизбрать Совет
+            </Button>
+            {error && (
+              <span style={{ color: colors.danger, marginLeft: 12, fontSize: 13 }}>{error}</span>
+            )}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
 export function BalancePage(): ReactElement {
   const qc = useQueryClient();
   const user = useUser();
@@ -596,6 +693,8 @@ export function BalancePage(): ReactElement {
 
       {/* Пульс + Индексы */}
       <div style={styles.twoCol}>
+        <CouncilBlock />
+
         <OversightBlock />
 
         <OverdueBlock />
@@ -989,6 +1088,14 @@ function DetectResultModal({
 // ─── Стили ───────────────────────────────────────────────────────
 
 const styles = {
+  councilRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap' as const,
+    gap: 12,
+    padding: '4px 0',
+  },
+  councilName: { fontWeight: 500 },
   ovTree: {
     display: 'flex',
     flexDirection: 'column' as const,

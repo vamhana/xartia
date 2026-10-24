@@ -76,6 +76,7 @@ import { registerWebhooksRoutes } from './api/webhooks/controller.js';
 import { registerCollectiveRoutes } from './api/collective/controller.js';
 import { registerPublicRoutes } from './api/public/controller.js';
 import { registerDevRoutes } from './api/dev/controller.js';
+import { registerCouncilRoutes } from './api/council/controller.js';
 
 // 4. Admin — последним (catch-all wildcard).
 import { registerAdminRoutes } from './api/admin/controller.js';
@@ -274,6 +275,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await registerCollectiveRoutes(app);
   await registerPublicRoutes(app);
   await registerDevRoutes(app);
+  await registerCouncilRoutes(app);
 
   // 4. Admin — last
   await registerAdminRoutes(app);

@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   726
-  Файлов в проекте:        723
+  Блоков в спецификации:   730
+  Файлов в проекте:        727
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,9 +48,9 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 533
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 537
 ========================================================================
-  A.1.00.01        src/server.ts [15803 б]
+  A.1.00.01        src/server.ts [15910 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
   A.1.02.01        src/api/participants/controller.ts [6325 б]
   A.1.03.01        src/api/directions/controller.ts [2240 б]
@@ -90,6 +90,7 @@
   A.1.37.01        src/api/collective/controller.ts [1305 б]
   A.1.38.01        src/api/public/controller.ts [646 б]
   A.1.39.01        src/api/dev/controller.ts [4253 б]
+  A.1.46.01        src/api/council/controller.ts [3067 б]
   A.1.90.01        src/api/system/health.ts [2024 б]
   A.1.90.02        src/api/system/metrics.ts [3450 б]
   A.1.90.03        src/api/system/version.ts [1187 б]
@@ -130,7 +131,7 @@
   C.0.06.03        src/core/plans/deviation.ts [6876 б]
   C.0.06.04        src/core/plans/branches.ts [4702 б]
   C.0.06.05        src/core/plans/tree.ts [3962 б]
-  C.0.06.06        src/core/plans/oversight.ts [12949 б]
+  C.0.06.06        src/core/plans/oversight.ts [13458 б]
   C.0.07.01        src/core/tasks/entity.ts [4736 б]
   C.0.07.02        src/core/tasks/service.ts [20881 б]
   C.0.07.04        src/core/tasks/overdue.ts [3300 б]
@@ -139,7 +140,7 @@
   C.0.09.01        src/core/otc/entity.ts [2834 б]
   C.0.09.02        src/core/otc/service.ts [17151 б]
   C.0.10.01        src/core/signals/entity.ts [5423 б]
-  C.0.10.02        src/core/signals/service.ts [17712 б]
+  C.0.10.02        src/core/signals/service.ts [18648 б]
   C.0.11.01        src/core/connections/entity.ts [4943 б]
   C.0.11.02        src/core/connections/service.ts [12478 б]
   C.0.12.01        src/core/arbitrations/entity.ts [3394 б]
@@ -207,6 +208,7 @@
   C.0.42.01        src/core/collective/service.ts [6320 б]
   C.0.43.01        src/core/public/service.ts [1636 б]
   C.0.45.01        src/core/mentors/service.ts [6821 б]
+  C.0.46.01        src/core/council/service.ts [10539 б]
   D.2.01.01        db/migrations/001_extensions.sql [1330 б]
   D.2.01.02        db/migrations/002_enums.sql [22159 б]
   D.2.01.03        db/migrations/003_tables.sql [102487 б]
@@ -245,6 +247,7 @@
   D.2.01.36        db/migrations/036_plan_signal_curator.sql [1691 б]
   D.2.01.37        db/migrations/037_cell_daily_plan.sql [1741 б]
   D.2.01.38        db/migrations/038_signal_subject.sql [1367 б]
+  D.2.01.39        db/migrations/039_council.sql [1851 б]
   F.4.01.01        src/web/App.tsx [14362 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -260,7 +263,7 @@
   F.4.02.07        src/web/pages/Goods.tsx [21825 б]
   F.4.02.08        src/web/pages/OTC.tsx [13221 б]
   F.4.02.09        src/web/pages/Regimes.tsx [28909 б]
-  F.4.02.10        src/web/pages/Balance.tsx [37061 б]
+  F.4.02.10        src/web/pages/Balance.tsx [42348 б]
   F.4.02.11        src/web/pages/Verification.tsx [35558 б]
   F.4.02.12        src/web/pages/Archive.tsx [31679 б]
   F.4.02.13        src/web/pages/Justice.tsx [44558 б]
@@ -340,7 +343,7 @@
   I.0.01.04        docker/docker-compose.yml [4734 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [10662 б]
+  I.1.01.16        .github/workflows/ci.yml [10888 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -355,7 +358,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [263680 б]
+  I.10.05.04       tsconfig.tsbuildinfo [264203 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [130349 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -445,7 +448,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [5324 б]
+  I.9.02.18        scripts/ci-local.ps1 [5410 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -509,6 +512,7 @@
   I.9.04.57        scripts/test-plan-deviation.ts [7903 б]
   I.9.04.58        scripts/test-branches-otc.ts [10106 б]
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
+  I.9.04.60        scripts/test-council.ts [6265 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -582,7 +586,7 @@
   X.0.01.08        docs/roadmap.md [29308 б]
   X.0.01.11        docs/product-v0.1.md [28734 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
-  X.0.01.13        docs/journey.md [15770 б]
+  X.0.01.13        docs/journey.md [16583 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -750,5 +754,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  533
+  Файлов с содержимым:  537
   Пустых файлов:        157
