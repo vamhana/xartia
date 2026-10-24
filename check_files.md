@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   704
-  Файлов в проекте:        701
+  Блоков в спецификации:   705
+  Файлов в проекте:        702
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 511
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 512
 ========================================================================
   A.1.00.01        src/server.ts [15803 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -128,7 +128,7 @@
   C.0.06.01        src/core/plans/entity.ts [3699 б]
   C.0.06.02        src/core/plans/service.ts [18735 б]
   C.0.07.01        src/core/tasks/entity.ts [4736 б]
-  C.0.07.02        src/core/tasks/service.ts [17822 б]
+  C.0.07.02        src/core/tasks/service.ts [20267 б]
   C.0.08.01        src/core/reports/entity.ts [2103 б]
   C.0.08.02        src/core/reports/service.ts [7527 б]
   C.0.09.01        src/core/otc/entity.ts [2834 б]
@@ -234,6 +234,7 @@
   D.2.01.32        db/migrations/032_registration_phone_hash_unique.sql [1299 б]
   D.2.01.33        db/migrations/033_report_artifact.sql [1108 б]
   D.2.01.34        db/migrations/034_panels_seed.sql [7337 б]
+  D.2.01.35        db/migrations/035_role_widgets.sql [6479 б]
   F.4.01.01        src/web/App.tsx [13977 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -305,7 +306,7 @@
   F.4.99.12        src/web/api/client.ts [12991 б]
   F.4.99.13        src/web/ws/client.ts [8214 б]
   F.4.99.14        src/web/components/ui/Map.tsx [8753 б]
-  F.4.99.15        src/web/components/ui/Notifications.tsx [14926 б]
+  F.4.99.15        src/web/components/ui/Notifications.tsx [15802 б]
   F.4.99.16        src/web/components/ui/Search.tsx [18435 б]
   F.4.99.17        src/web/components/layout/Layout.tsx [1197 б]
   F.4.99.18        src/web/components/layout/Sidebar.tsx [5807 б]
@@ -317,7 +318,7 @@
   F.4.99.24        src/web/components/ui/Badge.tsx [1633 б]
   F.4.99.25        src/web/components/ui/Button.tsx [1597 б]
   F.4.99.26        src/web/components/ui/Spinner.tsx [1187 б]
-  F.4.99.27        src/web/components/ui/PanelCanvas.tsx [25981 б]
+  F.4.99.27        src/web/components/ui/PanelCanvas.tsx [27205 б]
   F.4.99.28        src/web/components/ui/PanelCanvas.constants.ts [1305 б]
   F.4.99.29        src/web/components/ui/DndManager.tsx [5503 б]
   F.4.99.30        src/web/lib/dev.ts [1584 б]
@@ -342,7 +343,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [263017 б]
+  I.10.05.04       tsconfig.tsbuildinfo [263033 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [132181 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -558,8 +559,8 @@
   W.2.13.01        src/ws/interview.ts [5504 б]
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [6741 б]
-  X.0.01.08        docs/roadmap.md [27134 б]
-  X.0.01.11        docs/product-v0.1.md [20522 б]
+  X.0.01.08        docs/roadmap.md [27587 б]
+  X.0.01.11        docs/product-v0.1.md [22591 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
 
 ========================================================================
@@ -728,5 +729,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  511
+  Файлов с содержимым:  512
   Пустых файлов:        157

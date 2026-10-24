@@ -18,6 +18,8 @@
 
 import { query, queryOne, isUniqueViolation } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
+import { logger } from '../../lib/logger.js';
+import { send as sendNotification, sendToRole } from '../../lib/notifications.js';
 import {
   emitTaskAssigned,
   emitTaskStatusChanged,
@@ -27,7 +29,34 @@ import {
 } from '../../ws/tasks.js';
 import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError } from '../errors.js';
+import { Role } from '../roles.js';
 import type { UUID, Priority, TaskStatus } from '../types.js';
+
+/**
+ * Уведомление — побочный эффект, а не часть домена: его падение не должно
+ * отменять назначение/сдачу/приёмку. Поэтому try/catch + лог, без rethrow.
+ * В data кладём ссылку, по которой фронт открывает событие (колокольчик).
+ */
+async function notifySafely(
+  recipientId: UUID,
+  type: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await sendNotification({
+      recipientId,
+      type,
+      priority: 'standard',
+      title,
+      body,
+      data,
+    });
+  } catch (e) {
+    logger.warn({ err: e, recipientId, type }, 'task notification failed');
+  }
+}
 
 import {
   createTask, assignTask, takeTask, submitTask, acceptTask, returnTask,
@@ -371,6 +400,13 @@ export async function assignTaskService(
 
   const finalTask = await getById(taskId);
   await emitTaskAssigned(toWsPayload(finalTask), participantId);
+  await notifySafely(
+    participantId,
+    'task.assigned',
+    'Вам назначена задача',
+    `${finalTask.externalId}: ${finalTask.description.slice(0, 160)}`,
+    { taskId, link: `/tasks/${taskId}/report` },
+  );
   return finalTask;
 }
 
@@ -428,6 +464,24 @@ export async function submitTaskService(taskId: UUID, requesterId: UUID): Promis
 
   const finalTask = await getById(taskId);
   await emitTaskSubmitted(toWsPayload(finalTask));
+
+  // Уведомляем ОТК направления: задача встала в очередь на проверку.
+  try {
+    await sendToRole(
+      Role.OTC,
+      {
+        type: 'otc.report_submitted',
+        priority: 'standard',
+        title: 'Отчёт ждёт проверки',
+        body: `${finalTask.externalId}: ${finalTask.description.slice(0, 160)}`,
+        data: { taskId, link: '/otc' },
+      },
+      finalTask.directionId,
+    );
+  } catch (e) {
+    logger.warn({ err: e, taskId }, 'отчёт: уведомление ОТК не отправлено');
+  }
+
   return finalTask;
 }
 
@@ -457,6 +511,15 @@ export async function acceptTaskService(taskId: UUID, requesterId: UUID): Promis
 
   const finalTask = await getById(taskId);
   await emitTaskAccepted(toWsPayload(finalTask));
+  if (finalTask.assignedTo) {
+    await notifySafely(
+      finalTask.assignedTo,
+      'task.accepted',
+      'Задача принята',
+      `${finalTask.externalId} принята ОТК — работа зачтена в Поток`,
+      { taskId, link: `/tasks/${taskId}/report` },
+    );
+  }
   return finalTask;
 }
 
@@ -489,6 +552,15 @@ export async function returnTaskService(
 
   const finalTask = await getById(taskId);
   await emitTaskReturned(toWsPayload(finalTask), reason);
+  if (finalTask.assignedTo) {
+    await notifySafely(
+      finalTask.assignedTo,
+      'task.returned',
+      'Задача возвращена на доработку',
+      `${finalTask.externalId}: ${reason.slice(0, 160)}`,
+      { taskId, link: `/tasks/${taskId}/report` },
+    );
+  }
   return finalTask;
 }
 

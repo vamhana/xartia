@@ -4245,6 +4245,7 @@
 - **`returnTaskService` — `reason` не валидируется в сервисе** — только в контроллере (`returnBody.reason` 1..500). Если сервис вызывается напрямую (не через контроллер) — можно передать пустой `reason`. Техдолг: добавить проверку в сервисе.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks, I.9.04.05 test-connections, I.9.04.24 test-verification. |
 
+|2026-10-24: назначение/сдача/приёмка/возврат задачи отправляют уведомление (send в lib/notifications) с data.link — колокольчик открывает событие. Сдача уведомляет роль OTC направления. Ошибка отправки не отменяет доменную операцию (try/catch + лог).
 |C.0.08.01|Core|Domain|TypeScript|src/core/reports/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|II.5, II.7|
 |Описание: Доменная сущность Отчёт. Минимальная: createReport, canBeSubmittedBy, getMediaKey. Отсутствуют validateReport и attachMedia.
 |Публичный API:
@@ -6692,6 +6693,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно через I.9.04.47 (render /panels/:id/render).
 
 |2026-10-24: добавлен loader-алиас для entity balance (как main_balance) — библиотечный виджет chart/balance ссылался на entity balance, loader отсутствовал и виджет попадал в missingEntities.
+|2026-10-24: добавлен loader-алиас alance (как main_balance) — библиотечный виджет chart/balance ссылается на entity balance, loader отсутствовал и виджет попадал в missingEntities.
 |C.0.27.01|Core|Domain|TypeScript|src/core/planetary/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|IV.7, V.6|
 |Описание: Доменная сущность Планетарный уровень. **5 функций** + 5 type-alias + 7 интерфейсов. Чистые функции, без БД. **Импортов C.0.01.03 (Constants) нет** (старая спека ошибочно указывала).
 |Публичный API:
@@ -10270,6 +10272,10 @@
 |Публичный API: DDL/DML — DO-блок; панели + panel_widgets, ссылки на widgets по (type, entity).
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (panels, panel_widgets, widgets, roles, directions).
 |↘ ПРЕДОСТАВЛЯЕТ: рабочие места для C.0.26.02 (listMyPanels/render) и F.4.98.01 (Workspace).
+|D.2.01.35|DB|Migration|SQL|db/migrations/035_role_widgets.sql|D.2.01.03|v.0.0.01|Draft|—|
+|Описание: Виджеты под роли: добавляет table/my_tasks, table/otc_queue, metric/total_flow; в панели ASSOCIATED общий список задач заменён на «Мои задачи», в OTC/VERIFIER/KEEPER — на «Очередь на проверку»; проставляет человеческие заголовки через overrides.title.
+|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (widgets, panel_widgets), D.2.01.34 (панели ролей).
+|↘ ПРЕДОСТАВЛЯЕТ: роль-специфичные данные для панелей (C.0.26.03 loader my_tasks/otc_queue).
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -14249,6 +14255,7 @@
 - При 99+ unread — точное число не показывается.
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан. Косвенно — F.4.99.17 Layout, F.4.99.19 Header.|
 
+|2026-10-24: клик по уведомлению ведёт на событие: расширена карта ссылок (crisis/regime → /regimes, semantic → /semantic, integrity → /verification, gateway → /gateway, community → /planetary) и добавлен фолбэк по data.taskId/reportId/signalId. Выпадашка закрывается после перехода.
 |F.4.99.16|Frontend|UI|React|src/web/components/ui/Search.tsx|F.4.99.05, F.4.99.12, F.4.99.23, A.1.95.01|v.0.0.02|Draft|I.1.10|
 |Описание: Компонент поиска. **4 экспорта**: `Search` (компактный триггер в Header), `CommandPalette` (модальное окно Cmd+K), `useSearch` (хук с debounce 300 мс + React Query), `useSearchShortcut` (глобальный listener Cmd+K). **Без cmdk** — свой код. История запросов в localStorage (`xartia.search.history`, max 10). `paletteStore` — глобальный синглтон открытия/закрытия. |
 |Публичный API:
@@ -14828,6 +14835,7 @@
 - hasRight/'permission' на уровне виджета — не реализовано (context принимается, но не влияет на рендер; см. также F.4.99.01).
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан. Косвенно — F.4.02.18 Constructor.tsx (корень + вложенные контейнеры, drag из палитры), F.4.98.01 Workspace.tsx (bare, interactive=false).|
 
+|2026-10-24: заголовок виджета — человеческий (карта WIDGET_TITLES + overrides.title), а не «table · tasks».
 |F.4.99.28|Frontend|UI|TypeScript|src/web/components/ui/PanelCanvas.constants.ts|F.4.99.05|v.0.0.02|Draft|VIII.1|
 |Описание: Константы PanelCanvas, вынесенные в отдельный модуль. Причина выделения — vite-plugin-react (Fast Refresh) требует, чтобы файл экспортировал либо только компоненты, либо только не-компоненты. PanelCanvas.tsx экспортирует компонент PanelCanvas, поэтому все константы (COLS, ZOOM_LEVELS, SCREEN_SIZES, BASE_ROW_HEIGHT и т.д.) вынесены сюда. Обеспечивает корректную работу HMR без полной перезагрузки страницы. Также используется DndManager'ом и потребителями (Constructor.tsx, Workspace.tsx) для тулбаров.|
 |Публичный API:

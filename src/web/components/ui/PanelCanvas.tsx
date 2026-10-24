@@ -42,6 +42,28 @@ import {
   type WidgetLibraryEntry,
 } from './Widget';
 
+/**
+ * Человеческие заголовки виджетов. Без них в шапке карточки было
+ * «table · tasks» — техническая пара, а не название рабочего блока.
+ * Отдельный оверрайд конкретной панели имеет приоритет (см. widgetTitle).
+ */
+const WIDGET_TITLES: Record<string, string> = {
+  'table/tasks': 'Задачи',
+  'table/my_tasks': 'Мои задачи',
+  'table/otc_queue': 'Очередь на проверку',
+  'list/signals': 'Сигналы',
+  'card/passport': 'Паспорт',
+  'metric/flows': 'Потоки',
+  'metric/total_flow': 'Поток всего',
+  'progress/capsule': 'Капсула Потока',
+  'chart/balance': 'Баланс',
+  'tree/cells': 'Ячейки',
+  'timeline/archive': 'Архив',
+  'map/communities': 'Общины',
+  'circular/regimes': 'Режимы',
+  'container/layout': 'Контейнер',
+};
+
 // Реэкспорт для обратной совместимости с потребителями
 // (Workspace, Constructor). Внутри они импортируются из .constants.js,
 // но если где-то остался старый импорт — продолжит работать.
@@ -399,10 +421,15 @@ export function PanelCanvas(props: PanelCanvasProps): ReactElement {
       ? undefined
       : resolveWidgetData(widgetData, w.entity, inst.id);
 
+    const widgetTitle =
+      typeof inst.overrides?.['title'] === 'string' && inst.overrides['title']
+        ? String(inst.overrides['title'])
+        : (WIDGET_TITLES[`${w.type}/${w.entity}`] ?? `${w.type} · ${w.entity}`);
+
     return (
       <div key={inst.id}>
         <WidgetShell
-          title={`${w.type} · ${w.entity}`}
+          title={widgetTitle}
           selected={isSelected}
           dragHandleClassName={DRAG_HANDLE_CLASS}
           // Маркер региона: DndManager ищет closest('[data-canvas-region]')

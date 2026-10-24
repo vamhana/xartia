@@ -209,7 +209,7 @@ export function NotificationBell(): ReactElement {
       </button>
       {open ? (
         <div style={styles.dropdown}>
-          <NotificationList max={10} />
+          <NotificationList max={10} onNavigate={() => setOpen(false)} />
         </div>
       ) : null}
     </div>
@@ -260,31 +260,49 @@ function getNotificationLink(n: NotificationRecord): string | null {
     case 'crisis.plan_activated':
     case 'regime.activated':
     case 'regime.deactivated':
-      return null; // страницы ещё не реализованы
+      return '/regimes';
 
     case 'semantic.alarm':
     case 'semantic.veto':
     case 'semantic.drift':
-      return null;
+      return '/semantic';
 
     case 'integrity.alert':
-      return null;
+      return '/verification';
+
+    case 'gateway.transaction':
+      return '/gateway';
+
+    case 'community.created':
+      return '/planetary';
 
     case 'test.notification':
       return null;
 
-    default:
+    default: {
+      // Фолбэк по идентификаторам из data: отправители кладут taskId /
+      // reportId / signalId, а явный link есть не всегда.
+      const taskId = data?.['taskId'] ?? data?.['task_id'];
+      if (typeof taskId === 'string') {return `/tasks/${taskId}/report`;}
+      const reportId = data?.['reportId'] ?? data?.['report_id'];
+      if (typeof reportId === 'string') {return '/otc';}
+      const signalId = data?.['signalId'] ?? data?.['signal_id'];
+      if (typeof signalId === 'string') {return '/signals';}
       return null;
+    }
   }
 }
 // ─── NotificationList ────────────────────────────────────────────
 
 export interface NotificationListProps {
   max?: number;
+  /** Закрыть выпадашку после перехода к событию. */
+  onNavigate?: () => void;
 }
 
 export function NotificationList({
   max = 10,
+  onNavigate,
 }: NotificationListProps): ReactElement {
   const { notifications, unreadCount, markRead, markAllRead } =
     useNotifications();
@@ -300,6 +318,7 @@ export function NotificationList({
     const link = getNotificationLink(n);
     if (link) {
       navigate(link);
+      onNavigate?.();
     }
   };
 
