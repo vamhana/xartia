@@ -22,9 +22,12 @@ import {
 } from '../../ws/signals.js';
 import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../errors.js';
+import { Role } from '../roles.js';
 import type {
   UUID, Priority, SignalStatus, SignalType, SignalResponseType,
 } from '../types.js';
+import { logger } from '../../lib/logger.js';
+import { send as sendNotification, sendToRole } from '../../lib/notifications.js';
 
 import {
   createSignal, changeStatus, incrementIteration, canEscalate,
@@ -160,6 +163,46 @@ export async function getById(signalId: UUID): Promise<Signal> {
 
 // -------- Создание --------
 
+/**
+ * Уведомление — побочный эффект. Падение отправки (мессенджер/Redis) не
+ * должно отменять создание сигнала или ответ на него.
+ */
+async function notifySafely(
+  recipientId: UUID,
+  type: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await sendNotification({
+      recipientId,
+      type,
+      priority: 'standard',
+      title,
+      body,
+      data,
+    });
+  } catch (e) {
+    logger.warn({ err: e, recipientId, type }, 'signal notification failed');
+  }
+}
+
+async function notifyRoleSafely(
+  role: Role,
+  type: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+  directionId?: UUID,
+): Promise<void> {
+  try {
+    await sendToRole(role, { type, priority: 'standard', title, body, data }, directionId);
+  } catch (e) {
+    logger.warn({ err: e, role, type }, 'signal role notification failed');
+  }
+}
+
 export interface CreateSignalRequest {
   type: SignalType;
   description: string;
@@ -249,6 +292,16 @@ export async function createSignalService(
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
       });
+
+      // Совет направления должен узнать о сигнале, не открывая /signals.
+      await notifyRoleSafely(
+        Role.COUNCIL_MEMBER,
+        'signal.created',
+        'Новый сигнал',
+        `${entity.externalId}: ${entity.description.slice(0, 160)}`,
+        { signalId: entity.id, link: '/signals' },
+        entity.leadDirectionId ?? entity.directions[0],
+      );
 
       return entity;
     } catch (e) {
@@ -355,6 +408,15 @@ export async function respondService(
     createdAt: result.createdAt,
   });
 
+  // Автор сигнала должен узнать об ответе — иначе решение повисает.
+  await notifySafely(
+    signal.initiatorId,
+    'signal.response_added',
+    'Ответ на ваш сигнал',
+    `${signal.externalId}: ${input.response}`,
+    { signalId, link: '/signals' },
+  );
+
   return result;
 }
 
@@ -393,6 +455,16 @@ export async function markAsEscalated(
     action: 'signals.escalated', entityType: 'signal', entityId: signalId,
     newValue: { iterations: signal.iterations, reason },
   });
+
+  // Эскалация — повод позвать Совет: локально вопрос не решился.
+  await notifyRoleSafely(
+    Role.COUNCIL_MEMBER,
+    'signal.escalated',
+    'Сигнал эскалирован',
+    `${signal.externalId}: ${reason.slice(0, 160)}`,
+    { signalId, link: '/signals' },
+    signal.leadDirectionId ?? signal.directions[0],
+  );
 
   return getById(signalId);
 }

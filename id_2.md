@@ -4483,6 +4483,7 @@
 
 |2026-10-24: getQueue отдаёт artifactUrl (r.artifact_url) — ревьюер видит ссылку на PR в очереди ОТК.
 
+|2026-10-24 (апелляция): appeal() уведомляет роль OTC направления — «Апелляция на решение ОТК» (priority high, link /otc).
 |C.0.10.01|Core|Domain|TypeScript|src/core/signals/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.1|
 |Описание: Доменная сущность Сигнал. 8 из 11 заявленных функций. Отсутствуют respond, setLeadDirection, escalateToArbitration. Добавлены canTransition, changeStatus.
 |Публичный API:
@@ -4624,6 +4625,7 @@
 - **`assertInitiator`** — не используется в контроллере A.1.10.01 (экспортирован для будущих потребителей).
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.20 test-signals.ts (B2, B4, B1), I.9.04.11 test-jury (idea-сигнал). |
 
+|2026-10-24: уведомления по сигналам — создание уведомляет Совет направления (sendToRole COUNCIL_MEMBER, direction = lead/directions[0]), ответ уведомляет автора сигнала (signal.response_added, link /signals), эскалация — снова Совет. Все отправки best-effort: падение не отменяет доменную операцию.
 |C.0.11.01|Core|Domain|TypeScript|src/core/connections/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|II.3|
 |Описание: Доменная сущность Коннект. 10 функций. Диагностика — 1 час. Позиции: не более одной на направление. Переход started→diagnostics при 2 позициях.
 |Публичный API:

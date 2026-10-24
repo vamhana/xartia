@@ -114,6 +114,47 @@ async function main(): Promise<void> {
   if (same?.read === true) { ok('статус прочтения сохранён'); }
   else { fail('статус прочтения не сохранился'); }
 
+  // 7. Сигнал → ответ → уведомление автору сигнала.
+  const meFull = await call<{ directionId: string | null }>('GET', '/me', undefined, token);
+  const myDir = meFull.data.directionId;
+  if (myDir) {
+    const sig = await call<{ id: string; externalId: string }>(
+      'POST', '/signals',
+      {
+        type: 'idea',
+        description: 'Проверка уведомлений по сигналам',
+        justification: 'Автотест: сигнал → ответ → уведомление',
+        priority: 'standard',
+        directions: [myDir],
+        lead_direction_id: myDir,
+      },
+      token,
+    );
+    if (sig.status !== 201) { fail(`create signal → ${sig.status}`); }
+    else {
+      ok(`сигнал ${sig.data.externalId} создан`);
+
+      const resp = await call(
+        'POST', `/signals/${sig.data.id}/responses`,
+        { direction_id: myDir, response: 'support', justification: 'Согласны с сигналом' },
+        token,
+      );
+      if (resp.status === 201) { ok('ответ на сигнал создан'); }
+      else { fail(`respond signal → ${resp.status}`); }
+
+      const n2 = await call<{ data: NotificationRecord[] }>(
+        'GET', '/notifications/history?page=1&per_page=20', undefined, token,
+      );
+      const responseNote = n2.data.data.find(
+        (n) => n.type === 'signal.response_added' && n.data?.link === '/signals',
+      );
+      if (responseNote) { ok(`уведомление об ответе: «${responseNote.title}»`); }
+      else { fail('уведомление signal.response_added не найдено'); }
+    }
+  } else {
+    console.log('   · у Архитектора нет направления — шаг сигналов пропущен');
+  }
+
   console.log('\n✅ done');
 }
 

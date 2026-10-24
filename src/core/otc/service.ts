@@ -25,9 +25,11 @@ import {
   emitAppealFiled,
   emitQueueUpdated,
 } from '../../ws/otc.js';
+import { sendToRole } from '../../lib/notifications.js';
 import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError } from '../errors.js';
 import { awardForAcceptedTask } from '../flows/service.js';
+import { Role } from '../roles.js';
 import { getById as getReportById } from '../reports/service.js';
 import { getById as getTaskById, acceptTaskService, returnTaskService } from '../tasks/service.js';
 import type { UUID } from '../types.js';
@@ -409,6 +411,19 @@ export async function appeal(
     });
   } catch (e) {
     logger.warn({ err: e, appealId: entity.id }, 'otc: WS emitAppealFiled failed');
+  }
+
+  // Апелляция — тоже уведомление: ОТК должен узнать, что решение оспорено.
+  try {
+    await sendToRole(Role.OTC, {
+      type: 'otc.appeal_filed',
+      priority: 'high',
+      title: 'Апелляция на решение ОТК',
+      body: `Решение ${decisionId.slice(0, 8)}: ${entity.reason.slice(0, 160)}`,
+      data: { decisionId, appealId: entity.id, link: '/otc' },
+    }, row.task_direction_id);
+  } catch (e) {
+    logger.warn({ err: e, appealId: entity.id }, 'otc: appeal notification failed');
   }
 
   return entity;
