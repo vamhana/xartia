@@ -15585,6 +15585,7 @@
 |↘ ПРЕДОСТАВЛЯЕТ: сигнал регрессий на каждый PR; дублируется локально в scripts/ci-local.ps1 (I.9.02.18).
 |Реализация: ENCRYPTION_KEY/PHONE_HASH_KEY/INTEGRITY_HMAC_KEY — фиксированные base64 от 32 нулевых байт (только CI); при падении печатаются последние 200 строк лога API.
 
+|2026-10-24: добавлен сервис minio (bitnami/minio, MINIO_DEFAULT_BUCKETS=charter-media,charter-archive,charter-gateway) и шаг «Базовые справочники» (I.9.02.19). Без хранилища smoke-тест задач падал на «Артефакт не сохранился»: S3-хранилище — обязательная часть контура отчёта.
 |I.2.01.01|Infra|Monitoring|YAML|monitoring/prometheus.yml|I.5.07.01|v.0.0.01|Draft|—|
 |Описание: Prometheus конфиг. Сбор метрик со всех сервисов. Scrape интервалы. Service discovery через K8s.
 |Публичный API (элементы):
