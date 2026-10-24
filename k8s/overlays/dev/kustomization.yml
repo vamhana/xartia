@@ -1,0 +1,33 @@
+# overlays/dev/kustomization.yml
+# k3d (WSL2/Windows/Linux). Longhorn НЕ работает на k3d.
+# Используем local-path (k3s default) — данные на одной ноде.
+# 1 реплика везде. TLS — self-signed (cert-manager CA issuer).
+#
+# Применение:
+#   kubectl apply -k overlays/dev
+#
+# ВАЖНО: НЕТ поля "namespace:".
+# Kustomize v5+ полем namespace: ПЕРЕИМЕНОВЫВАЕТ все Namespace-объекты,
+# из-за чего xartia-data, xartia-gateway, registry, ... схлопываются
+# в один "xartia" → "namespace transformation produces ID conflict".
+# Namespace'ы уже заданы в base/*.yml; overlay их не трогает.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# patches — добавляются по мере готовности Deployment'ов.
+# Пример для Сессии 3:
+#   patches:
+#     - path: patches/postgres-storageclass.yml
+#       target:
+#         kind: StatefulSet
+#         name: postgres
+patches: []
+
+labels:
+  - pairs:
+      xartia.io/env: dev
+      xartia.io/storage: local-path
+    # includeSelectors: false (не трогаем selector'ы)

@@ -1,0 +1,44 @@
+# base/network/allow-workers.yml
+# CronJob'ы (k8s/worker/cronjob-*.yml) → api-svc:3000.
+# CronJob-поды имеют label app: xartia, module: <domain>.
+# Namespace — xartia (CronJob'ы в нём).
+#
+# ВАЖНО: CronJob-поды создаются job-controller'ом. NetworkPolicy матчит
+# их podSelector'ом по labels template'а. У CronJob template.labels:
+#   app: xartia
+#   module: psy | automation | webhooks | aggregator | quanta | experiments
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cronjobs-to-api
+  namespace: xartia
+spec:
+  podSelector:
+    matchLabels: { app: api }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app: xartia }   # CronJob-поды
+      ports:
+        - { protocol: TCP, port: 3000 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cronjobs-egress-to-api
+  namespace: xartia
+spec:
+  podSelector:
+    matchLabels: { app: xartia }   # CronJob-поды
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: { app: api }
+      ports:
+        - { protocol: TCP, port: 3000 }
+    # DNS уже разрешён через allow-dns.

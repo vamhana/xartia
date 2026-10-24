@@ -1,0 +1,66 @@
+# base/namespace.yml
+# 7 namespaces — изоляция по слоям (см. философию независимости).
+#   xartia           — приложение (api, ws, worker, web)
+#   xartia-data      — данные (postgres, redis, minio)
+#   xartia-gateway   — шлюз (изоляция InfoBlockade)
+#   registry         — Zot (свой OCI registry)
+#   cert-manager     — step-ca + cert-manager
+#   monitoring       — VictoriaMetrics, Loki, Grafana, Uptime Kuma
+#   longhorn-system  — Longhorn (storage)
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xartia
+  labels:
+    app.kubernetes.io/part-of: xartia
+    xartia.io/tier: app
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xartia-data
+  labels:
+    app.kubernetes.io/part-of: xartia
+    xartia.io/tier: data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xartia-gateway
+  labels:
+    app.kubernetes.io/part-of: xartia
+    xartia.io/tier: gateway
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: registry
+  labels:
+    app.kubernetes.io/part-of: xartia
+    xartia.io/tier: infra
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    app.kubernetes.io/part-of: xartia
+    xartia.io/tier: infra
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: xartia
+    xartia.io/tier: infra
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: longhorn-system
+  labels:
+    app.kubernetes.io/part-of: xartia
+    xartia.io/tier: infra    
+    

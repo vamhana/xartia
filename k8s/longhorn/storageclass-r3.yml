@@ -1,0 +1,24 @@
+
+# longhorn/storageclass-r3.yml
+# Postgres prod, критичные данные.
+# 3 реплики — переживает потерю 1 ноды без потери данных.
+# reclaimPolicy: Retain — kubectl delete pvc НЕ удаляет данные.
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-r3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  numberOfReplicas: "3"
+  staleReplicaTimeout: "30"
+  fromBackup: ""
+  fsType: "ext4"
+  dataLocality: "disabled"
+  # diskSelector / nodeSelector — по умолчанию все ноды. Если нужно
+  # ограничить (например, только NVMe) — добавить.

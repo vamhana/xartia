@@ -1,0 +1,1291 @@
+Схема БД ядра Хартии 5.0
+Ниже — полная схема. PostgreSQL-стиль. Разбито по доменам. С префиксами, связями, индексами, ключевыми полями и правилами.
+
+0. Общие принципы
+Все таблицы имеют id, created_at, updated_at.
+
+Все значимые действия пишутся в audit_log.
+
+Мягкое удаление: deleted_at (никогда не физическое).
+
+Версионирование: version, valid_from, valid_to.
+
+Роли и права — через RBAC + мандаты.
+
+Персональные данные — шифрование (pgcrypto).
+
+Ничего не «навсегда» — у всего есть срок.
+
+1. Идентификация и участники
+1.1. participants
+Поле	Тип	Примечание
+id	UUID PK	
+external_id	VARCHAR UNIQUE	формат <буква><5 цифр>-<направление>[:<поднапр>]
+wave_letter	CHAR	буква волны
+wave_number	INT	5 цифр
+direction_id	FK → directions	основное направление
+subdirection	VARCHAR	опционально
+name	VARCHAR	
+pseudonym	VARCHAR	
+phone	VARCHAR ENCRYPTED	
+messengers	JSONB	telegram, whatsapp, signal
+password_hash	VARCHAR	
+status	ENUM	Совместим / Условно / Ассоциированный / Полный / На паузе / Вне сети доверия / Мастер / Интегратор / Первопроходец / Отчуждён
+profile_risk	ENUM	Совместим / Условно / Несовместим
+geolocation	GEOGRAPHY	опционально
+geo_enabled	BOOLEAN	
+entered_at	TIMESTAMPTZ	
+welcome_pack_given	BOOLEAN	200 Потоков
+mentor_id	FK → participants	
+is_first_architect	BOOLEAN	
+metadata	JSONB	
+Индексы: external_id, direction_id, status, mentor_id.
+
+1.2. participant_history
+Поле	Тип	Примечание
+id	UUID PK	
+participant_id	FK	
+field	VARCHAR	direction / profession / role / status
+old_value	JSONB	
+new_value	JSONB	
+reason	TEXT	
+authorized_by	FK → participants	
+created_at	TIMESTAMPTZ	
+1.3. participant_status_history
+Поле	Тип	Примечание
+id	UUID PK	
+participant_id	FK	
+status	ENUM	
+reason	TEXT	
+valid_from	TIMESTAMPTZ	
+valid_to	TIMESTAMPTZ	
+1.4. auth_sessions
+Поле	Тип
+id	UUID PK
+participant_id	FK
+token	VARCHAR
+ip	INET
+user_agent	TEXT
+expires_at	TIMESTAMPTZ
+1.5. registration_requests
+Поле	Тип	Примечание
+id	UUID PK	
+phone	VARCHAR ENCRYPTED	
+messengers	JSONB	
+status	ENUM	Новая / Интервью / Решение / Принят / Условно / Отклонён
+assigned_to	FK → participants	СИ
+interview_at	TIMESTAMPTZ	
+notes	TEXT	
+created_at	TIMESTAMPTZ	
+1.6. interviews
+Поле	Тип
+id	UUID PK
+request_id	FK
+interviewer_id	FK
+video_url	TEXT
+transcript	TEXT
+questions	JSONB
+score_cognitive	INT
+score_behavioral	INT
+score_reflective	INT
+score_technical	INT
+recommendation_direction	FK
+recommendation_profession	FK
+recommendation_role	FK
+verdict	ENUM
+created_at	TIMESTAMPTZ
+1.7. interview_questions
+Поле	Тип
+id	UUID PK
+category	VARCHAR
+question	TEXT
+author_id	FK
+version	INT
+active	BOOLEAN
+2. Направления и структура
+2.1. directions
+Поле	Тип	Примечание
+id	UUID PK	
+number	INT UNIQUE	1–17, 18+
+name	VARCHAR	
+type	ENUM	Постоянное / Временное
+status	ENUM	Активно / Пусто / Делегировано / Заблокировано / Упразднено
+zone_exclusive	JSONB	исключительная компетенция
+zone_shared	JSONB	разделяемая
+zone_adjacent	JSONB	смежная
+council_id	FK → councils	
+created_at	TIMESTAMPTZ	
+deleted_at	TIMESTAMPTZ	
+2.2. professions
+Поле	Тип
+id	UUID PK
+direction_id	FK
+name	VARCHAR
+competencies	JSONB
+roles	JSONB
+active	BOOLEAN
+created_by	FK
+2.3. roles
+Поле	Тип
+id	UUID PK
+direction_id	FK
+name	VARCHAR
+type	ENUM	Постоянная / Временная / Режим
+rights	JSONB
+max_term_days	INT
+max_terms	INT
+cooldown_days	INT
+conflicts_with	JSONB
+active	BOOLEAN
+2.4. participant_roles
+Поле	Тип
+id	UUID PK
+participant_id	FK
+role_id	FK
+direction_id	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+status	ENUM	Активна / Завершена / Отозвана
+granted_by	FK
+2.5. cells
+Поле	Тип
+id	UUID PK
+level	INT	N×5
+number	VARCHAR
+profile	VARCHAR
+parent_cell_id	FK → cells
+direction_id	FK
+created_at	TIMESTAMPTZ
+2.6. cell_members
+Поле	Тип
+id	UUID PK
+cell_id	FK
+participant_id	FK
+role_in_cell	ENUM	Исполнитель / Координатор / ОТК / Хранитель / Связной / Верификатор / Балансировщик / Психоэколог
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+2.7. councils
+Поле	Тип
+id	UUID PK
+direction_id	FK
+type	ENUM	Направления / Шлюза / Протоколов / Конвергенции / Апелляционный
+status	ENUM	Активен / Роспущен
+created_at	TIMESTAMPTZ
+2.8. council_members
+Поле	Тип
+id	UUID PK
+council_id	FK
+participant_id	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+term_number	INT
+status	ENUM	Активен / Завершён
+3. Мандаты и делегирование
+3.1. mandates
+Поле	Тип
+id	UUID PK
+function	VARCHAR	Council / OTC / Balancer / Verifier / Keeper / Liaison / Operator / Aggregator / ...
+direction_id	FK
+holder_id	FK → participants	
+granted_by	FK → participants	
+granted_at	TIMESTAMPTZ
+expires_at	TIMESTAMPTZ
+status	ENUM	Активен / Истёк / Отозван
+conditions	JSONB
+scope	JSONB
+3.2. delegations
+Поле	Тип
+id	UUID PK
+function	VARCHAR
+from_id	FK → participants
+to_id	FK → participants
+direction_id	FK
+scope	JSONB
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+revoked_at	TIMESTAMPTZ
+revoked_by	FK
+status	ENUM
+3.3. rotations
+Поле	Тип
+id	UUID PK
+mandate_id	FK
+scheduled_at	TIMESTAMPTZ
+executed_at	TIMESTAMPTZ
+successor_id	FK
+status	ENUM
+3.4. cooldowns
+Поле	Тип
+id	UUID PK
+participant_id	FK
+reason	VARCHAR
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+4. Планы, задачи, отчёты
+4.1. plans
+Поле	Тип
+id	UUID PK
+external_id	VARCHAR	PLAN-<date>-<num>
+type	ENUM	Обычный / Кризисный / ПИП / Диссидентский
+title	VARCHAR
+expected_result	TEXT
+lead_direction_id	FK
+status	ENUM	Черновик / Прогон / Утверждён / В работе / Завершён / Отменён
+criteria	JSONB
+checkpoints	JSONB
+stop_conditions	JSONB
+approved_by	FK
+approved_at	TIMESTAMPTZ
+4.2. plan_tasks
+Поле	Тип
+id	UUID PK
+plan_id	FK
+task_id	FK
+4.3. tasks
+Поле	Тип
+id	UUID PK
+external_id	VARCHAR	<ТИП>-<date>-<num>
+plan_id	FK → plans NULL
+direction_id	FK
+description	TEXT
+required_competencies	JSONB
+location	GEOGRAPHY
+priority	ENUM	Критический / Высокий / Стандартный / Фоновый
+status	ENUM	Создана / Назначена / В работе / Сдана / Принята / Возвращена
+assigned_to	FK → participants
+deadline	TIMESTAMPTZ
+parent_task_id	FK → tasks NULL
+4.4. daily_plans
+Поле	Тип
+id	UUID PK
+direction_id	FK
+date	DATE
+approved_by	FK
+status	ENUM
+4.5. reports
+Поле	Тип
+id	UUID PK
+task_id	FK
+participant_id	FK
+type	ENUM	Фото / Видео / Текст
+media_url	TEXT
+comment	TEXT
+geolocation	GEOGRAPHY
+created_at	TIMESTAMPTZ
+4.6. otc_decisions
+Поле	Тип
+id	UUID PK
+report_id	FK
+otc_id	FK
+verdict	ENUM	Принято / Возвращено / Кризисный протокол
+comment	TEXT
+criteria_version	INT
+created_at	TIMESTAMPTZ
+4.7. otc_appeals
+Поле	Тип
+id	UUID PK
+decision_id	FK
+participant_id	FK
+reason	TEXT
+status	ENUM
+reviewed_by	FK
+result	TEXT
+4.8. acceptance_criteria
+Поле	Тип
+id	UUID PK
+direction_id	FK
+task_type	VARCHAR
+criteria	JSONB
+version	INT
+published_at	TIMESTAMPTZ
+active	BOOLEAN
+5. Сигналы и запросы
+5.1. signals
+Поле	Тип
+id	UUID PK
+external_id	VARCHAR	SIG-<date>-<num>
+initiator_id	FK
+type	ENUM	Потребность / Проблема / Идея / Сбой
+description	TEXT
+justification	TEXT
+directions	JSONB
+desired_deadline	TIMESTAMPTZ
+priority	ENUM	Критический / Высокий / Стандартный / Фоновый
+status	ENUM	Новый / Прогон / Коннект / План / Завершён / Отклонён
+iterations	INT
+lead_direction_id	FK
+created_at	TIMESTAMPTZ
+5.2. signal_attributes
+Поле	Тип
+id	UUID PK
+signal_id	FK
+speed_planned	INTERVAL
+speed_actual	INTERVAL
+format_ok	BOOLEAN
+etiquette_ok	BOOLEAN
+returns_count	INT
+5.3. responses
+Поле	Тип
+id	UUID PK
+signal_id	FK
+direction_id	FK
+response	ENUM	Поддерживаю / Возражаю / Требую уточнения / Вношу изменение / Отсутствие влияния
+justification	TEXT
+data	JSONB
+consequences	TEXT
+needs	TEXT
+created_at	TIMESTAMPTZ
+5.4. connections (Коннект)
+Поле	Тип
+id	UUID PK
+signal_id	FK
+moderator_id	FK
+status	ENUM	Запущен / Диагностика / Завершён
+positions	JSONB
+cause	TEXT
+result	ENUM	Устранено / Различные позиции / Найден вариант / Несовместимость / Не установлена
+protocol	JSONB
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+5.5. arbitrations
+Поле	Тип
+id	UUID PK
+type	ENUM	Процедурный / Принадлежности
+connection_id	FK NULL
+parties	JSONB
+question	TEXT
+decision	TEXT
+status	ENUM
+deadline	TIMESTAMPTZ
+decided_at	TIMESTAMPTZ
+5.6. universal_runs
+Поле	Тип
+id	UUID PK
+signal_id	FK
+type	ENUM	Последовательный / Параллельный / Кризисный
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+status	ENUM
+6. Потоки
+6.1. flows (баланс)
+Поле	Тип
+id	UUID PK
+participant_id	FK
+type	ENUM	Основной / Рефлексивный / Советный / Наставнический / Созидания / Межнаправленческий
+balance	NUMERIC
+updated_at	TIMESTAMPTZ
+6.2. flow_transactions
+Поле	Тип
+id	UUID PK
+participant_id	FK
+type	ENUM
+amount	NUMERIC
+reason	TEXT
+source	VARCHAR
+created_at	TIMESTAMPTZ
+6.3. capsules
+Поле	Тип
+id	UUID PK
+participant_id	FK
+balance	NUMERIC	до 180
+updated_at	TIMESTAMPTZ
+6.4. deferred_flow
+Поле	Тип
+id	UUID PK
+total_volume	NUMERIC	7%
+distributed	NUMERIC
+available	NUMERIC
+6.5. freedom_reserve
+Поле	Тип
+id	UUID PK
+total_volume	NUMERIC	2%
+accessible	BOOLEAN
+6.6. planetary_reserve
+Поле	Тип
+id	UUID PK
+total_volume	NUMERIC	3%
+distributed	NUMERIC
+6.7. flow_returns
+Поле	Тип
+id	UUID PK
+participant_id	FK
+percent	NUMERIC	1/30 или 1/60
+next_return_at	TIMESTAMPTZ
+status	ENUM
+7. Блага и стандарты
+7.1. goods
+Поле	Тип
+id	UUID PK
+name	VARCHAR
+type	ENUM	Материальное / Нематериальное
+status	ENUM	Черновик / Тест / Активно / Устарело / Ликвидировано
+producer_direction_id	FK
+components	JSONB	кто какой кусок внёс
+author_ids	JSONB
+connector_id	FK	кто соединил
+tester_id	FK
+approver_id	FK
+version	INT
+description	TEXT
+created_at	TIMESTAMPTZ
+7.2. good_history
+Поле	Тип
+id	UUID PK
+good_id	FK
+version	INT
+changes	JSONB
+author_id	FK
+created_at	TIMESTAMPTZ
+7.3. standards
+Поле	Тип
+id	UUID PK
+category	VARCHAR
+norm	NUMERIC
+version	INT
+published_at	TIMESTAMPTZ
+approved_by	FK
+7.4. modifiers
+Поле	Тип
+id	UUID PK
+name	VARCHAR
+condition	JSONB
+coefficient	NUMERIC
+status	ENUM	Активен / На рассмотрении / Отклонён
+requested_by	FK
+approved_by	FK
+7.5. good_requests
+Поле	Тип
+id	UUID PK
+participant_id	FK
+good_id	FK
+modifier_ids	JSONB
+status	ENUM
+experimental	BOOLEAN
+7.6. project_resources
+Поле	Тип
+id	UUID PK
+plan_id	FK
+resource	JSONB
+council_sign	FK
+balance_sign	FK
+verifier_sign	FK
+status	ENUM
+external_mark	BOOLEAN
+8. Режимы
+8.1. regimes
+Поле	Тип
+id	UUID PK
+type	ENUM	Красный Контур / Стальной Колокол / ПТТ / Информационная блокада / Квант ускорения / Глобальный Красный Контур
+direction_id	FK
+activated_by	FK
+activated_at	TIMESTAMPTZ
+deactivated_at	TIMESTAMPTZ
+status	ENUM	Активен / Завершён / Отменён
+conditions	JSONB
+audit_schedule	INTERVAL
+8.2. regime_actions
+Поле	Тип
+id	UUID PK
+regime_id	FK
+action	VARCHAR
+actor_id	FK
+details	JSONB
+created_at	TIMESTAMPTZ
+8.3. crisis_mobilizations
+Поле	Тип
+id	UUID PK
+regime_id	FK
+required_count	INT
+confirmed_count	INT
+refused_count	INT
+threshold_percent	NUMERIC	10%
+status	ENUM
+8.4. crisis_refusals
+Поле	Тип
+id	UUID PK
+mobilization_id	FK
+participant_id	FK
+reason	TEXT
+created_at	TIMESTAMPTZ
+9. Балансировка
+9.1. balance_metrics
+Поле	Тип
+id	UUID PK
+direction_id	FK
+period	TSTZRANGE
+metrics	JSONB
+anomalies	JSONB
+created_at	TIMESTAMPTZ
+9.2. meta_flows
+Поле	Тип
+id	UUID PK
+signal_id	FK
+speed	INTERVAL
+format_ok	BOOLEAN
+etiquette_ok	BOOLEAN
+priority_ok	BOOLEAN
+returns_count	INT
+9.3. anomalies
+Поле	Тип
+id	UUID PK
+type	ENUM	Скоростная / Форматная / Этическая / Приоритетная / Итерационная
+direction_id	FK
+severity	INT
+status	ENUM
+meta_request_id	FK
+9.4. competence_risks
+Поле	Тип
+id	UUID PK
+direction_id	FK
+status	ENUM	Активен / Снят
+reason	TEXT
+verified_by	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+9.5. normative_speeds
+Поле	Тип
+id	UUID PK
+priority	ENUM
+deadline	INTERVAL
+version	INT
+published_at	TIMESTAMPTZ
+9.6. guardian_indices
+Поле	Тип
+id	UUID PK
+type	ENUM	Защитная зрелость / Избыточная ёмкость / Импортозависимость
+value	NUMERIC
+direction_id	FK NULL
+created_at	TIMESTAMPTZ
+9.7. planetary_pulse
+Поле	Тип
+id	UUID PK
+community_id	FK
+base_goods_level	NUMERIC
+direction_load	JSONB
+top_signals	JSONB
+created_at	TIMESTAMPTZ
+10. Верификация
+10.1. audits
+Поле	Тип
+id	UUID PK
+type	ENUM	Плановый / Внеплановый / Процессуальный / По обращению
+subject	VARCHAR
+subject_id	UUID
+initiator_id	FK
+status	ENUM	Открыт / В работе / Завершён
+result	TEXT
+created_at	TIMESTAMPTZ
+10.2. audit_findings
+Поле	Тип
+id	UUID PK
+audit_id	FK
+finding	TEXT
+severity	INT
+recommendation	TEXT
+10.3. verification_rechecks
+Поле	Тип
+id	UUID PK
+otc_decision_id	FK
+verifier_id	FK
+result	ENUM	Совпадает / Расходится
+comment	TEXT
+10.4. code_audits
+Поле	Тип
+id	UUID PK
+system	ENUM	Префильтрация / Балансировка / Цифровой наставник / Другое
+version	VARCHAR
+findings	JSONB
+conducted_by	FK
+created_at	TIMESTAMPTZ
+10.5. integrity_alerts
+Поле	Тип
+id	UUID PK
+system	VARCHAR
+source_node	VARCHAR
+action	ENUM	Цифровая атака / Попытка изменения
+handled_at	TIMESTAMPTZ
+11. Хранители
+11.1. archive_documents
+Поле	Тип
+id	UUID PK
+type	ENUM	Протокол / Решение / Акт / Отчёт / Журнал
+direction_id	FK
+subject	VARCHAR
+content	JSONB
+version	INT
+signed_by	FK
+archived_at	TIMESTAMPTZ
+11.2. decision_chains
+Поле	Тип
+id	UUID PK
+chain_id	UUID
+step	INT
+type	ENUM	Проблема / Запрос / Ответ / Решение / Реализация / Результат / Корректировка
+ref_id	UUID
+description	TEXT
+created_at	TIMESTAMPTZ
+11.3. id_registry
+Поле	Тип
+id	UUID PK
+participant_id	FK
+external_id	VARCHAR
+community_code	VARCHAR
+internal_id	VARCHAR
+global_id	VARCHAR
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+11.4. cross_checks
+Поле	Тип
+id	UUID PK
+document_a_id	FK
+document_b_id	FK
+discrepancies	JSONB
+created_at	TIMESTAMPTZ
+12. Правозащита
+12.1. complaints
+Поле	Тип
+id	UUID PK
+type	ENUM	Насилие / Угроза / Принуждение / Домогательство
+applicant_id	FK
+anonymous	BOOLEAN
+description	TEXT
+status	ENUM	Подано / Расследование / Закрыто
+created_at	TIMESTAMPTZ
+12.2. investigations
+Поле	Тип
+id	UUID PK
+complaint_id	FK
+investigator_ids	JSONB
+target_id	FK
+status	ENUM
+deadline	TIMESTAMPTZ
+result	TEXT
+victim_rights	JSONB
+audited_by	FK
+12.3. isolation
+Поле	Тип
+id	UUID PK
+target_id	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+conditions	JSONB
+imposed_by	FK
+12.4. resocialization
+Поле	Тип
+id	UUID PK
+target_id	FK
+program	JSONB
+mentors	JSONB
+status	ENUM
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+12.5. sanctions
+Поле	Тип
+id	UUID PK
+target_id	FK
+type	ENUM	Восстановительная беседа / Временная изоляция / Ресоциализация / Исключение / Необратимое отчуждение
+basis	TEXT
+decided_by	FK
+decided_at	TIMESTAMPTZ
+status	ENUM
+12.6. jury_sessions
+Поле	Тип
+id	UUID PK
+type	ENUM	Обычное (12) / Расширенное (24)
+subject_id	FK
+participants	JSONB
+moderator_id	FK
+votes	JSONB
+decision	TEXT
+created_at	TIMESTAMPTZ
+12.7. appeals
+Поле	Тип
+id	UUID PK
+jury_session_id	FK
+council_type	ENUM
+result	TEXT
+decided_at	TIMESTAMPTZ
+12.8. outside_trust_network
+Поле	Тип
+id	UUID PK
+participant_id	FK
+reason	TEXT
+valid_from	TIMESTAMPTZ
+review_at	TIMESTAMPTZ
+status	ENUM
+13. Психоэкология
+13.1. psy_sessions
+Поле	Тип
+id	UUID PK
+participant_id	FK
+psychologist_id	FK
+type	ENUM	Онбординг / Кризис / Разгрузка / Резонанс
+notes	TEXT
+status	ENUM
+scheduled_at	TIMESTAMPTZ
+13.2. psy_observers
+Поле	Тип
+id	UUID PK
+participant_id	FK
+direction_id	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+13.3. mood_metrics
+Поле	Тип
+id	UUID PK
+direction_id	FK
+metric	VARCHAR
+value	NUMERIC
+period	TSTZRANGE
+13.4. reflective_reports
+Поле	Тип
+id	UUID PK
+participant_id	FK
+context	ENUM	Кризис / ПТТ / Квант / Обычный
+content	TEXT
+created_at	TIMESTAMPTZ
+14. Шлюз
+14.1. gateway_council
+Поле	Тип
+id	UUID PK
+member_id	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+term_number	INT
+14.2. external_transactions
+Поле	Тип
+id	UUID PK
+type	ENUM	Закупка / Продажа / Дипломатия / Миграция
+description	TEXT
+amount_external	NUMERIC
+resource_type	VARCHAR
+approved_by	FK
+audited_by	FK
+classified_until	TIMESTAMPTZ
+created_at	TIMESTAMPTZ
+14.3. external_assets
+Поле	Тип
+id	UUID PK
+type	ENUM	Недвижимость / Бизнес / Финансы
+value	NUMERIC
+status	ENUM	Принято / Конвертируется / Конвертировано
+source_participant_id	FK
+verified_by	FK
+14.4. guarantor
+Поле	Тип
+id	UUID PK
+participant_id	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+diagnosis	JSONB
+status	ENUM
+14.5. external_witnesses
+Поле	Тип
+id	UUID PK
+community_id	FK
+status	ENUM	Активен / Неактивен
+since	TIMESTAMPTZ
+14.6. external_defense
+Поле	Тип
+id	UUID PK
+type	ENUM	Внешний / Внутренний / Глобальный
+status	ENUM	Активен / Неактивен
+commander_id	FK
+rotation_at	TIMESTAMPTZ
+15. Кванты
+15.1. quanta
+Поле	Тип
+id	UUID PK
+level	INT	1–6
+type	VARCHAR
+source_cell_id	FK
+description	TEXT
+area_of_applicability	JSONB
+limitations	JSONB
+success_criteria	JSONB
+stop_criteria	JSONB
+status	ENUM	Обнаружен / Аудит / Тестирование / Масштабирование / Активен / Отменён
+mandatory	BOOLEAN
+created_at	TIMESTAMPTZ
+15.2. quantum_tests
+Поле	Тип
+id	UUID PK
+quantum_id	FK
+cell_id	FK
+result	ENUM	Успех / Провал
+notes	TEXT
+15.3. quantum_catalog
+Поле	Тип
+id	UUID PK
+quantum_id	FK
+community_id	FK NULL
+applied	BOOLEAN
+16. Конструктор
+16.1. panels
+Поле	Тип
+id	UUID PK
+name	VARCHAR
+role_id	FK
+direction_id	FK NULL
+context	VARCHAR	обычный / кризис / Стальной Колокол
+version	INT
+active	BOOLEAN
+created_by	FK
+16.2. widgets
+Поле	Тип
+id	UUID PK
+type	VARCHAR	список / таблица / карточка / график / ...
+entity	VARCHAR	задача / сигнал / участник / ...
+config	JSONB
+default_rights	JSONB
+created_by	FK
+16.3. panel_widgets
+Поле	Тип
+id	UUID PK
+panel_id	FK
+widget_id	FK
+position	JSONB
+size	JSONB
+overrides	JSONB
+16.4. rights_matrix
+Поле	Тип
+id	UUID PK
+role_id	FK
+resource	VARCHAR
+action	ENUM	V / C / E / D / A / Dg / R / Vo / Act / Ar / S / F
+scope	ENUM	Self / Dir / All / Agg / Raw / Arch
+condition	JSONB
+version	INT
+16.5. panel_versions
+Поле	Тип
+id	UUID PK
+panel_id	FK
+version	INT
+snapshot	JSONB
+created_by	FK
+created_at	TIMESTAMPTZ
+17. Планетарный уровень
+17.1. communities
+Поле	Тип
+id	UUID PK
+code	CHAR(2)	двухбуквенный код
+name	VARCHAR
+status	ENUM	Инкубация / Активна / Узел / Центр
+level	INT	2×5 … 12×5
+mother_community_id	FK
+protocol_version	VARCHAR
+created_at	TIMESTAMPTZ
+17.2. protocol_council
+Поле	Тип
+id	UUID PK
+member_id	FK
+community_id	FK
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+type	ENUM	Делегат / Эксперт / Страж
+17.3. flow_bridges
+Поле	Тип
+id	UUID PK
+community_a	FK
+community_b	FK
+coefficient	NUMERIC
+status	ENUM
+established_at	TIMESTAMPTZ
+17.4. planetary_plans
+Поле	Тип
+id	UUID PK
+period	TSTZRANGE
+plan	JSONB
+approved_by	FK
+created_at	TIMESTAMPTZ
+17.5. planetary_reserve
+См. 6.6.
+
+17.6. global_referendums
+Поле	Тип
+id	UUID PK
+type	ENUM	Конвергенция / Роспуск Шлюза / Ядро
+threshold	NUMERIC
+result	JSONB
+status	ENUM
+created_at	TIMESTAMPTZ
+18. Конвергенция государств
+18.1. convergence_plans
+Поле	Тип
+id	UUID PK
+state_name	VARCHAR
+stage	INT	0–5
+status	ENUM
+coordinator_id	FK
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+18.2. convergence_council
+Поле	Тип
+id	UUID PK
+plan_id	FK
+member_id	FK
+type	ENUM	СП / Направление / Государство / Аудитор
+18.3. debt_conversions
+Поле	Тип
+id	UUID PK
+plan_id	FK
+type	ENUM	Внешний / Внутренний
+amount	NUMERIC
+action	ENUM	Аннулирование / Конвертация
+coefficient	NUMERIC
+18.4. asset_conversions
+Поле	Тип
+id	UUID PK
+plan_id	FK
+asset_type	VARCHAR
+value	NUMERIC
+destination_direction_id	FK
+18.5. weapon_conversions
+Поле	Тип
+id	UUID PK
+plan_id	FK
+weapon_type	VARCHAR
+action	ENUM	Утилизация / Резерв / Энергия
+verified_by	FK
+18.6. cultural_centers
+Поле	Тип
+id	UUID PK
+plan_id	FK
+location	GEOGRAPHY
+status	ENUM
+19. Сигналы о нарушениях и дрейф
+19.1. semantic_drift
+Поле	Тип
+id	UUID PK
+term	VARCHAR
+original_meaning	TEXT
+detected_meaning	TEXT
+severity	INT
+detected_by	FK
+status	ENUM
+19.2. semantic_alarms
+Поле	Тип
+id	UUID PK
+drift_id	FK
+priority	INT	высший
+raised_by	FK
+status	ENUM
+escalated_to	ENUM	Совет / Форум / Референдум
+19.3. vetoes
+Поле	Тип
+id	UUID PK
+type	ENUM	Семантический Страж / Жюри
+decision_ref	UUID
+reason	TEXT
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+status	ENUM
+19.4. red_button
+Поле	Тип
+id	UUID PK
+participant_id	FK
+context	TEXT
+created_at	TIMESTAMPTZ
+19.5. systemic_violence_signals
+Поле	Тип
+id	UUID PK
+direction_id	FK
+cases_count	INT
+audit_launched	BOOLEAN
+created_at	TIMESTAMPTZ
+20. Эксперименты
+20.1. experimental_protocols
+Поле	Тип
+id	UUID PK
+external_id	VARCHAR	EXP-<num>-<year>
+goal	TEXT
+term_days	INT	до 1825
+participants	JSONB
+criteria	JSONB
+status	ENUM	Подано / Утверждено / Активно / Завершено / Отменено
+approved_by	FK
+20.2. experiment_results
+Поле	Тип
+id	UUID PK
+protocol_id	FK
+successes	JSONB
+failures	JSONB
+stats	JSONB
+published	BOOLEAN
+20.3. dissident_projects
+Поле	Тип
+id	UUID PK
+initiator_id	FK
+description	TEXT
+petition_count	INT
+required_percent	NUMERIC	1%
+resource_source	ENUM	Отложенный Поток / Резерв свободы
+status	ENUM
+report_interval_days	INT	60
+closed_at	TIMESTAMPTZ
+21. Аудит и логи
+21.1. audit_log
+Поле	Тип
+id	UUID PK
+actor_id	FK NULL
+actor_type	ENUM	Участник / ИИ / Система
+action	VARCHAR
+entity_type	VARCHAR
+entity_id	UUID
+old_value	JSONB
+new_value	JSONB
+context	JSONB
+ip	INET
+created_at	TIMESTAMPTZ
+Индексы: actor_id, entity_type + entity_id, created_at.
+
+21.2. access_log
+Поле	Тип
+id	UUID PK
+participant_id	FK
+resource	VARCHAR
+resource_id	UUID
+action	ENUM	V / C / E / D / A
+granted	BOOLEAN
+reason	TEXT
+created_at	TIMESTAMPTZ
+21.3. system_events
+Поле	Тип
+id	UUID PK
+type	VARCHAR
+payload	JSONB
+created_at	TIMESTAMPTZ
+22. Конвергенция и Шлюз — вспомогательные
+22.1. migration_registry
+Поле	Тип
+id	UUID PK
+participant_id	FK
+from_community	FK
+to_community	FK
+status	ENUM
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+22.2. status_acknowledgements
+Поле	Тип
+id	UUID PK
+participant_id	FK
+type	ENUM	Согласие Шлюза / Диагностика / Тренинг
+confirmed_at	TIMESTAMPTZ
+23. Связи и графы
+23.1. relationships
+Поле	Тип
+id	UUID PK
+from_id	FK
+to_id	FK
+type	ENUM	Наставник / Стажёр / Экскурсант / Делегат / Аудитор
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+23.2. mentor_links
+Поле	Тип
+id	UUID PK
+mentor_id	FK
+mentee_id	FK
+type	ENUM	Обычный / Интегратор
+valid_from	TIMESTAMPTZ
+valid_to	TIMESTAMPTZ
+max_mentees	INT
+24. Оценки
+24.1. evaluations
+Поле	Тип
+id	UUID PK
+author_id	FK
+subject_id	FK
+context_id	UUID
+reliability	INT
+clarity	INT
+etiquette	INT
+help	INT
+comment	TEXT
+created_at	TIMESTAMPTZ
+24.2. evaluation_aggregates
+Поле	Тип
+id	UUID PK
+subject_id	FK
+period	TSTZRANGE
+metrics	JSONB
+anomalies	JSONB
+25. Онбординг и маршруты
+25.1. onboarding
+Поле	Тип
+id	UUID PK
+participant_id	FK
+stage	ENUM	Заявка / Интервью / Решение / Стажировка / Основной
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+notes	TEXT
+25.2. cognitive_routes
+Поле	Тип
+id	UUID PK
+participant_id	FK
+direction_id	FK
+mentor_id	FK
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+status	ENUM
+certificate_issued	BOOLEAN
+25.3. refresh_courses
+Поле	Тип
+id	UUID PK
+participant_id	FK
+direction_1	FK
+direction_2	FK
+module_basic_defense	BOOLEAN
+module_respect	BOOLEAN
+passed_at	TIMESTAMPTZ
+25.4. pause_periods
+Поле	Тип
+id	UUID PK
+participant_id	FK
+started_at	TIMESTAMPTZ
+finished_at	TIMESTAMPTZ
+reason	TEXT
+26. Мастерство и статусы
+26.1. mastery
+Поле	Тип
+id	UUID PK
+participant_id	FK
+direction_id	FK
+granted_at	TIMESTAMPTZ
+revoked_at	TIMESTAMPTZ
+audit_ref	UUID
+26.2. honorary_statuses
+Поле	Тип
+id	UUID PK
+participant_id	FK
+type	ENUM	Первопроходец / Экспансионист / Интегратор / Почётный наставник
+granted_at	TIMESTAMPTZ
+27. Кризисные и тревожные события
+27.1. trained_drills
+Поле	Тип
+id	UUID PK
+type	ENUM	Учебная тревога / Моделирование
+scenario	JSONB
+result	JSONB
+conducted_at	TIMESTAMPTZ
+27.2. false_alarms
+Поле	Тип
+id	UUID PK
+participant_id	FK
+context	TEXT
+verified	BOOLEAN
+created_at	TIMESTAMPTZ
+27.3. defense_reports
+Поле	Тип
+id	UUID PK
+year	INT
+index	NUMERIC
+report	JSONB
+28. Ключевые представления (VIEW)
+v_participant_passport — паспорт с историей.
+
+v_direction_load — нагрузка по направлениям.
+
+v_active_mandates — активные мандаты.
+
+v_rotations_due — предстоящие ротации.
+
+v_open_signals — открытые сигналы.
+
+v_signal_speed — скорость обработки.
+
+v_balance_anomalies — аномалии.
+
+v_otc_backlog — очередь ОТК.
+
+v_flow_balance — балансы потоков.
+
+v_council_members_active — действующие Советы.
+
+v_trust_network_excluded — вне сети доверия.
+
+v_regime_active — активные режимы.
+
+v_planetary_pulse — планетарный пульс.
+
+v_community_map — карта общин.
+
+29. Ключевые триггеры
+Ротация: при mandates.expires_at <= now() — автоматически создать rotations и перевести мандат в «Истёк».
+
+Холодный период: при завершении мандата — создать cooldowns.
+
+Возврат Потоков: ежедневно пересчитывать flow_returns.
+
+Логирование: на INSERT/UPDATE/DELETE ключевых таблиц — запись в audit_log.
+
+Превышение лимитов: при iterations >= 3 — эскалация в Арбитраж.
+
+Просрочка: при deadline <= now() — сигнал в Балансировку.
+
+Информационная блокада: при отсутствии данных Шлюза > 1 часа — автоматическая активация.
+
+Стальной Колокол: при сигнале угрозы > 10% — автоматическая активация.
+
+Семантический дрейф: при игнорировании > 3 часов — эскалация на Форум.
+
+Вне сети доверия: пересмотр через 6 месяцев.
+
+30. Ключевые правила БД
+Мягкое удаление. deleted_at вместо DELETE.
+
+Версионирование. Ключевые сущности (блага, стандарты, панели, ядро) — версии.
+
+Шифрование. Персональные данные — pgcrypto.
+
+Партиционирование. audit_log, flow_transactions, access_log — по дате.
+
+Индексы. На FK, status, created_at, external_id.
+
+Ограничения. CHECK на форматы, UNIQUE на external_id.
+
+Триггеры. Логирование, ротация, эскалация.
+
+Репликация. Read-replica для аналитики.
+
+Бэкапы. Ежедневно, с проверкой восстановления.
+
+Изоляция. Шлюз — отдельная схема БД, физически изолированная.
+
+31. Итог
+Схема покрывает:
+
+Участников, роли, мандаты.
+
+Направления, профессии, ячейки, Советы.
+
+Планы, задачи, отчёты, ОТК.
+
+Сигналы, Коннект, Арбитраж, Всеобщий прогон.
+
+Потоки, Капсулы, резервы.
+
+Блага, стандарты, модификаторы.
+
+Режимы (Красный Контур, Стальной Колокол, ПТТ, Информационная блокада).
+
+Балансировку, Верификацию, Хранителей.
+
+Правозащиту, Жюри, санкции.
+
+Психоэкологию.
+
+Шлюз, Гаранта, Внешних Свидетелей.
+
+Кванты.
+
+Конструктор, панели, виджеты, матрицу прав.
+
+Планетарный уровень, Совет Протоколов.
+
+Конвергенцию государств.
+
+Семантический дрейф, вето, узурпацию.
+
+Эксперименты и диссидентские проекты.
+
+Аудит и логи.

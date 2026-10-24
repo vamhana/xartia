@@ -1,0 +1,34 @@
+# base/priorityclass.yml
+# 3 класса приоритета. Cluster-scoped (не в namespace).
+#
+# xartia-critical — api, ws, postgres, redis. Вытесняют всё остальное
+#                   при нехватке ресурсов.
+# xartia-default  — web, worker, Zot. Обычный приоритет.
+# xartia-batch    — cronjobs, monitoring scrapers. Вытесняются первыми.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: xartia-critical
+value: 1000000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Критичные сервисы: api, ws, postgres, redis."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: xartia-default
+value: 0
+globalDefault: true
+preemptionPolicy: PreemptLowerPriority
+description: "Обычные сервисы: web, worker, Zot."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: xartia-batch
+value: -10
+globalDefault: false
+preemptionPolicy: Never
+description: "Batch: cronjobs, monitoring scrapers. Вытесняются первыми."

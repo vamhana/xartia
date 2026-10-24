@@ -1,0 +1,25 @@
+# base/postgres/backup-cronjob.yml
+#
+# УСТАРЕЛО: заменён sidecar'ом `pg-backup` в statefulset.yml.
+# Причина: под CronJob'а не проходит NetworkPolicy (connection refused),
+# да и `mc` в образе postgis отсутствует — выгрузка в MinIO не работала.
+# Файл оставлен как история и не входит в kustomization.
+#
+# Актуально: k8s/base/postgres/statefulset.yml (sidecar → PVC postgres-backups).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup-legacy
+  namespace: xartia-data
+spec:
+  schedule: "0 3 * * *"
+  suspend: true
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: disabled
+              image: busybox:1.36
+              command: ["sh", "-c", "echo 'use sidecar pg-backup instead'; exit 1"]

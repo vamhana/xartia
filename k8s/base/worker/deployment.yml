@@ -1,0 +1,67 @@
+# base/worker/deployment.yml
+# Worker — polling loop по таблице jobs (FOR UPDATE SKIP LOCKED).
+# Тот же образ xartia-api, entrypoint: tsx src/worker/index.ts.
+#
+# v0.0.03:
+#   - labels: app=worker (было app=xartia + module=worker — smoke -l app=worker не находил).
+#   - livenessProbe УДАЛЁН. Причина: worker не создаёт /tmp/worker-alive,
+#     через 150с kubelet убивал контейнер → CrashLoopBackOff (README, «грабли №6»).
+#     Если нужен health-check — добавить heartbeat в src/worker/index.ts
+#     (touch /tmp/worker-alive в setInterval) и вернуть exec-probe.
+#
+# v0.0.04:
+#   - initContainer wait-for-postgres: postgres-svc → FQDN
+#     postgres-svc.xartia-data.svc.cluster.local. Postgres живёт в ns
+#     xartia-data, worker — в ns xartia. Короткое имя резолвится только
+#     в пределах своего ns, поэтому нужен FQDN.
+#   - DATABASE_URL в Secret api-secrets должен указывать на тот же
+#     FQDN — см. overlays/*/secrets/api.enc.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: xartia
+  labels: { app: worker, xartia.io/tier: app }
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: { app: worker }
+  template:
+    metadata:
+      labels: { app: worker }
+    spec:
+      priorityClassName: xartia-default
+      initContainers:
+        - name: wait-for-postgres
+          image: postgis/postgis:15-3.4
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-svc.xartia-data.svc.cluster.local -p 5432 -U charter; do
+                echo "waiting for postgres-svc.xartia-data ..."
+                sleep 2
+              done
+              echo "postgres-svc.xartia-data ready"
+          resources:
+            requests: { cpu: "10m", memory: "32Mi" }
+            limits:   { cpu: "100m", memory: "128Mi" }
+      containers:
+        - name: worker
+          image: xartia-api:latest
+          imagePullPolicy: IfNotPresent
+          command: ["node_modules/.bin/tsx", "src/worker/index.ts"]
+          envFrom:
+            - configMapRef: { name: api-config }
+            - secretRef:    { name: api-secrets }
+          resources:
+            requests: { cpu: "50m",  memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000

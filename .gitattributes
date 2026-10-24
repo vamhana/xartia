@@ -1,0 +1,147 @@
+# ============================================================
+# Git attributes — нормализация переводов строк и бинарные файлы
+# ============================================================
+
+# Автоопределение текстовых файлов.
+# ВАЖНО: не задаём здесь eol — иначе правило перекроет всё ниже.
+* text=auto
+
+# ---- Явно текстовые, всегда LF ----
+*.sh      text eol=lf
+*.bash    text eol=lf
+*.zsh     text eol=lf
+*.sql     text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.json    text eol=lf
+*.jsonc   text eol=lf
+*.md      text eol=lf
+*.markdown text eol=lf
+*.txt     text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.jsx     text eol=lf
+*.mjs     text eol=lf
+*.cjs     text eol=lf
+*.vue     text eol=lf
+*.svelte  text eol=lf
+*.toml    text eol=lf
+*.conf    text eol=lf
+*.ini     text eol=lf
+*.env     text eol=lf
+*.py      text eol=lf
+*.rs      text eol=lf
+*.go      text eol=lf
+*.java    text eol=lf
+*.kt      text eol=lf
+*.gradle  text eol=lf
+*.proto   text eol=lf
+*.graphql text eol=lf
+*.gql     text eol=lf
+*.tf      text eol=lf
+*.tfvars  text eol=lf
+*.hcl     text eol=lf
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+Makefile  text eol=lf
+*.mk      text eol=lf
+.gitignore       text eol=lf
+.gitattributes   text eol=lf
+.editorconfig    text eol=lf
+.prettierrc      text eol=lf
+.eslintrc        text eol=lf
+.npmrc           text eol=lf
+.nvmrc           text eol=lf
+
+# ---- Windows-специфичные, всегда CRLF ----
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.psd1  text eol=crlf
+
+# ---- Бинарные — Git не трогает ----
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.webp   binary
+*.bmp    binary
+*.tiff   binary
+*.ico    binary
+*.svg    text eol=lf
+*.pdf    binary
+*.zip    binary
+*.gz     binary
+*.tgz    binary
+*.tar    binary
+*.7z     binary
+*.rar    binary
+*.exe    binary
+*.dll    binary
+*.so     binary
+*.dylib  binary
+*.bin    binary
+*.wasm   binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.otf    binary
+*.eot    binary
+*.mp3    binary
+*.mp4    binary
+*.mov    binary
+*.avi    binary
+*.webm   binary
+
+# ---- Документы ----
+*.doc    binary
+*.docx   binary
+*.xls    binary
+*.xlsx   binary
+*.ppt    binary
+*.pptx   binary
+*.odt    binary
+*.ods    binary
+
+# ---- БД и дампы ----
+*.db     binary
+*.sqlite binary
+*.sqlite3 binary
+*.dump   binary
+
+# ---- Docker / k8s / CI ----
+docker-compose*.yml  text eol=lf
+compose*.yml         text eol=lf
+Dockerfile*          text eol=lf
+*.dockerignore       text eol=lf
+.github/**           text eol=lf
+.gitlab-ci.yml       text eol=lf
+
+# ---- Специфичные языки ----
+*.lock               text eol=lf
+package-lock.json    text eol=lf -diff
+pnpm-lock.yaml       text eol=lf -diff
+yarn.lock            text eol=lf -diff
+Cargo.lock           text eol=lf -diff
+poetry.lock          text eol=lf -diff
+Pipfile.lock         text eol=lf -diff
+
+# ---- Автогенерируемое — не показывать в diff ----
+*.min.js     -diff
+*.min.css    -diff
+dist/**      -diff
+build/**     -diff
+node_modules/** -diff
+
+# ---- Файлы, которые Git не должен трогать вообще ----
+*.patch   -text
+*.diff    -text
+
+# Shell scripts — всегда LF, иначе падает в alpine
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf
+
+# Dockerfile — тоже LF (не критично, но правильно)
+Dockerfile* text eol=lf

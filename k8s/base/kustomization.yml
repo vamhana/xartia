@@ -1,0 +1,23 @@
+# base/kustomization.yml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yml
+  - priorityclass.yml
+  - limitrange.yml
+  - resourcequota.yml
+  - postgres/
+  - redis/
+  - minio/
+  - api/
+  - ws/
+  - worker/
+  - web/
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: xartia
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: true
+    includeTemplates: true

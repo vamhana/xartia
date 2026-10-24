@@ -1,0 +1,85 @@
+# overlays/k8s-test/kustomization.yml
+# A+ валидация: изолированный namespace, local-path, 1 реплика.
+# Namespace + secrets создаются в smoke_k8s.py (не в kustomization).
+#
+# priorityclass (cluster-scoped) уже в кластере из Сессии 1.
+# limitrange/resourcequota — не критичны для smoke (pod с явными resources).
+#
+# v0.0.02:
+#   - patches для initContainers api/worker/ws: FQDN из base
+#     (postgres-svc.xartia-data.svc.cluster.local / redis-svc.xartia-data...)
+#     заменяется на короткое имя (postgres-svc / redis-svc).
+#     В k8s-test всё в одном namespace xartia-k8s-test, namespace
+#     xartia-data отсутствует — FQDN не резолвится.
+#   - Альтернатива (не реализована): ConfigMap DB_NAMESPACE/REDIS_NAMESPACE
+#     в base + command: "pg_isready -h postgres-svc${DB_NS:+.$DB_NS} ...".
+#     Чище (не зависит от порядка initContainers), но требует правок
+#     в base-манифестах и шаблонизации command.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: xartia-k8s-test
+
+resources:
+  - ../../base/postgres
+  - ../../base/redis
+  - ../../base/minio
+  - ../../base/api
+  - ../../base/ws
+  - ../../base/web
+  - ../../base/worker
+
+patches:
+  - target: { kind: StatefulSet, name: postgres }
+    patch: |-
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/storageClassName
+        value: local-path
+  - target: { kind: StatefulSet, name: redis }
+    patch: |-
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/storageClassName
+        value: local-path
+  - target: { kind: StatefulSet, name: minio }
+    patch: |-
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/storageClassName
+        value: local-path
+
+  # initContainers: FQDN xartia-data → короткое имя (k8s-test — один ns).
+  # JSON patch по индексу initContainers[0] — работает, но хрупко при
+  # добавлении новых initContainer'ов перед wait-for-*. Если понадобится
+  # устойчивость — заменить на strategic-merge-patch с name: wait-for-*.
+  - target: { kind: Deployment, name: api }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/initContainers/0/command/2
+        value: |
+          until pg_isready -h postgres-svc -p 5432 -U charter; do
+            echo "waiting for postgres-svc ..."
+            sleep 2
+          done
+          echo "postgres-svc ready"
+  - target: { kind: Deployment, name: worker }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/initContainers/0/command/2
+        value: |
+          until pg_isready -h postgres-svc -p 5432 -U charter; do
+            echo "waiting for postgres-svc ..."
+            sleep 2
+          done
+          echo "postgres-svc ready"
+  - target: { kind: Deployment, name: ws }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/initContainers/0/command/2
+        value: |
+          until redis-cli -h redis-svc -p 6379 ping; do
+            echo "waiting for redis-svc ..."
+            sleep 2
+          done
+          echo "redis-svc ready"
+
+labels:
+  - pairs: { xartia.io/env: k8s-test }

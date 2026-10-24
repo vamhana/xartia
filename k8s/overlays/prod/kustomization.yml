@@ -1,0 +1,39 @@
+# overlays/prod/kustomization.yml
+# 3+ Linux-ноды. Longhorn r3 для Postgres, r2 для Redis/MinIO.
+# 3 реплики Postgres, 2 реплики Redis. PDB, HPA.
+# TLS — step-ca prod (свой ACME-сервер).
+#
+# Применение:
+#   kubectl apply -k overlays/prod
+#
+# Отличия от staging:
+#   - 3 реплики Postgres (vs 2)
+#   - PDB (minAvailable) для api/ws/postgres
+#   - HPA для api (minReplicas=3, maxReplicas=10)
+#   - ResourceQuota * 2 (см. patches/quota.yml)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace: — НЕ использовать. Kustomize v5+ переименовывает все
+# Namespace-объекты → "namespace transformation produces ID conflict".
+# Namespace'ы уже в base/namespace.yml, overlay их не трогает.
+
+resources:
+  - ../../base
+
+patches: []
+# Пример для Сессии 4:
+#   patches:
+#     - path: patches/api-hpa.yml
+#       target:
+#         kind: Deployment
+#         name: api
+#     - path: patches/postgres-pdb.yml
+#       target:
+#         kind: StatefulSet
+#         name: postgres
+
+labels:
+  - pairs:
+      xartia.io/env: prod
+      xartia.io/storage: longhorn-r3

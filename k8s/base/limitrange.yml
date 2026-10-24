@@ -1,0 +1,140 @@
+# base/limitrange.yml
+# Default requests/limits для подов в namespace.
+#
+# ВАЖНО: это «мягкие» дефолты. Конкретные deployment'ы могут переопределять
+# (resources в контейнере). LimitRange нужен, чтобы:
+#   1) Под без resources не съел всю ноду.
+#   2) ResourceQuota (см. resourcequota.yml) работала — она требует,
+#      чтобы у каждого контейнера были requests.
+---
+# xartia — приложение
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: xartia-limits
+  namespace: xartia
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "10m"
+        memory: "16Mi"
+---
+# xartia-data — БД, кэш. Больше памяти.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: xartia-data-limits
+  namespace: xartia-data
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "1"
+        memory: "2Gi"
+      defaultRequest:
+        cpu: "250m"
+        memory: "512Mi"
+      max:
+        cpu: "8"
+        memory: "32Gi"
+      min:
+        cpu: "50m"
+        memory: "64Mi"
+---
+# xartia-gateway — шлюз
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: xartia-gateway-limits
+  namespace: xartia-gateway
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      max:
+        cpu: "2"
+        memory: "4Gi"
+      min:
+        cpu: "10m"
+        memory: "16Mi"
+---
+# registry — Zot лёгкий
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: registry-limits
+  namespace: registry
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "200m"
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "50m"
+        memory: "64Mi"
+      max:
+        cpu: "2"
+        memory: "4Gi"
+      min:
+        cpu: "10m"
+        memory: "16Mi"
+---
+# cert-manager — инфраструктура
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cert-manager-limits
+  namespace: cert-manager
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "200m"
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "50m"
+        memory: "64Mi"
+      max:
+        cpu: "2"
+        memory: "2Gi"
+      min:
+        cpu: "10m"
+        memory: "16Mi"
+---
+# monitoring
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: monitoring-limits
+  namespace: monitoring
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "1Gi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "256Mi"
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "10m"
+        memory: "16Mi"

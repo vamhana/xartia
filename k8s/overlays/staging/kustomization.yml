@@ -1,0 +1,22 @@
+# overlays/staging/kustomization.yml
+# 2-3 Linux-ноды. Longhorn r2. 2 реплики.
+# TLS — step-ca staging (свой ACME-сервер).
+#
+# Применение:
+#   kubectl apply -k overlays/staging
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace: — НЕ использовать. Kustomize v5+ переименовывает все
+# Namespace-объекты → "namespace transformation produces ID conflict".
+# Namespace'ы уже в base/namespace.yml, overlay их не трогает.
+
+resources:
+  - ../../base
+
+patches: []
+
+labels:
+  - pairs:
+      xartia.io/env: staging
+      xartia.io/storage: longhorn-r2

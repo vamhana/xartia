@@ -1,0 +1,704 @@
+API ядра Хартии 5.0
+REST + WebSocket. Версия /api/v1. Формат — JSON. Авторизация — JWT (access + refresh). Все ответы содержат meta с пагинацией и audit_id.
+
+0. Общие конвенции
+0.1. Аутентификация
+text
+Authorization: Bearer <access_token>
+Access — 15 мин.
+
+Refresh — 30 дней.
+
+Ротация refresh при каждом использовании.
+
+Все запросы логируются в access_log.
+
+0.2. Формат ответа
+json
+{
+  "data": {...},
+  "meta": {
+    "page": 1,
+    "per_page": 50,
+    "total": 1200
+  },
+  "audit_id": "uuid",
+  "errors": []
+}
+0.3. Ошибки
+Код	Смысл
+400	Неверный запрос
+401	Не авторизован
+403	Нет прав (роль/мандат)
+404	Не найдено
+409	Конфликт (ротация, дубль)
+422	Ошибка валидации
+423	Заблокировано (режим)
+429	Лимит запросов
+451	Недоступно по режиму (Информационная блокада)
+503	Изоляция Шлюза
+0.4. Заголовки
+X-Request-ID — трассировка.
+
+X-Audit-Reason — для значимых действий.
+
+X-Idempotency-Key — для создания.
+
+If-Match — версия (оптимистичная блокировка).
+
+0.5. Пагинация
+?page=1&per_page=50&sort=-created_at&filter[status]=active
+
+0.6. Права
+Каждый эндпоинт проверяет:
+
+роль,
+
+мандат,
+
+scope (Self / Dir / All / Agg / Raw / Arch),
+
+режим (Красный Контур / Стальной Колокол / ПТТ / Информационная блокада),
+
+cooldown,
+
+конфликты ролей.
+
+Отказ → 403 + запись в access_log.
+
+1. Аутентификация и регистрация
+1.1. Публичные
+Метод	Путь	Описание
+POST	/auth/register	Заявка (телефон, мессенджеры, пароль)
+POST	/auth/login	Вход
+POST	/auth/refresh	Обновление токена
+POST	/auth/logout	Выход
+POST	/auth/recover	Восстановление пароля
+GET	/auth/status/:request_id	Статус заявки (комната ожидания)
+POST /auth/register
+
+json
+{
+  "phone": "+7...",
+  "messengers": { "telegram": "@...", "whatsapp": "+7..." },
+  "password": "...",
+  "consent_video": true,
+  "consent_data": true
+}
+Ответ: { "request_id": "uuid", "status": "new" }
+
+1.2. Сессии
+Метод	Путь	Описание
+GET	/me/sessions	Мои сессии
+DELETE	/me/sessions/:id	Завершить сессию
+2. Участники
+Метод	Путь	Описание
+GET	/me	Мой паспорт
+PATCH	/me	Обновить (псевдоним, гео)
+GET	/me/passport	Полный паспорт с историей
+GET	/me/history	История изменений
+GET	/me/flows	Мои Потоки
+GET	/me/capsule	Капсула
+GET	/me/roles	Мои роли и мандаты
+GET	/me/cooldowns	Холодные периоды
+POST	/me/pause	Уйти на паузу
+POST	/me/pause/return	Вернуться
+POST	/me/geo	Обновить геолокацию
+DELETE	/me/geo	Отключить гео
+2.1. Участники (для ролей с доступом)
+Метод	Путь	Права
+GET	/participants	Совет, СИ, Верификация, Балансировка, Архитектор
+GET	/participants/:id	Чтение паспорта
+PATCH	/participants/:id	СИ, Совет, Архитектор
+GET	/participants/:id/history	СИ, Верификация, Хранители, Архитектор
+GET	/participants/:id/flows	Сам, Верификация, Архитектор
+GET	/participants/search	Поиск (ID, навык, направление, ячейка)
+POST	/participants/:id/delegate	Делегирование функции
+POST	/participants/:id/cooldown	Назначить холодный период
+GET /participants/:id — фильтрация полей
+
+В зависимости от роли возвращаются разные поля:
+
+Сам — всё.
+
+Наставник — стажёры.
+
+СИ — контакты, история, интервью.
+
+Балансировка — агрегаты.
+
+Верификация — сырые данные.
+
+Публично — ID, направление, профессия, статус, псевдоним.
+
+3. Направления и структура
+Метод	Путь	Описание
+GET	/directions	Все направления
+GET	/directions/:id	Карточка направления
+POST	/directions	Создать (Архитектор)
+PATCH	/directions/:id	Редактировать (Совет, Архитектор)
+DELETE	/directions/:id	Упразднить (Архитектор)
+GET	/directions/:id/zones	ЗПО
+PATCH	/directions/:id/zones	Изменить ЗПО
+GET	/directions/:id/professions	Профессии
+POST	/directions/:id/professions	Создать профессию
+GET	/directions/:id/roles	Роли направления
+POST	/directions/:id/roles	Создать роль
+PATCH	/roles/:id	Редактировать роль
+GET	/directions/:id/council	Совет направления
+POST	/directions/:id/council	Назначить члена
+DELETE	/directions/:id/council/:member_id	Ротировать
+4. Ячейки
+Метод	Путь	Описание
+GET	/cells	Дерево ячеек
+GET	/cells/:id	Карточка
+POST	/cells	Создать
+PATCH	/cells/:id	Редактировать
+DELETE	/cells/:id	Архивация
+GET	/cells/:id/members	Состав
+POST	/cells/:id/members	Добавить
+DELETE	/cells/:id/members/:pid	Убрать
+GET	/cells/:id/roles	Роли в ячейке
+5. Мандаты и делегирование
+Метод	Путь	Описание
+GET	/mandates	Все мандаты
+GET	/mandates/:id	Детали
+POST	/mandates	Создать (делегировать)
+PATCH	/mandates/:id	Изменить срок/условия
+DELETE	/mandates/:id	Отозвать
+GET	/mandates/due	Предстоящие ротации
+POST	/mandates/:id/rotate	Принудительная ротация
+GET	/delegations	Список делегирований
+POST	/delegations	Создать
+DELETE	/delegations/:id	Отозвать
+GET	/cooldowns	Активные cooldown
+6. Планы и задачи
+Метод	Путь	Описание
+GET	/plans	Список планов
+GET	/plans/:id	План
+POST	/plans	Создать
+PATCH	/plans/:id	Редактировать
+POST	/plans/:id/approve	Утвердить (Совет)
+POST	/plans/:id/sign	Подпись Хранителя
+POST	/plans/:id/activate	Активировать
+POST	/plans/:id/stop	Остановить
+GET	/plans/:id/tasks	Задачи плана
+GET	/tasks	Список задач
+GET	/tasks/:id	Карточка
+POST	/tasks	Создать
+PATCH	/tasks/:id	Редактировать
+POST	/tasks/:id/assign	Назначить
+POST	/tasks/:id/take	Взять в работу
+POST	/tasks/:id/submit	Сдать
+GET	/tasks/my	Мои задачи
+GET	/daily-plans	Дневные планы
+GET	/daily-plans/:direction_id/:date	План дня
+POST	/daily-plans	Утвердить
+7. Отчёты и ОТК
+Метод	Путь	Описание
+POST	/tasks/:id/reports	Создать отчёт (фото/видео)
+GET	/reports/:id	Отчёт
+GET	/otc/queue	Очередь ОТК
+POST	/otc/decisions	Приёмка
+GET	/otc/decisions/:id	Решение
+POST	/otc/decisions/:id/appeal	Апелляция
+GET	/otc/stats	Статистика ОТК
+GET	/acceptance-criteria	Критерии
+POST	/acceptance-criteria	Создать
+PATCH	/acceptance-criteria/:id	Изменить
+POST	/otc/crisis-decision	Упрощённый ОТК
+8. Сигналы
+Метод	Путь	Описание
+GET	/signals	Список
+GET	/signals/:id	Карточка
+POST	/signals	Создать
+PATCH	/signals/:id	Редактировать
+POST	/signals/:id/responses	Ответ направления
+GET	/signals/:id/responses	Ответы
+POST	/signals/:id/connect	Запустить Коннект
+GET	/signals/:id/connect	Статус Коннекта
+POST	/signals/:id/universal-run	Запустить прогон
+POST	/signals/:id/arbitration	Подать в Арбитраж
+POST	/signals/:id/escalate	Эскалация (лимит итераций)
+GET	/signals/:id/meta	Атрибуты потока
+8.1. Коннект
+Метод	Путь
+POST	/connections
+GET	/connections/:id
+POST	/connections/:id/diagnostic
+POST	/connections/:id/result
+POST	/connections/:id/protocol
+8.2. Арбитраж
+Метод	Путь
+POST	/arbitrations
+GET	/arbitrations/:id
+POST	/arbitrations/:id/decision
+8.3. Всеобщий прогон
+Метод	Путь
+POST	/universal-runs
+GET	/universal-runs/:id
+POST	/universal-runs/:id/responses
+GET	/universal-runs/:id/aggregate
+9. Потоки
+Метод	Путь	Описание
+GET	/flows	Мои балансы
+GET	/flows/transactions	История
+POST	/flows/charge	Начислить (Совет, СИ, Верификация, Архитектор)
+POST	/flows/capsule/deposit	В Капсулу
+POST	/flows/capsule/withdraw	Из Капсулы
+GET	/flows/deferred	Отложенный Поток
+GET	/flows/freedom-reserve	Резерв свободы
+GET	/flows/planetary-reserve	Планетарный резерв
+GET	/flows/returns	Возвраты в резерв
+POST	/flows/returns/schedule	Настроить (СИ, Архитектор)
+10. Блага и стандарты
+Метод	Путь	Описание
+GET	/goods	Список благ
+GET	/goods/:id	Карточка
+POST	/goods	Создать (производитель)
+PATCH	/goods/:id	Редактировать
+POST	/goods/:id/test	Отправить на тест
+POST	/goods/:id/approve	Утвердить (Совет, Верификация)
+POST	/goods/:id/liquidate	Ликвидировать (Обнуление)
+GET	/goods/:id/history	История версий
+GET	/standards	Стандарты достаточности
+POST	/standards	Создать
+PATCH	/standards/:id	Изменить
+GET	/modifiers	Модификаторы
+POST	/modifiers	Запросить
+POST	/modifiers/:id/approve	Одобрить
+POST	/goods/:id/request	Запросить благо
+POST	/project-resources	Проектное обеспечение
+POST	/project-resources/:id/sign	Тройная подпись
+11. Режимы
+Метод	Путь	Описание
+GET	/regimes	Список режимов
+GET	/regimes/:id	Детали
+POST	/regimes	Активировать
+POST	/regimes/:id/deactivate	Деактивировать
+POST	/regimes/:id/audit	Аудит
+GET	/regimes/crisis/mobilization	Мобилизация
+POST	/regimes/crisis/confirm	Подтвердить участие
+POST	/regimes/crisis/refuse	Отказ
+GET	/regimes/crisis/refusals	Доля отказавшихся
+11.1. Особые
+Метод	Путь
+POST	/regimes/red-circuit
+POST	/regimes/steel-bell
+POST	/regimes/steel-bell/remove
+POST	/regimes/steel-bell/vote
+POST	/regimes/ptt
+POST	/regimes/info-blockade
+POST	/regimes/info-blockade/lift
+POST	/regimes/quantum-acceleration
+12. Балансировка
+Метод	Путь	Описание
+GET	/balance/metrics	Агрегаты
+GET	/balance/metrics/:direction_id	По направлению
+GET	/balance/anomalies	Аномалии
+POST	/balance/anomalies/:id/meta-request	Мета-запрос
+GET	/balance/meta-flows	Мета-потоки
+GET	/balance/norms	Нормативы
+POST	/balance/norms/recalc	Пересчитать
+GET	/balance/risks	Компетентностный риск
+POST	/balance/risks/:id	Присвоить риск
+GET	/balance/indices	Индексы
+GET	/balance/planetary-pulse	Пульс
+POST	/balance/info-blockade	Активировать
+POST	/balance/deprioritize-gateway	Понизить приоритет Шлюза
+13. Верификация
+Метод	Путь	Описание
+GET	/verification/audits	Список аудитов
+POST	/verification/audits	Создать
+GET	/verification/audits/:id	Детали
+POST	/verification/audits/:id/close	Закрыть
+POST	/verification/rechecks	Перепроверка
+POST	/verification/code-audits	Аудит алгоритмов
+POST	/verification/gateway-audit	Аудит Шлюза
+POST	/verification/process-audit	Процессуальный аудит
+POST	/verification/integrity-alert	Цифровая атака
+POST	/verification/gateway-suspend	Приостановить решения Шлюза
+14. Хранители
+Метод	Путь	Описание
+GET	/archive	Архив
+GET	/archive/:id	Документ
+POST	/archive	Зафиксировать
+POST	/archive/:id/sign	Подписать
+GET	/archive/search	Поиск
+GET	/archive/chains/:chain_id	Цепочка решений
+GET	/archive/ids	Реестр ID
+POST	/archive/ids/sync	Синхронизация (множественность)
+POST	/archive/cross-check	Сверка
+POST	/archive/pressure	Сигнал давления
+15. Правозащита
+Метод	Путь	Описание
+POST	/justice/complaints	Подать заявление
+GET	/justice/complaints	Список
+GET	/justice/complaints/:id	Детали
+POST	/justice/investigations	Начать расследование
+GET	/justice/investigations/:id	Статус
+POST	/justice/isolation	Изоляция
+DELETE	/justice/isolation/:id	Снять
+POST	/justice/resocialization	Программа
+POST	/justice/sanctions	Санкция
+POST	/justice/red-circuit	Красный Контур
+POST	/justice/red-circuit/audit	Аудит
+GET	/justice/victim-rights/:id	Права жертвы
+POST	/justice/not-imputable	Необратимое отчуждение
+15.1. Жюри
+Метод	Путь
+POST	/jury/sessions
+GET	/jury/sessions/:id
+POST	/jury/sessions/:id/vote
+POST	/jury/sessions/:id/decision
+POST	/jury/sessions/:id/veto
+POST	/jury/appeals
+GET	/jury/appeals/:id
+POST	/jury/outside-trust-network
+GET	/jury/outside-trust-network/:id
+16. Психоэкология
+Метод	Путь	Описание
+GET	/psy/sessions	Сессии
+POST	/psy/sessions	Назначить
+POST	/psy/sessions/:id/complete	Завершить
+GET	/psy/observers	Наблюдатели
+POST	/psy/observers	Назначить
+POST	/psy/crisis	Кризис интерпретации
+POST	/psy/reflective-discharge	Рефлексивная разгрузка
+GET	/psy/mood	Коллективные настроения
+POST	/psy/resonance	Поиск резонанса
+GET	/psy/wellbeing	Субъективное благополучие
+POST	/psy/hygiene	Гигиена смыслов
+17. Шлюз
+Метод	Путь	Описание
+GET	/gateway/council	Совет
+POST	/gateway/council	Назначить
+DELETE	/gateway/council/:id	Ротировать
+GET	/gateway/transactions	Внешние сделки
+POST	/gateway/transactions	Создать
+GET	/gateway/assets	Внешние активы
+POST	/gateway/assets	Принять
+POST	/gateway/assets/:id/convert	Конвертировать
+GET	/gateway/guarantor	Гарант
+POST	/gateway/guarantor	Назначить
+DELETE	/gateway/guarantor	Снять
+GET	/gateway/witnesses	Внешние Свидетели
+POST	/gateway/witnesses	Установить
+POST	/gateway/defense/deterrence	Доктрина сдерживания
+POST	/gateway/defense/external	Внешний Красный Контур
+POST	/gateway/defense/internal	Внутренний Красный Контур
+POST	/gateway/defense/global	Глобальный Красный Контур
+GET	/gateway/self-sufficiency	Доклад
+POST	/gateway/dissolve	Роспуск
+18. Кванты
+Метод	Путь	Описание
+GET	/quanta	Каталог
+GET	/quanta/:id	Карточка
+POST	/quanta	Обнаружить
+POST	/quanta/:id/audit	Аудит
+POST	/quanta/:id/test	Тест
+POST	/quanta/:id/scale	Масштабировать
+POST	/quanta/:id/stop	Остановить
+GET	/quanta/mandatory	Обязательные
+POST	/quanta/:id/apply	Внедрить
+19. Конструктор
+Метод	Путь	Описание
+GET	/panels	Список панелей
+GET	/panels/:id	Панель
+POST	/panels	Создать (Архитектор)
+PATCH	/panels/:id	Редактировать
+DELETE	/panels/:id	Удалить
+GET	/panels/:id/widgets	Виджеты
+POST	/panels/:id/widgets	Добавить
+PATCH	/panels/:id/widgets/:wid	Настроить
+DELETE	/panels/:id/widgets/:wid	Удалить
+POST	/panels/:id/publish	Опубликовать
+POST	/panels/:id/rollback/:version	Откат
+GET	/panels/:id/versions	Версии
+GET	/widgets	Библиотека
+GET	/rights-matrix	Матрица прав
+POST	/rights-matrix	Изменить
+GET	/rights-matrix/check	Проверить права
+20. Планетарный уровень
+Метод	Путь	Описание
+GET	/planetary/communities	Общины
+POST	/planetary/communities	Создать
+GET	/planetary/communities/:id	Карточка
+GET	/planetary/council	Совет Протоколов
+POST	/planetary/council	Назначить
+GET	/planetary/bridges	Мосты Потоков
+POST	/planetary/bridges	Установить
+POST	/planetary/bridges/:id/convert	Конвертация
+GET	/planetary/plan	Пятилетний план
+POST	/planetary/plan	Утвердить
+POST	/planetary/referendum	Референдум
+GET	/planetary/pulse	Пульс
+GET	/planetary/reserve	Резерв
+POST	/planetary/expansion/freeze	Заморозка
+POST	/planetary/expansion/birth	Рождение общины
+POST	/planetary/expansion/transfer	Передача квантов
+21. Конвергенция государств
+Метод	Путь	Описание
+POST	/convergence/plans	Создать план
+GET	/convergence/plans/:id	Статус
+POST	/convergence/plans/:id/declaration	Декларация
+POST	/convergence/plans/:id/council	Совет конвергенции
+POST	/convergence/plans/:id/stage/:n	Перейти к этапу
+POST	/convergence/plans/:id/debts	Конверсия долгов
+POST	/convergence/plans/:id/assets	Конверсия активов
+POST	/convergence/plans/:id/weapons	Конверсия вооружений
+POST	/convergence/plans/:id/culture	Центры моста
+POST	/convergence/plans/:id/complete	Завершить
+22. Семантический Страж
+Метод	Путь	Описание
+GET	/semantic/drift	Дрейф
+POST	/semantic/drift	Зафиксировать
+POST	/semantic/alarm	Семантическая тревога
+POST	/semantic/veto	Вето
+DELETE	/semantic/veto/:id	Снять
+GET	/semantic/report	Доклад о смыслах
+POST	/semantic/pressure	Давление на Стража
+GET	/semantic/dictionary	Словарь
+POST	/semantic/dictionary	Добавить термин
+POST	/semantic/translations/check	Проверка перевода
+23. Эксперименты и диссидентство
+Метод	Путь	Описание
+GET	/experiments	Список
+POST	/experiments	Подать
+GET	/experiments/:id	Детали
+POST	/experiments/:id/approve	Утвердить
+POST	/experiments/:id/join	Присоединиться
+POST	/experiments/:id/leave	Выйти
+POST	/experiments/:id/complete	Завершить
+GET	/experiments/:id/results	Результаты
+POST	/dissident-projects	Создать
+POST	/dissident-projects/:id/petition	Подписать
+GET	/dissident-projects/:id	Статус
+POST	/dissident-projects/:id/report	Отчёт
+POST	/dissident-projects/:id/review	Пересмотр
+24. Онбординг и маршруты
+Метод	Путь	Описание
+GET	/onboarding/:participant_id	Прогресс
+POST	/onboarding/:participant_id/stage	Сменить стадию
+GET	/interviews	Список интервью
+POST	/interviews	Назначить
+POST	/interviews/:id/start	Начать
+POST	/interviews/:id/finish	Завершить (оценка)
+POST	/interviews/:id/create-participant	Создать участника
+GET	/interview-questions	Вопросы
+POST	/interview-questions	Добавить (Ноология)
+GET	/cognitive-routes	Маршруты
+POST	/cognitive-routes	Подать
+POST	/cognitive-routes/:id/complete	Завершить
+GET	/cognitive-routes/queue/:direction_id	Очередь
+POST	/refresh-courses	Рефреш
+POST	/modules/basic-defense	Модуль
+POST	/modules/respect	Модуль
+GET	/integration/mentors	Наставники-интеграторы
+POST	/integration/mentors	Назначить
+25. Оценки
+Метод	Путь	Описание
+POST	/evaluations	Поставить оценку
+GET	/evaluations/my	Мои оценки
+GET	/evaluations/aggregates	Агрегаты (Балансировка)
+GET	/evaluations/aggregates/:participant_id	По участнику
+26. Обучение
+Метод	Путь	Описание
+GET	/learning/courses	Курсы
+POST	/learning/courses	Создать
+POST	/learning/courses/:id/enroll	Записаться
+POST	/learning/courses/:id/complete	Завершить
+GET	/learning/digital-mentor	Цифровой наставник
+POST	/learning/digital-mentor/transfer	Передать человеку
+POST	/learning/ptt	ПТТ
+GET	/learning/ptt/:id	Статус ПТТ
+27. Автоматизированные участки
+Метод	Путь	Описание
+GET	/automation/queue	Очередь решений
+POST	/automation/decisions/:id/approve	Утвердить
+POST	/automation/decisions/:id/reject	Отклонить
+POST	/automation/section/:id/disable	Отключить
+GET	/automation/operator/audit	Аудит оператора
+28. Когнитивный агрегатор
+Метод	Путь	Описание
+GET	/aggregator/signals	Поток
+POST	/aggregator/clusters	Кластеризовать
+POST	/aggregator/clusters/:id/validate	Валидировать
+POST	/aggregator/clusters/:id/route	Маршрутизировать
+29. Коннективность
+Метод	Путь	Описание
+GET	/connectivity/queue	Очередь
+POST	/connectivity/route	Маршрутизировать
+POST	/connectivity/prefilter	Префильтрация
+GET	/connectivity/overdue	Просрочки
+POST	/connectivity/escalate	Эскалация
+GET	/connectivity/protocol	Протокол
+30. Внесетевая деятельность
+Метод	Путь	Описание
+POST	/off-grid/status	Включить/выключить
+GET	/off-grid/status	Статус
+POST	/off-grid/check	Проверка добросовестности
+POST	/off-grid/talk	Беседа с СИ и Психоэкологией
+GET	/off-grid/stats	Агрегат
+POST	/off-grid/recognition	Подать на Поток Созидания
+31. Право на отказ
+Метод	Путь	Описание
+POST	/crisis/refuse	Отказ от мобилизации
+GET	/crisis/mobilized-share	Доля
+GET	/crisis/scenario	Сценарий
+POST	/crisis/adjust	Корректировка
+32. Плато и рефлексия
+Метод	Путь	Описание
+POST	/plateau	Войти в плато
+DELETE	/plateau	Выйти
+POST	/vertical-trajectory	Вертикальная траектория
+GET	/meaning-multiplicity	Множественность смыслов
+POST	/criticism	Критика Хартии
+POST	/cognitive-diversity	Сигнал защиты разнообразия
+33. Мастерство
+Метод	Путь	Описание
+POST	/mastery	Присвоить
+GET	/mastery/:id	Детали
+POST	/mastery/:id/revoke	Отозвать
+POST	/mastery/:id/audit	Аудит
+GET	/mastery/:id/flows	Потоки Мастера
+POST	/mastery/honorary	Почётный наставник
+34. Ноология
+Метод	Путь	Описание
+GET	/noology/hypotheses	Гипотезы
+POST	/noology/hypotheses	Добавить
+GET	/noology/questions	Фундаментальные вопросы
+POST	/noology/questions	Добавить
+POST	/noology/methodology	Методология
+POST	/noology/controlled-challenges	Контролируемые вызовы
+POST	/noology/engineering-challenges	Инженерные вызовы
+GET	/noology/sense-revision	Смысловая ревизия
+POST	/noology/sense-revision	Инициировать
+35. Инженерия Обнуления
+Метод	Путь	Описание
+POST	/oblivion/dismantle	Демонтаж
+POST	/oblivion/recycle	Рециклинг
+POST	/oblivion/canalization	Канализация
+POST	/oblivion/canalization/:id/accept	Принять
+POST	/oblivion/canalization/:id/refuse	Отказ
+POST	/oblivion/outside-trust	Вне сети доверия
+GET	/oblivion/outside-trust/:id	Статус
+POST	/oblivion/outside-trust/:id/audit	Аудит
+36. Языковой протокол
+Метод	Путь	Описание
+GET	/language/pivot	Стержневой язык
+GET	/language/locals	Локальные языки
+POST	/language/translate	Перевод
+GET	/language/dictionary	Словарь
+POST	/language/dictionary	Добавить
+POST	/language/course	Ускоренный курс
+GET	/language/monitor	Мониторинг Стражем
+37. Кризисные режимы
+Метод	Путь	Описание
+POST	/crisis/still-bell	Стальной Колокол
+POST	/crisis/still-bell/lift	Снять
+POST	/crisis/still-bell/vote	Голосование
+POST	/crisis/false-alarm	Ложная тревога
+POST	/crisis/drill	Учебная тревога
+POST	/crisis/quantum-acceleration	Квант ускорения
+POST	/crisis/weapon-threat	Квант оружия угрозы
+GET	/crisis/weapon-threat/report	Доклад о горизонте
+POST	/crisis/natural-adaptation	Квант стихийной адаптации
+38. Аудит и логи
+Метод	Путь	Описание
+GET	/audit/log	Журнал
+GET	/audit/log/:id	Запись
+GET	/audit/access	Логи доступа
+GET	/audit/system-events	Системные события
+POST	/audit/export	Экспорт
+39. WebSocket / Realtime
+Канал	Описание
+ws/signals	Новые сигналы, статусы
+ws/tasks	Мои задачи, изменения
+ws/otc	Очередь ОТК
+ws/flows	Баланс Потоков
+ws/regimes	Активация режимов
+ws/crisis	Мобилизация
+ws/connectivity	Очередь Коннективности
+ws/semantic	Семантическая тревога
+ws/balance	Аномалии
+ws/pulse	Планетарный пульс
+ws/notifications	Личные уведомления
+ws/chat/:channel	Чат
+ws/interview/:id	Интервью
+Формат сообщения:
+
+json
+{
+  "event": "task.assigned",
+  "payload": {...},
+  "ts": "2026-..."
+}
+40. Массовые операции
+Метод	Путь	Описание
+POST	/bulk/notify	Массовое уведомление
+POST	/bulk/tasks/assign	Массовое назначение
+POST	/bulk/flows/charge	Массовое начисление
+POST	/bulk/roles/grant	Массовая выдача ролей
+POST	/bulk/export	Массовый экспорт
+41. Экспорт и импорт
+Метод	Путь	Описание
+POST	/export/participants	Экспорт
+POST	/export/plans	
+POST	/export/goods	
+POST	/export/archive	
+POST	/import/participants	Импорт
+POST	/import/archive	
+42. Проверка прав
+Метод	Путь	Описание
+GET	/permissions/me	Мои права
+POST	/permissions/check	Проверить право
+GET	/permissions/roles/:role_id	Права роли
+POST /permissions/check
+
+json
+{
+  "resource": "goods",
+  "action": "approve",
+  "target_id": "uuid",
+  "scope": "Dir"
+}
+Ответ:
+
+json
+{
+  "allowed": true,
+  "reason": "Совет направления",
+  "constraints": { "cooldown": false }
+}
+43. Админ (Архитектор)
+Метод	Путь	Описание
+GET	/admin/dashboard	Сводка
+GET	/admin/mandates/map	Карта мандатов
+POST	/admin/delegate	Делегировать
+POST	/admin/rotate	Ротировать
+GET	/admin/regimes	Режимы
+POST	/admin/bootstrap	Первичная настройка
+POST	/admin/seed	Загрузить шаблоны
+GET	/admin/logs	Все логи
+44. Ограничения по режимам
+Режим	Ограничение
+Красный Контур	Часть PATCH/POST ограничена; аудит каждые 14 дней
+Стальной Колокол	Сроки сжаты; автоподтверждение при молчании
+ПТТ	Массовая переподготовка; блокировка пауз
+Информационная блокада	Шлюз изолирован → 451 на gateway/*
+Квант ускорения	Таймеры, дедлайны пересчитаны
+Семантическая тревога	Сигнал эскалируется в 3 часа
+45. Итог
+~400 эндпоинтов, сгруппированных по 43 доменам.
+
+Каждый эндпоинт:
+
+проверяет права,
+
+учитывает режим,
+
+логирует,
+
+возвращает audit_id.
+

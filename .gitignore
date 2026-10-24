@@ -1,0 +1,91 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+ИСТОРИЯ/
+# Build output
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Docker
+docker/data/
+docker/volumes/
+docker/secrets/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Mobile
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/.expo/
+mobile/dist/
+
+# Secrets
+secrets/
+*.pem
+*.key
+*.crt
+!*.crt.example
+
+# Python (для возможных скриптов)
+__pycache__/
+*.pyc
+.venv/
+
+# Tests
+playwright-report/
+test-results/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Backup dumps (scripts/backup.ps1)
+backups/
+
+# Legacy / temporary
+legacy/
+
+.ws-test-env.json
+# Integrity signatures (локальные, генерируются signAll)
+.integrity/

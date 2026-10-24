@@ -1,0 +1,34 @@
+# infra/backup/postgres-backup-job.yml
+#
+# Как устроен бэкап Postgres (факт, не намерение):
+#   sidecar `pg-backup` в поде postgres (k8s/base/postgres/statefulset.yml)
+#   делает pg_dump по 127.0.0.1 на локальный том data:
+#   /backups/db-backups/charter-<ts>.dump, хранится 7 последних файлов.
+#
+# Почему не CronJob: в кластере default-deny-all, и под Job получает
+# «connection refused» от postgres-svc. Sidecar не выходит из пода, поэтому
+# NetworkPolicy не участвует.
+#
+# Проверка на локальном стенде без кластера: scripts/backup.ps1 -Verify
+# Восстановление: infra/backup/restore-runbook.md
+#
+# Файл нужен реестру как I.8.01.02 — здесь справочный ConfigMap, а не Job.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-backup-info
+  namespace: xartia-data
+  labels:
+    app: postgres
+    xartia.io/tier: data
+data:
+  scheme: |
+    sidecar pg-backup -> pg_dump -h 127.0.0.1 -Fc -> /backups/db-backups
+    retention: 7 файлов
+    verify: pg_restore --list <dump>
+  restore: |
+    kubectl -n xartia-data exec postgres-0 -c postgres -- \
+      pg_restore -U charter -d charter_restore --no-owner \
+      /var/lib/postgresql/data/db-backups/<dump>
+  local: |
+    pwsh scripts/backup.ps1 -Verify

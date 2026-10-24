@@ -1,0 +1,17 @@
+# base/api/configmap.yml
+# НЕ-секретные env. Секреты — в Secret (api-secrets, overlays).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: xartia
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  API_PORT: "3000"
+  S3_REGION: "us-east-1"
+  RATE_LIMIT_ENABLED: "true"
+  RUN_MIGRATIONS: "true"
+  FEATURE_CHAT: "true"
+  FEATURE_VIDEO_CALL: "true"
+  FEATURE_OFFLINE_MODE: "false"

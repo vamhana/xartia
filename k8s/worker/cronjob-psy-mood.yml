@@ -1,0 +1,209 @@
+# ============================================================================
+# I.3.05.06 — CronJob: персистентная агрегация mood_metrics (Psy).
+#\k8s\worker\cronjob-psy-mood.yml
+# Дёргает POST /psy/mood/aggregate через curl. Логика — в C.0.23.02
+# (aggregateMoodMetrics). Право psy_session:Act.
+#
+# Два расписания:
+#   - hourly: 0 * * * *    — срез за прошедший час (kind='hour')
+#   - daily:  0 3 * * *    — срез за прошедшие сутки (kind='day'), 03:00 UTC
+#
+# Токен: CronJob логинится как СЕРВИСНЫЙ УЧАСТНИК через /auth/login,
+# получает свежий access-токен (TTL 15 мин) и вызывает aggregate.
+# Пароль сервисного участника — в K8s Secret `xartia-psy-cron`.
+#
+# Образцы: A.1.13.01 universal-runs/check-timeouts, A.1.05.01
+# mandates/process-expired (тоже cron-эндпоинты). См. TROUBLESHOOTING.md.
+# ============================================================================
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: psy-mood-aggregate-hourly
+  namespace: xartia
+  labels:
+    app: xartia
+    module: psy
+    cron-id: I.3.05.06
+spec:
+  schedule: "0 * * * *"          # каждый час в :00 UTC
+  concurrencyPolicy: Forbid       # не запускать два агрегата параллельно
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300    # если K8s пропустил старт > 5 мин — не запускать
+  jobTemplate:
+    spec:
+      backoffLimit: 2              # 1 retry при сетевой ошибке
+      activeDeadlineSeconds: 120   # весь job не дольше 2 минут
+      template:
+        metadata:
+          labels:
+            app: xartia
+            module: webhooks
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: aggregate
+              image: curlimages/curl:8.10.1
+              env:
+                # Куда стучаться.
+                - name: API_URL
+                  value: "http://api-svc:3000"
+                # Сервисный участник (см. K8s Secret).
+                - name: CRON_PHONE
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-psy-cron
+                      key: phone
+                - name: CRON_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-psy-cron
+                      key: password
+                # Период агрегации для этого CronJob.
+                - name: AGGREGATE_PERIOD
+                  value: "hour"
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+
+                  echo "[cron] logging in as $CRON_PHONE"
+
+                  # 1. Логин → access_token.
+                  login_response=$(curl -fsS \
+                    -X POST "$API_URL/auth/login" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"phone\":\"$CRON_PHONE\",\"password\":\"$CRON_PASSWORD\"}")
+
+                  token=$(echo "$login_response" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+
+                  if [ -z "$token" ]; then
+                    echo "[cron] ERROR: no access_token in login response"
+                    exit 1
+                  fi
+
+                  echo "[cron] token acquired, calling /psy/mood/aggregate (period=$AGGREGATE_PERIOD)"
+
+                  # 2. Агрегация.
+                  response=$(curl -fsS \
+                    -X POST "$API_URL/psy/mood/aggregate" \
+                    -H "Authorization: Bearer $token" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"period\":\"$AGGREGATE_PERIOD\"}")
+
+                  echo "[cron] response: $response"
+
+                  # 3. Парсим JSON без jq (мини-образ). Ищем "errors":0.
+                  if echo "$response" | grep -q '"errors":0'; then
+                    echo "[cron] OK"
+                    exit 0
+                  else
+                    echo "[cron] ERROR: aggregate reported non-zero errors"
+                    exit 1
+                  fi
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "100m"
+                  memory: "64Mi"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: psy-mood-aggregate-daily
+  namespace: xartia
+  labels:
+    app: xartia
+    module: psy
+    cron-id: I.3.05.06
+spec:
+  schedule: "0 3 * * *"          # ежедневно в 03:00 UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 180
+      template:
+        metadata:
+          labels:
+            app: xartia
+            module: psy
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: aggregate
+              image: curlimages/curl:8.10.1
+              env:
+                - name: API_URL
+                  value: "http://api-svc:3000"
+                - name: CRON_PHONE
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-psy-cron
+                      key: phone
+                - name: CRON_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-psy-cron
+                      key: password
+                - name: AGGREGATE_PERIOD
+                  value: "day"
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  echo "[cron] logging in as $CRON_PHONE"
+
+                  login_response=$(curl -fsS \
+                    -X POST "$API_URL/auth/login" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"phone\":\"$CRON_PHONE\",\"password\":\"$CRON_PASSWORD\"}")
+
+                  token=$(echo "$login_response" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+
+                  if [ -z "$token" ]; then
+                    echo "[cron] ERROR: no access_token in login response"
+                    exit 1
+                  fi
+
+                  echo "[cron] token acquired, calling /psy/mood/aggregate (period=$AGGREGATE_PERIOD)"
+
+                  response=$(curl -fsS \
+                    -X POST "$API_URL/psy/mood/aggregate" \
+                    -H "Authorization: Bearer $token" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"period\":\"$AGGREGATE_PERIOD\"}")
+
+                  echo "[cron] response: $response"
+
+                  if echo "$response" | grep -q '"errors":0'; then
+                    echo "[cron] OK"
+                    exit 0
+                  else
+                    echo "[cron] ERROR: aggregate reported non-zero errors"
+                    exit 1
+                  fi
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "100m"
+                  memory: "64Mi"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000

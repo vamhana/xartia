@@ -1,0 +1,129 @@
+# CI — статическая проверка и smoke-тесты.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Значения только для CI: ключи фиксированные, не секреты.
+  # ENCRYPTION_KEY / PHONE_HASH_KEY — base64 от 32 нулевых байт.
+  ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  PHONE_HASH_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  INTEGRITY_HMAC_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  JWT_SECRET: ci-only-secret-min-32-characters-long
+  ARCHITECT_PHONE: '+79001234567'
+  ARCHITECT_PASSWORD: ChangeMe123456
+  ARCHITECT_NAME: CI Architect
+
+jobs:
+  static:
+    name: Типы и сборка
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck API
+        run: pnpm typecheck
+      - name: Build API (tsc)
+        run: pnpm build
+      - name: Build web (vite)
+        run: pnpm exec vite build
+
+  smoke:
+    name: Smoke-тесты API
+    runs-on: ubuntu-latest
+    needs: static
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_USER: charter
+          POSTGRES_PASSWORD: charter
+          POSTGRES_DB: charter
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U charter"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      NODE_ENV: test
+      API_PORT: 3000
+      API_URL: http://localhost:3000
+      DATABASE_URL: postgresql://charter:charter@localhost:5432/charter
+      DATABASE_REPLICA_URL: postgresql://charter:charter@localhost:5432/charter
+      REDIS_URL: redis://localhost:6379
+      RATE_LIMIT_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # 017_seed_widgets.sql требует участника, поэтому миграции идут
+      # в два прохода: схема → Архитектор → сиды.
+      - name: Миграции (схема)
+        run: pnpm db:migrate
+      - name: Архитектор
+        run: pnpm tsx scripts/ensure-architect.ts
+      - name: Миграции (сиды)
+        run: pnpm db:migrate
+
+      - name: Запустить API
+        run: |
+          pnpm dev > /tmp/api.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/health > /dev/null; then
+              echo "API поднялся за ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API не поднялся"; tail -100 /tmp/api.log; exit 1
+
+      - name: Smoke — система
+        run: pnpm tsx scripts/test-system.ts
+      - name: Smoke — витрина
+        run: pnpm tsx scripts/test-public.ts
+      - name: Smoke — регистрация
+        run: pnpm tsx scripts/test-register.ts
+      - name: Smoke — паспорт
+        run: pnpm tsx scripts/test-passport.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+      - name: Smoke — коллектив
+        run: pnpm tsx scripts/test-collective.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+      - name: Smoke — задачи
+        run: pnpm tsx scripts/test-tasks.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+
+      - name: Логи API при падении
+        if: failure()
+        run: tail -200 /tmp/api.log

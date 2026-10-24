@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+coverage
+package-lock.json
+pnpm-lock.yaml
+docs/charter-specs
+legacy
+.git
+mobile/ios
+mobile/android

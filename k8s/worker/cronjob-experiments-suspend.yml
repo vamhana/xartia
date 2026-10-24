@@ -1,0 +1,93 @@
+# ============================================================================
+# I.3.05.11 — CronJob: приостановка диссидентских проектов без отчёта.
+#
+# Дёргает POST /dissident-projects/process-suspensions. Право experiment:Act.
+# Логика — в C.0.30.02 (processSuspensions): find active projects,
+# shouldSuspend → status='suspended' (I.1.8.10).
+#
+# Расписание: 0 4 * * * — ежедневно в 04:00 UTC.
+# Токен: сервисный участник Э90006-01, Secret xartia-experiments-cron.
+# ============================================================================
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: experiments-process-suspensions
+  namespace: xartia
+  labels:
+    app: xartia
+    module: experiments
+    cron-id: I.3.05.11
+spec:
+  schedule: "0 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: xartia
+            module: webhooks
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: process-suspensions
+              image: curlimages/curl:8.10.1
+              env:
+                - name: API_URL
+                  value: "http://api-svc:3000"
+                - name: CRON_PHONE
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-experiments-cron
+                      key: phone
+                - name: CRON_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-experiments-cron
+                      key: password
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  echo "[cron] logging in as $CRON_PHONE"
+
+                  login_response=$(curl -fsS \
+                    -X POST "$API_URL/auth/login" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"phone\":\"$CRON_PHONE\",\"password\":\"$CRON_PASSWORD\"}")
+
+                  token=$(echo "$login_response" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+                  if [ -z "$token" ]; then
+                    echo "[cron] ERROR: no access_token"
+                    exit 1
+                  fi
+
+                  response=$(curl -fsS \
+                    -X POST "$API_URL/dissident-projects/process-suspensions" \
+                    -H "Authorization: Bearer $token" \
+                    -H "Content-Type: application/json" \
+                    -d '{}')
+
+                  echo "[cron] response: $response"
+
+                  if echo "$response" | grep -q '"suspended"'; then
+                    echo "[cron] OK"
+                    exit 0
+                  fi
+                  echo "[cron] ERROR: unexpected response"
+                  exit 1
+              resources:
+                requests: { cpu: "10m", memory: "16Mi" }
+                limits:   { cpu: "100m", memory: "64Mi" }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000

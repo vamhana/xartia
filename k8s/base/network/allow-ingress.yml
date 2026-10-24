@@ -1,0 +1,71 @@
+# base/network/allow-ingress.yml
+# Входящий трафик от Traefik (kube-system) к приложениям.
+# Traefik пробрасывает внешние запросы на:
+#   - api-svc:3000  (HTTP API)
+#   - ws-svc:3001   (WebSocket)
+#   - web-svc:80    (nginx — 8080 внутри, но ingress идёт на 80)
+#
+# Traefik label: app.kubernetes.io/name: traefik (k3s default).
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-api
+  namespace: xartia
+spec:
+  podSelector:
+    matchLabels: { app: api }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { protocol: TCP, port: 3000 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-ws
+  namespace: xartia
+spec:
+  podSelector:
+    matchLabels: { app: ws }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { protocol: TCP, port: 3001 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-web
+  namespace: xartia
+spec:
+  podSelector:
+    matchLabels: { app: web }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { protocol: TCP, port: 8080 }

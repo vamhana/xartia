@@ -1,0 +1,17 @@
+# k8s/.gitignore
+# Приватные age-ключи — НИКОГДА в git.
+# Публичные (age1...) — в .sops.yaml, они безопасны.
+*.txt
+!requirements.txt
+!*.txt.example
+
+# Расшифрованные секреты (перед apply) — не коммитить.
+# В git — только *.enc.yaml (зашифрованные).
+*.dec.yaml
+*.decrypted.yaml
+secrets/*.yaml
+!secrets/*.enc.yaml
+!secrets/.gitkeep
+
+# SOPS temp
+*.sops.yaml.tmp

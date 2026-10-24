@@ -1,0 +1,148 @@
+name: xartia
+
+services:
+  # ─────────────────────────────────────────────
+  # PostgreSQL + PostGIS
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: charter-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-charter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-charter}
+      POSTGRES_DB: ${POSTGRES_DB:-charter}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-charter} -d ${POSTGRES_DB:-charter}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - charter
+
+  # ─────────────────────────────────────────────
+  # Redis
+  # ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: charter-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 512mb
+      - --maxmemory-policy
+      - allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - charter
+
+  # ─────────────────────────────────────────────
+  # MinIO (S3-совместимое хранилище)
+  # ─────────────────────────────────────────────
+  minio:
+    image: coollabsio/minio:latest
+    container_name: charter-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - charter
+
+
+  # ─────────────────────────────────────────────
+  # Core API
+  # Запускается только с профилем: docker compose --profile api up -d
+  # ─────────────────────────────────────────────
+  api:
+    profiles: ["api", "full"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: charter-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: development
+      API_PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-charter}:${POSTGRES_PASSWORD:-charter}@postgres:5432/${POSTGRES_DB:-charter}
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      RUN_MIGRATIONS: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - charter
+
+  # ─────────────────────────────────────────────
+  # WebSocket-сервер
+  # ─────────────────────────────────────────────
+  ws:
+    profiles: ["ws", "full"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: charter-ws
+    restart: unless-stopped
+    command: ["node_modules/.bin/tsx", "src/ws/server.ts"]
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: development
+      WS_PORT: 3001
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - charter
+
+volumes:
+  pg_data:
+    name: charter-pg-data
+  redis_data:
+    name: charter-redis-data
+  minio_data:
+    name: charter-minio-data
+
+networks:
+  charter:
+    name: charter-network
+    driver: bridge

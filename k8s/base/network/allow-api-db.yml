@@ -1,0 +1,95 @@
+# base/network/allow-api-db.yml
+# Трафик api/worker/ws → xartia-data (postgres, redis, minio).
+# Только эти сервисы, только эти порты.
+---
+# api → postgres/redis/minio
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-to-data
+  namespace: xartia-data
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app, operator: In, values: [postgres, redis, minio] }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xartia
+          podSelector:
+            matchLabels: { app: api }
+      ports:
+        - { protocol: TCP, port: 5432 }
+        - { protocol: TCP, port: 6379 }
+        - { protocol: TCP, port: 9000 }
+---
+# worker → postgres/redis/minio
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-worker-to-data
+  namespace: xartia-data
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app, operator: In, values: [postgres, redis, minio] }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xartia
+          podSelector:
+            matchLabels: { app: worker }
+      ports:
+        - { protocol: TCP, port: 5432 }
+        - { protocol: TCP, port: 6379 }
+        - { protocol: TCP, port: 9000 }
+---
+# ws → redis (для pub/sub)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ws-to-redis
+  namespace: xartia-data
+spec:
+  podSelector:
+    matchLabels: { app: redis }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xartia
+          podSelector:
+            matchLabels: { app: ws }
+      ports:
+        - { protocol: TCP, port: 6379 }
+---
+# Egress из api/worker/ws → xartia-data
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-app-egress-to-data
+  namespace: xartia
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app, operator: In, values: [api, worker, ws] }
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xartia-data
+      ports:
+        - { protocol: TCP, port: 5432 }
+        - { protocol: TCP, port: 6379 }
+        - { protocol: TCP, port: 9000 }
+        - { protocol: TCP, port: 9001 }

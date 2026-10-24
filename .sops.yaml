@@ -1,0 +1,18 @@
+# .sops.yaml
+# path_regex матчит и '/' и '\', и относительный, и абсолютный путь.
+creation_rules:
+  - path_regex: '[\\/]overlays[\\/]dev[\\/]secrets[\\/].*\.enc\.yaml$'
+    encrypted_regex: "^(data|stringData)$"
+    age: age1x7n6wd6f25n93tmdy4kalgdx55usamd89rv3xdrxwa08mgrpmqmsvfgmgq
+
+  - path_regex: '[\\/]overlays[\\/]staging[\\/]secrets[\\/].*\.enc\.yaml$'
+    encrypted_regex: "^(data|stringData)$"
+    age: >-
+      age1x7n6wd6f25n93tmdy4kalgdx55usamd89rv3xdrxwa08mgrpmqmsvfgmgq,
+      age1885alyf2mth3dl2l8zj9352mcjfn9ymc9jqjfajtc0vwf9tzhe9qftqv7l
+
+  - path_regex: '[\\/]overlays[\\/]prod[\\/]secrets[\\/].*\.enc\.yaml$'
+    encrypted_regex: "^(data|stringData)$"
+    age: >-
+      age1885alyf2mth3dl2l8zj9352mcjfn9ymc9jqjfajtc0vwf9tzhe9qftqv7l,
+      age1p2effuzdlsx9jhwadl6jsh4rev3cxcqfqmtf8veattu2z2ylmc0shr0vdq

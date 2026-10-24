@@ -1,0 +1,20 @@
+# base/postgres/configmap.yml
+# Базовая конфигурация. overlays могут переопределять (например, prod — больше памяти).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: xartia-data
+data:
+  postgresql.conf: |
+    listen_addresses = '*'
+    max_connections = 100
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    work_mem = 4MB
+    maintenance_work_mem = 64MB
+    wal_level = replica
+    max_wal_size = 1GB
+    min_wal_size = 80MB
+    log_min_duration_statement = 1000
+    log_statement = 'mod'

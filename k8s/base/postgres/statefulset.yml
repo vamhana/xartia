@@ -1,0 +1,96 @@
+# base/postgres/statefulset.yml
+#
+# Два контейнера в поде:
+#   postgres  — БД;
+#   pg-backup — ежедневный pg_dump в /backups/db-backups тома data.
+#
+# Почему sidecar, а не CronJob/Job: в кластере включён default-deny-all, и
+# отдельный под получает «connection refused» от postgres-svc (kube-router
+# не пропускает его к БД). Sidecar ходит на 127.0.0.1 — трафик не покидает
+# под, NetworkPolicy не участвует.
+#
+# Почему том data, а не отдельный PVC: под уже привязан к узлу томом data,
+# а отдельный local-path PVC уезжает на другой узел и под становится
+# нерасписываемым (проверено). Дампы лежат рядом с БД — это dev-решение:
+# для продакшена выгружать в S3/MinIO (см. infra/backup/).
+#
+# Ротация: 7 последних дампов. Восстановление: infra/backup/restore-runbook.md
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: xartia-data
+  labels: { app: postgres, xartia.io/tier: data }
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres }
+  template:
+    metadata:
+      labels: { app: postgres }
+    spec:
+      priorityClassName: xartia-critical
+      securityContext: { fsGroup: 999, runAsUser: 999, runAsNonRoot: true }
+      containers:
+        - name: postgres
+          image: postgis/postgis:15-3.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: pg, containerPort: 5432 }
+          envFrom:
+            - secretRef: { name: postgres-secrets }
+          env:
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          resources:
+            requests: { cpu: "500m", memory: "1Gi" }
+            limits:   { cpu: "2",    memory: "4Gi" }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "charter", "-d", "charter"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "charter", "-d", "charter"] }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+
+        - name: pg-backup
+          image: postgis/postgis:15-3.4
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef: { name: postgres-secrets }
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: { name: postgres-secrets, key: POSTGRES_PASSWORD }
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -u
+              mkdir -p /backups/db-backups
+              sleep 60
+              while true; do
+                ts=$(date +%Y%m%d-%H%M%S)
+                out="/backups/db-backups/charter-${ts}.dump"
+                if pg_dump -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+                           --format=custom --file="$out"; then
+                  echo "backup ok: $out ($(du -h "$out" | cut -f1))"
+                  ls -1t /backups/db-backups/charter-*.dump 2>/dev/null | tail -n +8 | xargs -r rm -f
+                else
+                  echo "backup FAILED at $(date -Iseconds)" >&2
+                fi
+                sleep 86400
+              done
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+          volumeMounts:
+            - { name: data, mountPath: /backups }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests: { storage: 10Gi }

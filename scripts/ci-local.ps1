@@ -1,0 +1,100 @@
+﻿# scripts/ci-local.ps1
+# Локальный прогон того же CI, что в .github/workflows/ci.yml.
+#
+# Зачем: GitHub Actions нельзя запустить «здесь и сейчас», а проверять PR
+# нужно. Этот скрипт делает те же шаги против локального стека (docker
+# postgres/redis + запущенный API) и падает с ненулевым кодом при ошибке.
+#
+# Использование:
+#   pwsh scripts/ci-local.ps1              # всё
+#   pwsh scripts/ci-local.ps1 -StaticOnly  # только типы и сборка
+#
+# Требует: запущенный API (pnpm dev или контейнер), docker-инфраструктуру,
+# .env с ARCHITECT_PHONE / ARCHITECT_PASSWORD.
+
+param(
+  [switch]$StaticOnly
+)
+
+$ErrorActionPreference = 'Stop'
+$script:failed = @()
+$script:passed = @()
+
+function Invoke-Step {
+  param(
+    [string]$Name,
+    [scriptblock]$Action
+  )
+  Write-Host ""
+  Write-Host "── $Name" -ForegroundColor Cyan
+  $started = Get-Date
+  # Windows PowerShell 5.1 считает любую запись в stderr от native-команды
+  # фатальной при ErrorActionPreference=Stop. Vite/pnpm пишут туда
+  # предупреждения — внутри шага понижаем строгость и смотрим код выхода.
+  $ErrorActionPreference = 'Continue'
+  try {
+    & $Action
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
+      throw "exit code $LASTEXITCODE"
+    }
+    $ms = [int]((Get-Date) - $started).TotalMilliseconds
+    $script:passed += $Name
+    Write-Host "   ✓ $Name (${ms} ms)" -ForegroundColor Green
+  } catch {
+    $ms = [int]((Get-Date) - $started).TotalMilliseconds
+    $script:failed += "$Name — $($_.Exception.Message)"
+    Write-Host "   ✗ $Name (${ms} ms): $($_.Exception.Message)" -ForegroundColor Red
+  }
+}
+
+function Wait-Api {
+  param([int]$TimeoutSec = 60)
+  $deadline = (Get-Date).AddSeconds($TimeoutSec)
+  while ((Get-Date) -lt $deadline) {
+    try {
+      $r = Invoke-WebRequest -Uri 'http://127.0.0.1:3000/health' -TimeoutSec 3 -UseBasicParsing
+      if ($r.StatusCode -eq 200) { return }
+    } catch {
+      Start-Sleep -Seconds 1
+    }
+  }
+  throw "API не ответил на /health за ${TimeoutSec}s"
+}
+
+# ── 1. Статика ─────────────────────────────────────────────────
+Invoke-Step 'typecheck (API)' { pnpm typecheck }
+Invoke-Step 'build (tsc)' { pnpm build }
+Invoke-Step 'build:web (vite)' { pnpm exec vite build }
+
+if (-not $StaticOnly) {
+  # ── 2. База и данные ─────────────────────────────────────────
+  Invoke-Step 'db:migrate' { pnpm db:migrate }
+  Invoke-Step 'ensure-architect' { pnpm tsx scripts/ensure-architect.ts }
+  Invoke-Step 'db:migrate (сиды)' { pnpm db:migrate }
+  Invoke-Step 'API health' { Wait-Api }
+
+  # ── 3. Smoke-тесты (как в CI) ────────────────────────────────
+  $phone = $env:ARCHITECT_PHONE
+  if (-not $phone) { $phone = '+79001234567' }
+  $password = $env:ARCHITECT_PASSWORD
+  if (-not $password) { $password = 'ChangeMe123456' }
+
+  Invoke-Step 'smoke: system' { pnpm tsx scripts/test-system.ts }
+  Invoke-Step 'smoke: public' { pnpm tsx scripts/test-public.ts }
+  Invoke-Step 'smoke: register' { pnpm tsx scripts/test-register.ts }
+  Invoke-Step 'smoke: passport' { pnpm tsx scripts/test-passport.ts $phone $password }
+  Invoke-Step 'smoke: collective' { pnpm tsx scripts/test-collective.ts $phone $password }
+  Invoke-Step 'smoke: tasks' { pnpm tsx scripts/test-tasks.ts $phone $password }
+}
+
+# ── 4. Итог ────────────────────────────────────────────────────
+Write-Host ""
+Write-Host ("=" * 60)
+Write-Host "ПРОЙДЕНО: $($script:passed.Count)  УПАЛО: $($script:failed.Count)"
+if ($script:failed.Count -gt 0) {
+  Write-Host ""
+  foreach ($f in $script:failed) { Write-Host "  ✗ $f" -ForegroundColor Red }
+  exit 1
+}
+Write-Host "CI локально: зелёный" -ForegroundColor Green
+exit 0

@@ -1,0 +1,50 @@
+# base/minio/statefulset.yml
+# MinIO single-node (dev/staging). Distributed — overlay prod (replicas=4).
+# Образ: coollabsio/minio:latest — уже в локальном Docker (Docker Compose),
+# pull не нужен. minio/minio:latest удалён с Docker Hub (2025 AGPLv3).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: xartia-data
+  labels: { app: minio, xartia.io/tier: data }
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels: { app: minio }
+  template:
+    metadata:
+      labels: { app: minio }
+    spec:
+      priorityClassName: xartia-default
+      securityContext: { fsGroup: 999, runAsUser: 999, runAsNonRoot: true }
+      containers:
+        - name: minio
+          image: coollabsio/minio:latest
+          imagePullPolicy: IfNotPresent
+          args: ["server", "/data", "--console-address", ":9001"]
+          ports:
+            - { name: s3, containerPort: 9000 }
+            - { name: console, containerPort: 9001 }
+          envFrom:
+            - secretRef: { name: minio-secrets }
+          resources:
+            requests: { cpu: "200m", memory: "256Mi" }
+            limits:   { cpu: "1",    memory: "1Gi" }
+          readinessProbe:
+            httpGet: { path: /minio/health/ready, port: 9000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /minio/health/live, port: 9000 }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - { name: data, mountPath: /data }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests: { storage: 20Gi }

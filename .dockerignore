@@ -1,0 +1,74 @@
+# ─── Dependencies ──────────────────────────────
+node_modules
+**/node_modules
+.pnpm-store
+
+# ─── Build ─────────────────────────────────────
+dist
+build
+out
+coverage
+*.tsbuildinfo
+
+# ─── VCS ───────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ─── IDE / OS ──────────────────────────────────
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Env ───────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Logs ──────────────────────────────────────
+logs
+*.log
+
+# ─── Tests ─────────────────────────────────────
+tests
+__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# ─── Docs ──────────────────────────────────────
+docs
+*.md
+!README.md
+
+# ─── Infra (не нужно в образе API) ─────────────
+terraform
+helm
+k8s
+infra
+monitoring
+.github
+
+# ─── Mobile ────────────────────────────────────
+mobile
+
+# ─── Legacy ────────────────────────────────────
+legacy
+
+# ─── Misc ──────────────────────────────────────
+.editorconfig
+.eslintrc.json
+.prettierrc.json
+.prettierignore
+
+# ─── ВАЖНО: НЕ добавлять сюда! ─────────────────
+# docker/                 ← нужен docker/entrypoint.sh
+# Dockerfile*             ← может понадобиться при multi-stage
+# tsconfig.json           ← нужен tsx в рантайме
+# tsconfig.base.json      ← нужен tsx в рантайме
+# src/, db/, scripts/     ← нужны в образе
+# package.json, pnpm-lock.yaml

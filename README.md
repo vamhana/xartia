@@ -1,0 +1,90 @@
+# XartIA — рабочее пространство коллектива
+
+Продукт для группы разработчиков, которая строит собственный продукт и продаёт
+его наружу. Вклад — это код, а не отчёт о занятости: задачи, ревью и Потоки
+видны всем, роли выдаются мандатом и истекают.
+
+Это **v0.1**: работающий контур «заявка → участник → задача → отчёт → ОТК →
+Поток», прозрачность и публичная витрина. Мобильный клиент заморожен.
+
+## Статус
+
+| Проверка | Статус |
+|---|---|
+| Публичная витрина и форма заявки | ✅ |
+| Приём заявки Архитектором в 2 клика | ✅ |
+| «Первый день»: роль, наставник, первая задача | ✅ |
+| Отчёт с артефактом (PR/коммит) → ОТК → Поток | ✅ |
+| Экран «Коллектив»: люди, роли, лента событий | ✅ |
+| CI и проверяемый бэкап Postgres | ✅ |
+| Экран Шлюза (внешние продукты и деньги) | ⏳ |
+
+## Стек
+
+- **API**: Fastify 5, TypeScript, PostgreSQL 15 + PostGIS, Redis 7, S3/MinIO
+- **Realtime**: WebSocket-каналы (`src/ws`)
+- **Web**: React 19, Vite, TanStack Query
+- **Инфраструктура**: Docker Compose для локального стенда, k8s (k3d) + kustomize
+
+## Быстрый старт
+
+```powershell
+# 1. Зависимости
+pnpm install
+
+# 2. Инфраструктура (Postgres + PostGIS, Redis, MinIO)
+docker compose -f docker/docker-compose.yml up -d postgres redis minio
+
+# 3. Схема и первый участник
+pnpm db:migrate
+pnpm tsx scripts/ensure-architect.ts     # создаст Архитектора из .env
+pnpm db:migrate                          # сиды (нужен участник)
+
+# 4. Приложение: API :3000, WS :3001, web :5173
+pnpm dev
+```
+
+Полная инструкция, включая грабли: [scripts/README.md](scripts/README.md) и
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+## Проверки
+
+```powershell
+pnpm typecheck          # API
+pnpm typecheck:web      # web (сейчас 12 известных ошибок в 3 страницах)
+pnpm exec vite build    # сборка web
+pwsh scripts/ci-local.ps1   # локальный CI: типы, сборка, миграции, 6 smoke-тестов
+pwsh scripts/backup.ps1 -Verify  # бэкап + проверка восстановления
+```
+
+CI в GitHub Actions: [.github/workflows/ci.yml](.github/workflows/ci.yml) —
+static (typecheck, build) + smoke (postgis, redis, миграции, API, тесты).
+
+## Устройство репозитория
+
+| Путь | Что |
+|---|---|
+| `src/core`, `src/api` | доменная логика и HTTP-роуты |
+| `src/ws` | WebSocket-каналы |
+| `src/web` | React-приложение |
+| `db/migrations` | миграции (001…033) |
+| `scripts` | утилиты, smoke-тесты, CI, бэкап |
+| `docs` | [roadmap](docs/roadmap.md), [продукт v0.1](docs/product-v0.1.md), спецификации Хартии |
+| `k8s`, `helm`, `terraform`, `infra` | развёртывание |
+
+**Реестр.** Каждый файл проекта описан блоком в [id_2.md](id_2.md) —
+700 блоков с ID, зависимостями и публичным API. Сверка: `python check_files.py`
+(файлов без блоков — 0).
+
+## Хартия
+
+Продукт вырос из Хартии 5.0 — документа об организации цивилизации.
+Сайт с текстом: [github.com/vamhana/hartia](https://github.com/vamhana/hartia).
+Код и Хартия живут отдельно: документ публикуется как сайт, приложение — как
+исходники.
+
+## Лицензия
+
+Пока не выбрана — по умолчанию «все права защищены». Если хотите, чтобы код
+можно было форкать и присылать PR, нужна явная лицензия; для такого проекта
+разумны AGPL-3.0 или MPL-2.0.

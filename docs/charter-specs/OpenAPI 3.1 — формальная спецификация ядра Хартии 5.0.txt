@@ -1,0 +1,6696 @@
+OpenAPI 3.1 — формальная спецификация ядра Хартии 5.0
+Ниже — рабочий OpenAPI-контракт. Полный (400+ эндпоинтов) в одном файле не поместится в разумный ответ, поэтому даю:
+
+openapi.yaml — корневой файл со всей структурой, security, компонентами и примерами.
+
+Паттерн для остальных доменов — единый, копируется по образцу.
+
+В конце — список недоменных $ref-файлов, которые просто повторяют структуру.
+
+Файл готов к вставке в Swagger Editor / Redocly / Stoplight.
+
+1. openapi.yaml (корневой)
+yaml
+openapi: 3.1.0
+
+info:
+  title: Хартия 5.0 — Ядро
+  version: 1.0.0
+  description: |
+    API операционной системы цивилизации.
+    Все действия логируются. Все мандаты временны.
+    Шлюз изолирован. Семантический Страж — вне иерархии.
+  contact:
+    name: Первый Архитектор
+    email: architect@charter.local
+  license:
+    name: Протокол Хартии 5.0
+
+servers:
+  - url: https://api.charter.local/api/v1
+    description: Продакшн
+  - url: https://staging.charter.local/api/v1
+    description: Стейдж
+
+tags:
+  - name: Auth
+  - name: Participants
+  - name: Directions
+  - name: Cells
+  - name: Mandates
+  - name: Plans
+  - name: Tasks
+  - name: Reports
+  - name: OTC
+  - name: Signals
+  - name: Connections
+  - name: Arbitrations
+  - name: UniversalRuns
+  - name: Flows
+  - name: Goods
+  - name: Standards
+  - name: Regimes
+  - name: Balance
+  - name: Verification
+  - name: Archive
+  - name: Justice
+  - name: Jury
+  - name: Psy
+  - name: Gateway
+  - name: Quanta
+  - name: Constructor
+  - name: Planetary
+  - name: Convergence
+  - name: Semantic
+  - name: Experiments
+  - name: Learning
+  - name: Automation
+  - name: Aggregator
+  - name: Connectivity
+  - name: Admin
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  # ─────────────────────────────────────────────
+  # AUTH
+  # ─────────────────────────────────────────────
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Подать заявку на вступление
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Заявка создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegistrationCreated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Вход
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Токены
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Обновить токен
+      operationId: refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: Новые токены
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Выход
+      operationId: logout
+      responses:
+        '204': { description: Успешно }
+
+  /auth/status/{request_id}:
+    get:
+      tags: [Auth]
+      security: []
+      summary: Статус заявки (комната ожидания)
+      operationId: getRegistrationStatus
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Статус
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegistrationStatus' }
+
+  # ─────────────────────────────────────────────
+  # PARTICIPANTS
+  # ─────────────────────────────────────────────
+  /me:
+    get:
+      tags: [Participants]
+      summary: Мой паспорт
+      operationId: getMe
+      responses:
+        '200':
+          description: Паспорт
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Participant' }
+    patch:
+      tags: [Participants]
+      summary: Обновить свой профиль
+      operationId: patchMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ParticipantPatch' }
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Participant' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /me/passport:
+    get:
+      tags: [Participants]
+      summary: Полный паспорт с историей
+      operationId: getMyPassport
+      responses:
+        '200':
+          description: Паспорт с историей
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PassportFull' }
+
+  /me/history:
+    get:
+      tags: [Participants]
+      summary: История изменений
+      operationId: getMyHistory
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+      responses:
+        '200':
+          description: История
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ParticipantHistoryItem' }
+
+  /me/flows:
+    get:
+      tags: [Participants, Flows]
+      summary: Мои Потоки
+      operationId: getMyFlows
+      responses:
+        '200':
+          description: Балансы
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FlowBalance' }
+
+  /me/capsule:
+    get:
+      tags: [Participants, Flows]
+      summary: Капсула
+      operationId: getMyCapsule
+      responses:
+        '200':
+          description: Капсула
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Capsule' }
+
+  /me/roles:
+    get:
+      tags: [Participants, Mandates]
+      summary: Мои роли и мандаты
+      operationId: getMyRoles
+      responses:
+        '200':
+          description: Роли
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RoleAssignment' }
+
+  /me/pause:
+    post:
+      tags: [Participants]
+      summary: Уйти на паузу
+      operationId: goPause
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Пауза
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Pause' }
+
+  /me/pause/return:
+    post:
+      tags: [Participants]
+      summary: Вернуться с паузы
+      operationId: returnFromPause
+      responses:
+        '200':
+          description: Возврат
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Pause' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /participants:
+    get:
+      tags: [Participants]
+      summary: Список участников (для ролей с доступом)
+      operationId: listParticipants
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: filter[direction_id]
+          in: query
+          schema: { type: string, format: uuid }
+        - name: filter[status]
+          in: query
+          schema: { $ref: '#/components/schemas/ParticipantStatus' }
+        - name: filter[cell_id]
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Participant' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /participants/search:
+    get:
+      tags: [Participants]
+      summary: Поиск участников
+      operationId: searchParticipants
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: by
+          in: query
+          schema:
+            type: string
+            enum: [id, name, skill, direction, cell]
+      responses:
+        '200':
+          description: Результаты
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Participant' }
+
+  /participants/{id}:
+    get:
+      tags: [Participants]
+      summary: Паспорт участника (с фильтрацией полей по роли)
+      operationId: getParticipant
+      parameters:
+        - $ref: '#/components/parameters/ParticipantIdParam'
+      responses:
+        '200':
+          description: Паспорт
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Participant' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Participants]
+      summary: Редактировать участника (СИ / Совет / Архитектор)
+      operationId: patchParticipant
+      parameters:
+        - $ref: '#/components/parameters/ParticipantIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ParticipantPatch' }
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Participant' }
+
+  /participants/{id}/delegate:
+    post:
+      tags: [Participants, Mandates]
+      summary: Делегировать функцию
+      operationId: delegate
+      parameters:
+        - $ref: '#/components/parameters/ParticipantIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DelegationCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delegation' }
+
+  # ─────────────────────────────────────────────
+  # DIRECTIONS
+  # ─────────────────────────────────────────────
+  /directions:
+    get:
+      tags: [Directions]
+      summary: Все направления
+      operationId: listDirections
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Direction' }
+    post:
+      tags: [Directions]
+      summary: Создать направление (Архитектор)
+      operationId: createDirection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DirectionCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Direction' }
+
+  /directions/{id}:
+    get:
+      tags: [Directions]
+      summary: Карточка направления
+      operationId: getDirection
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      responses:
+        '200':
+          description: Направление
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Direction' }
+    patch:
+      tags: [Directions]
+      summary: Редактировать направление
+      operationId: patchDirection
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DirectionCreate' }
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Direction' }
+    delete:
+      tags: [Directions]
+      summary: Упразднить направление
+      operationId: deleteDirection
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      responses:
+        '204': { description: Упразднено }
+
+  /directions/{id}/zones:
+    get:
+      tags: [Directions]
+      summary: ЗПО направления
+      operationId: getZones
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      responses:
+        '200':
+          description: ЗПО
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Zones' }
+    patch:
+      tags: [Directions]
+      summary: Изменить ЗПО
+      operationId: patchZones
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Zones' }
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Zones' }
+
+  /directions/{id}/professions:
+    get:
+      tags: [Directions]
+      summary: Профессии направления
+      operationId: listProfessions
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      responses:
+        '200':
+          description: Профессии
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Profession' }
+    post:
+      tags: [Directions]
+      summary: Создать профессию
+      operationId: createProfession
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfessionCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profession' }
+
+  /directions/{id}/roles:
+    get:
+      tags: [Directions]
+      summary: Роли направления
+      operationId: listRoles
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      responses:
+        '200':
+          description: Роли
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Role' }
+    post:
+      tags: [Directions]
+      summary: Создать роль
+      operationId: createRole
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Role' }
+
+  /directions/{id}/council:
+    get:
+      tags: [Directions]
+      summary: Совет направления
+      operationId: getCouncil
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      responses:
+        '200':
+          description: Совет
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Council' }
+    post:
+      tags: [Directions]
+      summary: Назначить члена Совета
+      operationId: addCouncilMember
+      parameters:
+        - $ref: '#/components/parameters/DirectionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id]
+              properties:
+                participant_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Назначено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CouncilMember' }
+
+  # ─────────────────────────────────────────────
+  # SIGNALS
+  # ─────────────────────────────────────────────
+  /signals:
+    get:
+      tags: [Signals]
+      summary: Список сигналов
+      operationId: listSignals
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: filter[priority]
+          in: query
+          schema: { $ref: '#/components/schemas/Priority' }
+        - name: filter[status]
+          in: query
+          schema: { $ref: '#/components/schemas/SignalStatus' }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Signal' }
+    post:
+      tags: [Signals]
+      summary: Создать сигнал
+      operationId: createSignal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignalCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Signal' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /signals/{id}:
+    get:
+      tags: [Signals]
+      summary: Карточка сигнала
+      operationId: getSignal
+      parameters:
+        - $ref: '#/components/parameters/SignalIdParam'
+      responses:
+        '200':
+          description: Сигнал
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Signal' }
+
+  /signals/{id}/responses:
+    get:
+      tags: [Signals]
+      summary: Ответы направлений
+      operationId: listSignalResponses
+      parameters:
+        - $ref: '#/components/parameters/SignalIdParam'
+      responses:
+        '200':
+          description: Ответы
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SignalResponse' }
+    post:
+      tags: [Signals]
+      summary: Ответ направления
+      operationId: createSignalResponse
+      parameters:
+        - $ref: '#/components/parameters/SignalIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignalResponseCreate' }
+      responses:
+        '201':
+          description: Ответ создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SignalResponse' }
+
+  /signals/{id}/connect:
+    post:
+      tags: [Signals, Connections]
+      summary: Запустить Коннект
+      operationId: startConnection
+      parameters:
+        - $ref: '#/components/parameters/SignalIdParam'
+      responses:
+        '201':
+          description: Коннект запущен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Connection' }
+    get:
+      tags: [Signals, Connections]
+      summary: Статус Коннекта
+      operationId: getConnection
+      parameters:
+        - $ref: '#/components/parameters/SignalIdParam'
+      responses:
+        '200':
+          description: Коннект
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Connection' }
+
+  /signals/{id}/arbitration:
+    post:
+      tags: [Signals, Arbitrations]
+      summary: Подать в Арбитраж
+      operationId: submitArbitration
+      parameters:
+        - $ref: '#/components/parameters/SignalIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ArbitrationCreate' }
+      responses:
+        '201':
+          description: Подано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Arbitration' }
+
+  # ─────────────────────────────────────────────
+  # FLOWS
+  # ─────────────────────────────────────────────
+  /flows:
+    get:
+      tags: [Flows]
+      summary: Мои балансы
+      operationId: listFlows
+      responses:
+        '200':
+          description: Балансы
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FlowBalance' }
+
+  /flows/charge:
+    post:
+      tags: [Flows]
+      summary: Начислить Поток
+      operationId: chargeFlow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FlowCharge' }
+      responses:
+        '201':
+          description: Начислено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FlowTransaction' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /flows/capsule/deposit:
+    post:
+      tags: [Flows]
+      summary: В Капсулу
+      operationId: capsuleDeposit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, minimum: 0 }
+      responses:
+        '200':
+          description: Пополнено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Capsule' }
+
+  # ─────────────────────────────────────────────
+  # GOODS
+  # ─────────────────────────────────────────────
+  /goods:
+    get:
+      tags: [Goods]
+      summary: Список благ
+      operationId: listGoods
+      parameters:
+        - name: filter[status]
+          in: query
+          schema: { $ref: '#/components/schemas/GoodStatus' }
+        - name: filter[type]
+          in: query
+          schema: { type: string, enum: [material, nonmaterial] }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Good' }
+    post:
+      tags: [Goods]
+      summary: Создать благо
+      operationId: createGood
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GoodCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Good' }
+
+  /goods/{id}:
+    get:
+      tags: [Goods]
+      summary: Карточка блага
+      operationId: getGood
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Благо
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Good' }
+
+  /goods/{id}/test:
+    post:
+      tags: [Goods]
+      summary: Отправить на тест
+      operationId: testGood
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: На тесте
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Good' }
+
+  /goods/{id}/approve:
+    post:
+      tags: [Goods]
+      summary: Утвердить благо
+      operationId: approveGood
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [standard_id]
+              properties:
+                standard_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Утверждено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Good' }
+
+  /goods/{id}/liquidate:
+    post:
+      tags: [Goods]
+      summary: Ликвидировать благо
+      operationId: liquidateGood
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Ликвидировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Good' }
+
+  # ─────────────────────────────────────────────
+  # REGIMES
+  # ─────────────────────────────────────────────
+  /regimes:
+    get:
+      tags: [Regimes]
+      summary: Список режимов
+      operationId: listRegimes
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Regime' }
+    post:
+      tags: [Regimes]
+      summary: Активировать режим
+      operationId: activateRegime
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegimeCreate' }
+      responses:
+        '201':
+          description: Активирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Regime' }
+        '423': { $ref: '#/components/responses/Locked' }
+
+  /regimes/{id}/deactivate:
+    post:
+      tags: [Regimes]
+      summary: Деактивировать режим
+      operationId: deactivateRegime
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Деактивирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Regime' }
+
+  # ─────────────────────────────────────────────
+  # BALANCE
+  # ─────────────────────────────────────────────
+  /balance/metrics:
+    get:
+      tags: [Balance]
+      summary: Агрегаты
+      operationId: getBalanceMetrics
+      parameters:
+        - name: direction_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: period
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Метрики
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BalanceMetrics' }
+
+  /balance/anomalies:
+    get:
+      tags: [Balance]
+      summary: Аномалии
+      operationId: listAnomalies
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Anomaly' }
+
+  # ─────────────────────────────────────────────
+  # VERIFICATION
+  # ─────────────────────────────────────────────
+  /verification/audits:
+    get:
+      tags: [Verification]
+      summary: Аудиты
+      operationId: listAudits
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Audit' }
+    post:
+      tags: [Verification]
+      summary: Создать аудит
+      operationId: createAudit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuditCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Audit' }
+
+  # ─────────────────────────────────────────────
+  # ARCHIVE
+  # ─────────────────────────────────────────────
+  /archive:
+    get:
+      tags: [Archive]
+      summary: Архив
+      operationId: listArchive
+      parameters:
+        - name: filter[direction_id]
+          in: query
+          schema: { type: string, format: uuid }
+        - name: filter[type]
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Документы
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ArchiveDocument' }
+    post:
+      tags: [Archive]
+      summary: Зафиксировать документ
+      operationId: archiveDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ArchiveDocumentCreate' }
+      responses:
+        '201':
+          description: Зафиксировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ArchiveDocument' }
+
+  # ─────────────────────────────────────────────
+  # GATEWAY (изолированный)
+  # ─────────────────────────────────────────────
+  /gateway/transactions:
+    get:
+      tags: [Gateway]
+      summary: Внешние сделки
+      operationId: listGatewayTransactions
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GatewayTransaction' }
+        '451': { $ref: '#/components/responses/InfoBlockade' }
+    post:
+      tags: [Gateway]
+      summary: Создать сделку
+      operationId: createGatewayTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GatewayTransactionCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GatewayTransaction' }
+        '451': { $ref: '#/components/responses/InfoBlockade' }
+
+  # ─────────────────────────────────────────────
+  # CONSTRUCTOR
+  # ─────────────────────────────────────────────
+  /panels:
+    get:
+      tags: [Constructor]
+      summary: Список панелей
+      operationId: listPanels
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Panel' }
+    post:
+      tags: [Constructor]
+      summary: Создать панель
+      operationId: createPanel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PanelCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Panel' }
+
+  /panels/{id}/widgets:
+    get:
+      tags: [Constructor]
+      summary: Виджеты панели
+      operationId: listPanelWidgets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Виджеты
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/WidgetInstance' }
+    post:
+      tags: [Constructor]
+      summary: Добавить виджет
+      operationId: addPanelWidget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WidgetInstanceCreate' }
+      responses:
+        '201':
+          description: Добавлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WidgetInstance' }
+
+  /rights-matrix/check:
+    post:
+      tags: [Constructor]
+      summary: Проверить право
+      operationId: checkRight
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RightCheckRequest' }
+      responses:
+        '200':
+          description: Результат
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RightCheckResponse' }
+
+# ─────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPageParam:
+      name: per_page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    ParticipantIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DirectionIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SignalIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  headers:
+    X-Audit-Id:
+      schema: { type: string, format: uuid }
+      description: ID записи в audit_log
+    X-Request-Id:
+      schema: { type: string }
+      description: ID запроса
+
+  responses:
+    Unauthorized:
+      description: Не авторизован
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Нет прав
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Не найдено
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Конфликт
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Ошибка валидации
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Слишком много запросов
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Locked:
+      description: Заблокировано режимом
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InfoBlockade:
+      description: Информационная блокада — Шлюз изолирован
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+
+    # ── Общие ──────────────────────────────────
+    Meta:
+      type: object
+      properties:
+        page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+
+    Paginated:
+      type: object
+      properties:
+        meta: { $ref: '#/components/schemas/Meta' }
+        audit_id: { type: string, format: uuid }
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details: { type: object, additionalProperties: true }
+        audit_id: { type: string, format: uuid }
+
+    # ── Auth ───────────────────────────────────
+    RegisterRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone: { type: string }
+        messengers:
+          type: object
+          additionalProperties: { type: string }
+        password: { type: string, minLength: 8 }
+        consent_video: { type: boolean }
+        consent_data: { type: boolean }
+
+    RegistrationCreated:
+      type: object
+      properties:
+        request_id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/RegistrationStatusEnum' }
+
+    RegistrationStatusEnum:
+      type: string
+      enum: [new, interview_scheduled, decided, accepted, conditionally_accepted, rejected]
+
+    RegistrationStatus:
+      type: object
+      properties:
+        request_id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/RegistrationStatusEnum' }
+        interview_at: { type: string, format: date-time, nullable: true }
+
+    LoginRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone: { type: string }
+        password: { type: string }
+
+    AuthTokens:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer }
+
+    # ── Participants ───────────────────────────
+    ParticipantStatus:
+      type: string
+      enum:
+        - compatible
+        - conditionally_compatible
+        - associated
+        - full
+        - paused
+        - outside_trust_network
+        - master
+        - integrator
+        - pioneer
+        - excluded
+
+    Participant:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        external_id: { type: string, example: "A12345-14" }
+        name: { type: string }
+        pseudonym: { type: string }
+        direction_id: { type: string, format: uuid }
+        subdirection: { type: string, nullable: true }
+        profession_id: { type: string, format: uuid, nullable: true }
+        status: { $ref: '#/components/schemas/ParticipantStatus' }
+        mentor_id: { type: string, format: uuid, nullable: true }
+        cell_id: { type: string, format: uuid, nullable: true }
+        geolocation:
+          type: object
+          nullable: true
+          properties:
+            lat: { type: number }
+            lon: { type: number }
+        entered_at: { type: string, format: date-time }
+
+    ParticipantPatch:
+      type: object
+      properties:
+        pseudonym: { type: string }
+        messengers:
+          type: object
+          additionalProperties: { type: string }
+        geo_enabled: { type: boolean }
+
+    PassportFull:
+      allOf:
+        - $ref: '#/components/schemas/Participant'
+        - type: object
+          properties:
+            history:
+              type: array
+              items: { $ref: '#/components/schemas/ParticipantHistoryItem' }
+
+    ParticipantHistoryItem:
+      type: object
+      properties:
+        field: { type: string }
+        old_value: {}
+        new_value: {}
+        reason: { type: string }
+        authorized_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+
+    Pause:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+        reason: { type: string }
+
+    # ── Directions ─────────────────────────────
+    DirectionType:
+      type: string
+      enum: [permanent, temporary]
+
+    DirectionStatus:
+      type: string
+      enum: [active, empty, delegated, blocked, abolished]
+
+    Direction:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        number: { type: integer }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/DirectionType' }
+        status: { $ref: '#/components/schemas/DirectionStatus' }
+
+    DirectionCreate:
+      type: object
+      required: [number, name, type]
+      properties:
+        number: { type: integer }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/DirectionType' }
+
+    Zones:
+      type: object
+      properties:
+        exclusive: { type: array, items: { type: string } }
+        shared: { type: array, items: { type: string } }
+        adjacent: { type: array, items: { type: string } }
+
+    Profession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        name: { type: string }
+        competencies: { type: array, items: { type: string } }
+        active: { type: boolean }
+
+    ProfessionCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        competencies: { type: array, items: { type: string } }
+
+    Role:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, enum: [permanent, temporary, regime] }
+        max_term_days: { type: integer }
+        max_terms: { type: integer }
+
+    RoleCreate:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [permanent, temporary, regime] }
+        max_term_days: { type: integer }
+        max_terms: { type: integer }
+
+    RoleAssignment:
+      type: object
+      properties:
+        role_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [active, finished, revoked] }
+
+    Council:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        type: { type: string }
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/CouncilMember' }
+
+    CouncilMember:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time, nullable: true }
+        term_number: { type: integer }
+
+    # ── Mandates ───────────────────────────────
+    DelegationCreate:
+      type: object
+      required: [function, to_id]
+      properties:
+        function: { type: string }
+        to_id: { type: string, format: uuid }
+        scope: { type: object, additionalProperties: true }
+        valid_to: { type: string, format: date-time }
+
+    Delegation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        function: { type: string }
+        from_id: { type: string, format: uuid }
+        to_id: { type: string, format: uuid }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time }
+        status: { type: string, enum: [active, revoked, expired] }
+
+    # ── Signals ────────────────────────────────
+    Priority:
+      type: string
+      enum: [critical, high, standard, background]
+
+    SignalStatus:
+      type: string
+      enum: [new, run, connect, plan, completed, rejected]
+
+    SignalCreate:
+      type: object
+      required: [description, priority]
+      properties:
+        description: { type: string }
+        justification: { type: string }
+        directions: { type: array, items: { type: string, format: uuid } }
+        desired_deadline: { type: string, format: date-time }
+        priority: { $ref: '#/components/schemas/Priority' }
+        lead_direction_id: { type: string, format: uuid, nullable: true }
+
+    Signal:
+      allOf:
+        - $ref: '#/components/schemas/SignalCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            external_id: { type: string, example: "SIG-2026-08-13-001" }
+            initiator_id: { type: string, format: uuid }
+            status: { $ref: '#/components/schemas/SignalStatus' }
+            iterations: { type: integer }
+            created_at: { type: string, format: date-time }
+
+    SignalResponseCreate:
+      type: object
+      required: [response]
+      properties:
+        response:
+          type: string
+          enum: [support, object, clarify, amend, no_influence]
+        justification: { type: string }
+        data: { type: object, additionalProperties: true }
+        consequences: { type: string }
+        needs: { type: string }
+
+    SignalResponse:
+      allOf:
+        - $ref: '#/components/schemas/SignalResponseCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            signal_id: { type: string, format: uuid }
+            direction_id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+
+    # ── Connections / Arbitrations ─────────────
+    Connection:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        signal_id: { type: string, format: uuid }
+        moderator_id: { type: string, format: uuid }
+        status: { type: string, enum: [started, diagnostics, finished] }
+        result:
+          type: string
+          enum: [resolved, divergent, variant_found, incompatible, undetermined]
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    ArbitrationCreate:
+      type: object
+      required: [type, question]
+      properties:
+        type: { type: string, enum: [procedural, ownership] }
+        question: { type: string }
+        parties: { type: array, items: { type: string, format: uuid } }
+
+    Arbitration:
+      allOf:
+        - $ref: '#/components/schemas/ArbitrationCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            decision: { type: string, nullable: true }
+            deadline: { type: string, format: date-time }
+            decided_at: { type: string, format: date-time, nullable: true }
+
+    # ── Flows ──────────────────────────────────
+    FlowType:
+      type: string
+      enum: [main, reflective, council, mentoring, creation, cross_direction]
+
+    FlowBalance:
+      type: object
+      properties:
+        type: { $ref: '#/components/schemas/FlowType' }
+        balance: { type: number }
+
+    FlowTransaction:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/FlowType' }
+        amount: { type: number }
+        reason: { type: string }
+        created_at: { type: string, format: date-time }
+
+    FlowCharge:
+      type: object
+      required: [participant_id, type, amount, reason]
+      properties:
+        participant_id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/FlowType' }
+        amount: { type: number }
+        reason: { type: string }
+
+    Capsule:
+      type: object
+      properties:
+        balance: { type: number, maximum: 180 }
+        updated_at: { type: string, format: date-time }
+
+    # ── Goods ──────────────────────────────────
+    GoodStatus:
+      type: string
+      enum: [draft, test, active, obsolete, liquidated]
+
+    GoodCreate:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [material, nonmaterial] }
+        description: { type: string }
+        components: { type: object, additionalProperties: true }
+
+    Good:
+      allOf:
+        - $ref: '#/components/schemas/GoodCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            status: { $ref: '#/components/schemas/GoodStatus' }
+            version: { type: integer }
+            author_ids: { type: array, items: { type: string, format: uuid } }
+            created_at: { type: string, format: date-time }
+
+    # ── Regimes ────────────────────────────────
+    RegimeType:
+      type: string
+      enum: [red_circuit, steel_bell, ptt, info_blockade, quantum_acceleration, global_red_circuit]
+
+    RegimeCreate:
+      type: object
+      required: [type]
+      properties:
+        type: { $ref: '#/components/schemas/RegimeType' }
+        direction_id: { type: string, format: uuid, nullable: true }
+        reason: { type: string }
+
+    Regime:
+      allOf:
+        - $ref: '#/components/schemas/RegimeCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            activated_at: { type: string, format: date-time }
+            deactivated_at: { type: string, format: date-time, nullable: true }
+            status: { type: string, enum: [active, finished, cancelled] }
+
+    # ── Balance ────────────────────────────────
+    BalanceMetrics:
+      type: object
+      properties:
+        direction_id: { type: string, format: uuid, nullable: true }
+        period: { type: string }
+        metrics: { type: object, additionalProperties: true }
+
+    Anomaly:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [speed, format, etiquette, priority, iteration] }
+        direction_id: { type: string, format: uuid }
+        severity: { type: integer }
+        status: { type: string }
+
+    # ── Verification ───────────────────────────
+    AuditCreate:
+      type: object
+      required: [type, subject]
+      properties:
+        type: { type: string, enum: [planned, unplanned, procedural, request] }
+        subject: { type: string }
+        subject_id: { type: string, format: uuid, nullable: true }
+
+    Audit:
+      allOf:
+        - $ref: '#/components/schemas/AuditCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            status: { type: string, enum: [open, in_progress, finished] }
+            result: { type: string, nullable: true }
+
+    # ── Archive ────────────────────────────────
+    ArchiveDocumentCreate:
+      type: object
+      required: [type, subject, content]
+      properties:
+        type: { type: string, enum: [protocol, decision, act, report, journal] }
+        direction_id: { type: string, format: uuid }
+        subject: { type: string }
+        content: { type: object, additionalProperties: true }
+
+    ArchiveDocument:
+      allOf:
+        - $ref: '#/components/schemas/ArchiveDocumentCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            version: { type: integer }
+            signed_by: { type: string, format: uuid, nullable: true }
+            archived_at: { type: string, format: date-time }
+
+    # ── Gateway ────────────────────────────────
+    GatewayTransactionCreate:
+      type: object
+      required: [type, description]
+      properties:
+        type: { type: string, enum: [purchase, sale, diplomacy, migration] }
+        description: { type: string }
+        amount_external: { type: number }
+        resource_type: { type: string }
+
+    GatewayTransaction:
+      allOf:
+        - $ref: '#/components/schemas/GatewayTransactionCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            approved_by: { type: string, format: uuid, nullable: true }
+            audited_by: { type: string, format: uuid, nullable: true }
+            created_at: { type: string, format: date-time }
+
+    # ── Constructor ────────────────────────────
+    PanelCreate:
+      type: object
+      required: [name, role_id]
+      properties:
+        name: { type: string }
+        role_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid, nullable: true }
+        context: { type: string, enum: [normal, crisis, steel_bell] }
+
+    Panel:
+      allOf:
+        - $ref: '#/components/schemas/PanelCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            version: { type: integer }
+            active: { type: boolean }
+
+    WidgetInstanceCreate:
+      type: object
+      required: [widget_id]
+      properties:
+        widget_id: { type: string, format: uuid }
+        position: { type: object, additionalProperties: true }
+        size: { type: object, additionalProperties: true }
+        overrides: { type: object, additionalProperties: true }
+
+    WidgetInstance:
+      allOf:
+        - $ref: '#/components/schemas/WidgetInstanceCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+
+    RightCheckRequest:
+      type: object
+      required: [resource, action]
+      properties:
+        participant_id: { type: string, format: uuid, nullable: true }
+        resource: { type: string }
+        action:
+          type: string
+          enum: [V, C, E, D, A, Dg, R, Vo, Act, Ar, S, F]
+        target_id: { type: string, format: uuid, nullable: true }
+        scope: { type: string, enum: [self, dir, all, agg, raw, arch] }
+
+    RightCheckResponse:
+      type: object
+      properties:
+        allowed: { type: boolean }
+        reason: { type: string }
+        constraints: { type: object, additionalProperties: true }
+
+# ─────────────────────────────────────────────
+# WEBHOOKS (расширение)
+# ─────────────────────────────────────────────
+x-websocket:
+  channels:
+    - name: /ws/signals
+      events: [signal.created, signal.updated, signal.escalated]
+    - name: /ws/tasks
+      events: [task.assigned, task.status_changed]
+    - name: /ws/otc
+      events: [otc.report_submitted, otc.decision_made]
+    - name: /ws/flows
+      events: [flow.charged, flow.returned]
+    - name: /ws/regimes
+      events: [regime.activated, regime.deactivated]
+    - name: /ws/crisis
+      events: [crisis.mobilization_started, crisis.confirmed]
+    - name: /ws/connectivity
+      events: [connectivity.overdue, connectivity.escalated]
+    - name: /ws/semantic
+      events: [semantic.drift, semantic.alarm, semantic.veto]
+    - name: /ws/balance
+      events: [balance.anomaly, balance.meta_request]
+    - name: /ws/pulse
+      events: [pulse.community_update]
+    - name: /ws/notifications
+      events: [notification.any]
+  message_format:
+    type: object
+    properties:
+      event: { type: string }
+      payload: { type: object, additionalProperties: true }
+      ts: { type: string, format: date-time }
+
+x-audit:
+  description: |
+    Каждый ответ содержит X-Audit-Id.
+    Все значимые действия требуют X-Audit-Reason.
+    Логи неизменяемы и доступны только Верификации, Хранителям, Архитектору.
+
+x-policy:
+  description: |
+    Каждый эндпоинт проверяет:
+    - роль
+    - мандат
+    - scope (self/dir/all/agg/raw/arch)
+    - режим (red_circuit / steel_bell / ptt / info_blockade)
+    - cooldown
+    - конфликты ролей
+    Отказ → 403 + запись в access_log.
+2. Что дальше по спецификации
+Полный файл (~400 эндпоинтов) собирается модульно. Каждый домен — отдельный yaml + $ref в корневом:
+
+text
+spec/
+├── openapi.yaml                 ← корень (выше)
+├── domains/
+│   ├── auth.yaml
+│   ├── participants.yaml
+│   ├── directions.yaml
+│   ├── cells.yaml
+│   ├── mandates.yaml
+│   ├── plans.yaml
+│   ├── tasks.yaml
+│   ├── reports.yaml
+│   ├── otc.yaml
+│   ├── signals.yaml
+│   ├── connections.yaml
+│   ├── arbitrations.yaml
+│   ├── universal-runs.yaml
+│   ├── flows.yaml
+│   ├── goods.yaml
+│   ├── standards.yaml
+│   ├── regimes.yaml
+│   ├── balance.yaml
+│   ├── verification.yaml
+│   ├── archive.yaml
+│   ├── justice.yaml
+│   ├── jury.yaml
+│   ├── psy.yaml
+│   ├── gateway.yaml
+│   ├── quanta.yaml
+│   ├── constructor.yaml
+│   ├── planetary.yaml
+│   ├── convergence.yaml
+│   ├── semantic.yaml
+│   ├── experiments.yaml
+│   ├── learning.yaml
+│   ├── automation.yaml
+│   ├── aggregator.yaml
+│   ├── connectivity.yaml
+│   └── admin.yaml
+├── components/
+│   ├── schemas.yaml
+│   ├── parameters.yaml
+│   ├── responses.yaml
+│   └── security.yaml
+└── README.md
+3. Паттерн для остальных доменов
+Каждый домен повторяет структуру:
+
+yaml
+# domains/{domain}.yaml
+paths:
+  /{resource}:
+    get:
+      tags: [{Tag}]
+      summary: Список
+      operationId: list{Resource}
+      parameters:
+        - $ref: '../components/parameters.yaml#/PageParam'
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/schemas.yaml#{Resource}'
+    post:
+      tags: [{Tag}]
+      summary: Создать
+      operationId: create{Resource}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#{Resource}Create'
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#{Resource}'
+
+  /{resource}/{id}:
+    get:
+      summary: Карточка
+      operationId: get{Resource}
+      parameters:
+        - $ref: '../components/parameters.yaml#/IdParam'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#{Resource}'
+4. Как валидировать
+Swagger Editor:
+
+Открыть https://editor.swagger.io/
+
+Вставить openapi.yaml.
+
+Убедиться, что нет ошибок.
+
+Redocly:
+
+bash
+npx @redocly/cli lint openapi.yaml
+Bundle (собрать все $ref в один файл):
+
+bash
+npx @redocly/cli bundle openapi.yaml -o dist/openapi.bundled.yaml
+Генерация клиента:
+
+bash
+npx @openapitools/openapi-generator-cli generate \
+  -i dist/openapi.bundled.yaml \
+  -g typescript-fetch \
+  -o clients/ts
+Генерация сервера:
+
+bash
+npx @openapitools/openapi-generator-cli generate \
+  -i dist/openapi.bundled.yaml \
+  -g python-fastapi \
+  -o server/
+5. Что покрыто
+✅ Auth
+
+✅ Participants
+
+✅ Directions
+
+✅ Signals (создание → ответ → Коннект → Арбитраж)
+
+✅ Flows (балансы, начисления, Капсула)
+
+✅ Goods (создание → тест → утверждение → ликвидация)
+
+✅ Regimes
+
+✅ Balance
+
+✅ Verification
+
+✅ Archive
+
+✅ Gateway (с изоляцией через 451)
+
+✅ Constructor (панели, виджеты, права)
+
+✅ WebSocket-каналы
+
+✅ Аудит и политика
+
+⏳ Cells, Mandates, Plans, Tasks, Reports, OTC, Standards, Justice, Jury, Psy, Quanta, Planetary, Convergence, Semantic, Experiments, Learning, Automation, Aggregator, Connectivity, Admin — по тому же паттерну.
+
+OpenAPI — оставшиеся домены
+Продолжение openapi.yaml. Каждый блок — самодостаточный файл для spec/domains/. Стиль, $ref, security, теги — как в корне.
+
+1. domains/cells.yaml
+yaml
+paths:
+  /cells:
+    get:
+      tags: [Cells]
+      summary: Дерево ячеек
+      operationId: listCells
+      parameters:
+        - name: filter[direction_id]
+          in: query
+          schema: { type: string, format: uuid }
+        - name: filter[level]
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 11 }
+        - name: filter[parent_cell_id]
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Cell' }
+    post:
+      tags: [Cells]
+      summary: Создать ячейку
+      operationId: createCell
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CellCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cell' }
+
+  /cells/{id}:
+    get:
+      tags: [Cells]
+      summary: Карточка ячейки
+      operationId: getCell
+      parameters:
+        - $ref: '#/components/parameters/CellIdParam'
+      responses:
+        '200':
+          description: Ячейка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cell' }
+    patch:
+      tags: [Cells]
+      summary: Редактировать
+      operationId: patchCell
+      parameters:
+        - $ref: '#/components/parameters/CellIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CellCreate' }
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cell' }
+    delete:
+      tags: [Cells]
+      summary: Архивировать
+      operationId: deleteCell
+      parameters:
+        - $ref: '#/components/parameters/CellIdParam'
+      responses:
+        '204': { description: Архивировано }
+
+  /cells/{id}/members:
+    get:
+      tags: [Cells]
+      summary: Состав
+      operationId: listCellMembers
+      parameters:
+        - $ref: '#/components/parameters/CellIdParam'
+      responses:
+        '200':
+          description: Состав
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CellMember' }
+    post:
+      tags: [Cells]
+      summary: Добавить участника
+      operationId: addCellMember
+      parameters:
+        - $ref: '#/components/parameters/CellIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CellMemberCreate' }
+      responses:
+        '201':
+          description: Добавлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CellMember' }
+
+  /cells/{id}/members/{participant_id}:
+    delete:
+      tags: [Cells]
+      summary: Убрать участника
+      operationId: removeCellMember
+      parameters:
+        - $ref: '#/components/parameters/CellIdParam'
+        - name: participant_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Убран }
+
+components:
+  parameters:
+    CellIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    CellRole:
+      type: string
+      enum: [member, coordinator, otc, keeper, liaison, verifier, balancer, psy]
+
+    Cell:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        level: { type: integer, minimum: 0, maximum: 11 }
+        number: { type: string }
+        profile: { type: string, nullable: true }
+        parent_cell_id: { type: string, format: uuid, nullable: true }
+        direction_id: { type: string, format: uuid }
+        members_count: { type: integer }
+
+    CellCreate:
+      type: object
+      required: [level, number, direction_id]
+      properties:
+        level: { type: integer }
+        number: { type: string }
+        profile: { type: string }
+        parent_cell_id: { type: string, format: uuid, nullable: true }
+        direction_id: { type: string, format: uuid }
+
+    CellMember:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        role_in_cell: { $ref: '#/components/schemas/CellRole' }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time, nullable: true }
+
+    CellMemberCreate:
+      type: object
+      required: [participant_id, role_in_cell]
+      properties:
+        participant_id: { type: string, format: uuid }
+        role_in_cell: { $ref: '#/components/schemas/CellRole' }
+2. domains/mandates.yaml
+yaml
+paths:
+  /mandates:
+    get:
+      tags: [Mandates]
+      summary: Список мандатов
+      operationId: listMandates
+      parameters:
+        - name: filter[function]
+          in: query
+          schema: { type: string }
+        - name: filter[direction_id]
+          in: query
+          schema: { type: string, format: uuid }
+        - name: filter[status]
+          in: query
+          schema: { type: string, enum: [active, expired, revoked] }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Mandate' }
+    post:
+      tags: [Mandates]
+      summary: Создать мандат
+      operationId: createMandate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MandateCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mandate' }
+
+  /mandates/{id}:
+    get:
+      tags: [Mandates]
+      summary: Детали мандата
+      operationId: getMandate
+      parameters:
+        - $ref: '#/components/parameters/MandateIdParam'
+      responses:
+        '200':
+          description: Мандат
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mandate' }
+    delete:
+      tags: [Mandates]
+      summary: Отозвать мандат
+      operationId: revokeMandate
+      parameters:
+        - $ref: '#/components/parameters/MandateIdParam'
+      responses:
+        '204': { description: Отозван }
+
+  /mandates/due:
+    get:
+      tags: [Mandates]
+      summary: Предстоящие ротации
+      operationId: listDueRotations
+      parameters:
+        - name: within_days
+          in: query
+          schema: { type: integer, default: 30 }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Mandate' }
+
+  /mandates/{id}/rotate:
+    post:
+      tags: [Mandates]
+      summary: Принудительная ротация
+      operationId: rotateMandate
+      parameters:
+        - $ref: '#/components/parameters/MandateIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [successor_id]
+              properties:
+                successor_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Ротирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mandate' }
+
+  /delegations:
+    get:
+      tags: [Mandates]
+      summary: Список делегирований
+      operationId: listDelegations
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Delegation' }
+    post:
+      tags: [Mandates]
+      summary: Создать делегирование
+      operationId: createDelegation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DelegationCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delegation' }
+
+  /delegations/{id}:
+    delete:
+      tags: [Mandates]
+      summary: Отозвать делегирование
+      operationId: revokeDelegation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Отозвано }
+
+  /cooldowns:
+    get:
+      tags: [Mandates]
+      summary: Активные холодные периоды
+      operationId: listCooldowns
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Cooldown' }
+
+components:
+  parameters:
+    MandateIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    MandateStatus:
+      type: string
+      enum: [active, expired, revoked]
+
+    Mandate:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        function: { type: string }
+        direction_id: { type: string, format: uuid, nullable: true }
+        holder_id: { type: string, format: uuid }
+        granted_by: { type: string, format: uuid }
+        granted_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/MandateStatus' }
+        conditions: { type: object, additionalProperties: true }
+        scope: { type: object, additionalProperties: true }
+
+    MandateCreate:
+      type: object
+      required: [function, holder_id, expires_at]
+      properties:
+        function: { type: string }
+        direction_id: { type: string, format: uuid, nullable: true }
+        holder_id: { type: string, format: uuid }
+        expires_at: { type: string, format: date-time }
+        conditions: { type: object, additionalProperties: true }
+        scope: { type: object, additionalProperties: true }
+
+    Delegation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        function: { type: string }
+        from_id: { type: string, format: uuid }
+        to_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid, nullable: true }
+        scope: { type: object, additionalProperties: true }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time }
+        status: { type: string, enum: [active, revoked, expired] }
+
+    DelegationCreate:
+      type: object
+      required: [function, to_id, valid_to]
+      properties:
+        function: { type: string }
+        to_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid, nullable: true }
+        scope: { type: object, additionalProperties: true }
+        valid_to: { type: string, format: date-time }
+
+    Cooldown:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        reason: { type: string }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time }
+3. domains/plans.yaml
+yaml
+paths:
+  /plans:
+    get:
+      tags: [Plans]
+      summary: Список планов
+      operationId: listPlans
+      parameters:
+        - name: filter[type]
+          in: query
+          schema: { type: string, enum: [standard, crisis, excess, dissident] }
+        - name: filter[status]
+          in: query
+          schema: { type: string, enum: [draft, run, approved, in_progress, completed, cancelled] }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Plan' }
+    post:
+      tags: [Plans]
+      summary: Создать план
+      operationId: createPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlanCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+
+  /plans/{id}:
+    get:
+      tags: [Plans]
+      summary: План
+      operationId: getPlan
+      parameters:
+        - $ref: '#/components/parameters/PlanIdParam'
+      responses:
+        '200':
+          description: План
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+    patch:
+      tags: [Plans]
+      summary: Редактировать
+      operationId: patchPlan
+      parameters:
+        - $ref: '#/components/parameters/PlanIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlanCreate' }
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+
+  /plans/{id}/approve:
+    post:
+      tags: [Plans]
+      summary: Утвердить план
+      operationId: approvePlan
+      parameters:
+        - $ref: '#/components/parameters/PlanIdParam'
+      responses:
+        '200':
+          description: Утверждён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+
+  /plans/{id}/sign:
+    post:
+      tags: [Plans]
+      summary: Подпись Хранителя
+      operationId: signPlan
+      parameters:
+        - $ref: '#/components/parameters/PlanIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keeper_id]
+              properties:
+                keeper_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Подписан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+
+  /plans/{id}/activate:
+    post:
+      tags: [Plans]
+      summary: Активировать
+      operationId: activatePlan
+      parameters:
+        - $ref: '#/components/parameters/PlanIdParam'
+      responses:
+        '200':
+          description: Активирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+
+  /plans/{id}/stop:
+    post:
+      tags: [Plans]
+      summary: Остановить
+      operationId: stopPlan
+      parameters:
+        - $ref: '#/components/parameters/PlanIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Остановлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+
+  /plans/{id}/tasks:
+    get:
+      tags: [Plans]
+      summary: Задачи плана
+      operationId: listPlanTasks
+      parameters:
+        - $ref: '#/components/parameters/PlanIdParam'
+      responses:
+        '200':
+          description: Задачи
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Task' }
+
+  /daily-plans:
+    get:
+      tags: [Plans]
+      summary: Дневные планы
+      operationId: listDailyPlans
+      parameters:
+        - name: direction_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DailyPlan' }
+    post:
+      tags: [Plans]
+      summary: Утвердить дневной план
+      operationId: createDailyPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DailyPlanCreate' }
+      responses:
+        '201':
+          description: Утверждён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DailyPlan' }
+
+components:
+  parameters:
+    PlanIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    PlanType:
+      type: string
+      enum: [standard, crisis, excess, dissident]
+
+    PlanStatus:
+      type: string
+      enum: [draft, run, approved, in_progress, completed, cancelled]
+
+    Plan:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        external_id: { type: string, example: "PLAN-2026-08-13-015" }
+        type: { $ref: '#/components/schemas/PlanType' }
+        title: { type: string }
+        expected_result: { type: string }
+        lead_direction_id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/PlanStatus' }
+        criteria: { type: object, additionalProperties: true }
+        checkpoints: { type: array, items: { type: object, additionalProperties: true } }
+        stop_conditions: { type: object, additionalProperties: true }
+        approved_by: { type: string, format: uuid, nullable: true }
+        approved_at: { type: string, format: date-time, nullable: true }
+
+    PlanCreate:
+      type: object
+      required: [type, title, expected_result, lead_direction_id]
+      properties:
+        type: { $ref: '#/components/schemas/PlanType' }
+        title: { type: string }
+        expected_result: { type: string }
+        lead_direction_id: { type: string, format: uuid }
+        criteria: { type: object, additionalProperties: true }
+        checkpoints: { type: array, items: { type: object, additionalProperties: true } }
+        stop_conditions: { type: object, additionalProperties: true }
+
+    DailyPlan:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        date: { type: string, format: date }
+        approved_by: { type: string, format: uuid }
+        status: { type: string }
+
+    DailyPlanCreate:
+      type: object
+      required: [direction_id, date, task_ids]
+      properties:
+        direction_id: { type: string, format: uuid }
+        date: { type: string, format: date }
+        task_ids: { type: array, items: { type: string, format: uuid } }
+4. domains/tasks.yaml
+yaml
+paths:
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: Список задач
+      operationId: listTasks
+      parameters:
+        - name: filter[direction_id]
+          in: query
+          schema: { type: string, format: uuid }
+        - name: filter[status]
+          in: query
+          schema: { $ref: '#/components/schemas/TaskStatus' }
+        - name: filter[priority]
+          in: query
+          schema: { $ref: '#/components/schemas/Priority' }
+        - name: filter[assigned_to]
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Task' }
+    post:
+      tags: [Tasks]
+      summary: Создать задачу
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+
+  /tasks/my:
+    get:
+      tags: [Tasks]
+      summary: Мои задачи
+      operationId: listMyTasks
+      responses:
+        '200':
+          description: Задачи
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Task' }
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Карточка задачи
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Задача
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+    patch:
+      tags: [Tasks]
+      summary: Редактировать
+      operationId: patchTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskCreate' }
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+
+  /tasks/{id}/assign:
+    post:
+      tags: [Tasks]
+      summary: Назначить
+      operationId: assignTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id]
+              properties:
+                participant_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Назначено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+
+  /tasks/{id}/take:
+    post:
+      tags: [Tasks]
+      summary: Взять в работу
+      operationId: takeTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Взята
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+
+  /tasks/{id}/submit:
+    post:
+      tags: [Tasks]
+      summary: Сдать
+      operationId: submitTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Сдана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+
+components:
+  parameters:
+    TaskIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    TaskStatus:
+      type: string
+      enum: [created, assigned, in_progress, submitted, accepted, returned]
+
+    Task:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        external_id: { type: string, example: "СТР-2026-08-13-042" }
+        plan_id: { type: string, format: uuid, nullable: true }
+        direction_id: { type: string, format: uuid }
+        description: { type: string }
+        required_competencies: { type: array, items: { type: string } }
+        location:
+          type: object
+          nullable: true
+          properties:
+            lat: { type: number }
+            lon: { type: number }
+        priority: { $ref: '#/components/schemas/Priority' }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        assigned_to: { type: string, format: uuid, nullable: true }
+        deadline: { type: string, format: date-time, nullable: true }
+        parent_task_id: { type: string, format: uuid, nullable: true }
+
+    TaskCreate:
+      type: object
+      required: [direction_id, description, priority]
+      properties:
+        plan_id: { type: string, format: uuid, nullable: true }
+        direction_id: { type: string, format: uuid }
+        description: { type: string }
+        required_competencies: { type: array, items: { type: string } }
+        location:
+          type: object
+          nullable: true
+          properties:
+            lat: { type: number }
+            lon: { type: number }
+        priority: { $ref: '#/components/schemas/Priority' }
+        deadline: { type: string, format: date-time }
+        parent_task_id: { type: string, format: uuid, nullable: true }
+5. domains/reports.yaml
+yaml
+paths:
+  /tasks/{task_id}/reports:
+    post:
+      tags: [Reports]
+      summary: Создать отчёт
+      operationId: createReport
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [photo, video, text] }
+                file: { type: string, format: binary }
+                comment: { type: string }
+                lat: { type: number }
+                lon: { type: number }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Report' }
+
+  /reports/{id}:
+    get:
+      tags: [Reports]
+      summary: Отчёт
+      operationId: getReport
+      parameters:
+        - $ref: '#/components/parameters/ReportIdParam'
+      responses:
+        '200':
+          description: Отчёт
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Report' }
+
+components:
+  parameters:
+    ReportIdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    Report:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        type: { type: string, enum: [photo, video, text] }
+        media_url: { type: string, nullable: true }
+        comment: { type: string, nullable: true }
+        geolocation:
+          type: object
+          nullable: true
+          properties:
+            lat: { type: number }
+            lon: { type: number }
+        created_at: { type: string, format: date-time }
+6. domains/otc.yaml
+yaml
+paths:
+  /otc/queue:
+    get:
+      tags: [OTC]
+      summary: Очередь ОТК
+      operationId: getOtcQueue
+      parameters:
+        - name: direction_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Очередь
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/OtcQueueItem' }
+
+  /otc/decisions:
+    post:
+      tags: [OTC]
+      summary: Приёмка
+      operationId: createOtcDecision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OtcDecisionCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OtcDecision' }
+
+  /otc/decisions/{id}:
+    get:
+      tags: [OTC]
+      summary: Решение
+      operationId: getOtcDecision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Решение
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OtcDecision' }
+
+  /otc/decisions/{id}/appeal:
+    post:
+      tags: [OTC]
+      summary: Апелляция
+      operationId: appealOtcDecision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '201':
+          description: Апелляция создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OtcAppeal' }
+
+  /otc/stats:
+    get:
+      tags: [OTC]
+      summary: Статистика ОТК
+      operationId: getOtcStats
+      parameters:
+        - name: direction_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Статистика
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OtcStats' }
+
+  /otc/crisis-decision:
+    post:
+      tags: [OTC]
+      summary: Упрощённый ОТК
+      operationId: createCrisisOtcDecision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [report_id, functionality_ok, safety_ok]
+              properties:
+                report_id: { type: string, format: uuid }
+                functionality_ok: { type: boolean }
+                safety_ok: { type: boolean }
+                comment: { type: string }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OtcDecision' }
+
+  /acceptance-criteria:
+    get:
+      tags: [OTC]
+      summary: Критерии приёмки
+      operationId: listAcceptanceCriteria
+      parameters:
+        - name: direction_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AcceptanceCriteria' }
+    post:
+      tags: [OTC]
+      summary: Создать критерии
+      operationId: createAcceptanceCriteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AcceptanceCriteriaCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AcceptanceCriteria' }
+
+components:
+  schemas:
+    OtcQueueItem:
+      type: object
+      properties:
+        report_id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        status: { type: string }
+        submitted_at: { type: string, format: date-time }
+
+    OtcVerdict:
+      type: string
+      enum: [accepted, returned, crisis_protocol]
+
+    OtcDecision:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        report_id: { type: string, format: uuid }
+        otc_id: { type: string, format: uuid }
+        verdict: { $ref: '#/components/schemas/OtcVerdict' }
+        comment: { type: string, nullable: true }
+        criteria_version: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    OtcDecisionCreate:
+      type: object
+      required: [report_id, verdict]
+      properties:
+        report_id: { type: string, format: uuid }
+        verdict: { $ref: '#/components/schemas/OtcVerdict' }
+        comment: { type: string }
+
+    OtcAppeal:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        decision_id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        reason: { type: string }
+        status: { type: string }
+        reviewed_by: { type: string, format: uuid, nullable: true }
+        result: { type: string, nullable: true }
+
+    OtcStats:
+      type: object
+      properties:
+        direction_id: { type: string, format: uuid }
+        defect_rate: { type: number }
+        avg_check_time: { type: string }
+        period: { type: string }
+
+    AcceptanceCriteria:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        task_type: { type: string }
+        criteria: { type: object, additionalProperties: true }
+        version: { type: integer }
+        published_at: { type: string, format: date-time }
+        active: { type: boolean }
+
+    AcceptanceCriteriaCreate:
+      type: object
+      required: [direction_id, task_type, criteria]
+      properties:
+        direction_id: { type: string, format: uuid }
+        task_type: { type: string }
+        criteria: { type: object, additionalProperties: true }
+7. domains/standards.yaml
+yaml
+paths:
+  /standards:
+    get:
+      tags: [Standards]
+      summary: Стандарты достаточности
+      operationId: listStandards
+      parameters:
+        - name: filter[category]
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Standard' }
+    post:
+      tags: [Standards]
+      summary: Создать стандарт
+      operationId: createStandard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StandardCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Standard' }
+
+  /standards/{id}:
+    get:
+      tags: [Standards]
+      summary: Стандарт
+      operationId: getStandard
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Стандарт
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Standard' }
+    patch:
+      tags: [Standards]
+      summary: Изменить
+      operationId: patchStandard
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StandardCreate' }
+      responses:
+        '200':
+          description: Обновлён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Standard' }
+
+  /modifiers:
+    get:
+      tags: [Standards]
+      summary: Модификаторы
+      operationId: listModifiers
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Modifier' }
+    post:
+      tags: [Standards]
+      summary: Запросить модификатор
+      operationId: createModifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModifierCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Modifier' }
+
+  /modifiers/{id}/approve:
+    post:
+      tags: [Standards]
+      summary: Одобрить модификатор
+      operationId: approveModifier
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Одобрен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Modifier' }
+
+components:
+  schemas:
+    Standard:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        category: { type: string }
+        norm: { type: number }
+        version: { type: integer }
+        published_at: { type: string, format: date-time }
+        approved_by: { type: string, format: uuid, nullable: true }
+
+    StandardCreate:
+      type: object
+      required: [category, norm]
+      properties:
+        category: { type: string }
+        norm: { type: number }
+
+    Modifier:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        condition: { type: object, additionalProperties: true }
+        coefficient: { type: number }
+        status: { type: string, enum: [active, pending, rejected] }
+        requested_by: { type: string, format: uuid, nullable: true }
+        approved_by: { type: string, format: uuid, nullable: true }
+
+    ModifierCreate:
+      type: object
+      required: [name, condition, coefficient]
+      properties:
+        name: { type: string }
+        condition: { type: object, additionalProperties: true }
+        coefficient: { type: number }
+8. domains/justice.yaml
+yaml
+paths:
+  /justice/complaints:
+    get:
+      tags: [Justice]
+      summary: Список заявлений
+      operationId: listComplaints
+      parameters:
+        - name: filter[status]
+          in: query
+          schema: { type: string, enum: [filed, investigation, closed] }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Complaint' }
+    post:
+      tags: [Justice]
+      summary: Подать заявление
+      operationId: createComplaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintCreate' }
+      responses:
+        '201':
+          description: Подано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Complaint' }
+
+  /justice/complaints/{id}:
+    get:
+      tags: [Justice]
+      summary: Детали
+      operationId: getComplaint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Заявление
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Complaint' }
+
+  /justice/investigations:
+    post:
+      tags: [Justice]
+      summary: Начать расследование
+      operationId: createInvestigation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InvestigationCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Investigation' }
+
+  /justice/investigations/{id}:
+    get:
+      tags: [Justice]
+      summary: Статус расследования
+      operationId: getInvestigation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Расследование
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Investigation' }
+
+  /justice/isolation:
+    post:
+      tags: [Justice]
+      summary: Изоляция
+      operationId: createIsolation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IsolationCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Isolation' }
+
+  /justice/isolation/{id}:
+    delete:
+      tags: [Justice]
+      summary: Снять изоляцию
+      operationId: liftIsolation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Снята }
+
+  /justice/resocialization:
+    post:
+      tags: [Justice]
+      summary: Программа ресоциализации
+      operationId: createResocialization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResocializationCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Resocialization' }
+
+  /justice/sanctions:
+    post:
+      tags: [Justice]
+      summary: Санкция
+      operationId: createSanction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SanctionCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sanction' }
+
+  /justice/red-circuit:
+    post:
+      tags: [Justice]
+      summary: Активировать Красный Контур
+      operationId: activateRedCircuit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '201':
+          description: Активирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Regime' }
+
+  /justice/victim-rights/{participant_id}:
+    get:
+      tags: [Justice]
+      summary: Права жертвы
+      operationId: getVictimRights
+      parameters:
+        - name: participant_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Права
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VictimRights' }
+
+  /justice/not-imputable:
+    post:
+      tags: [Justice]
+      summary: Необратимое отчуждение
+      operationId: createNotImputable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_id, decision_ref]
+              properties:
+                target_id: { type: string, format: uuid }
+                decision_ref: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Применено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sanction' }
+
+components:
+  schemas:
+    ComplaintType:
+      type: string
+      enum: [violence, threat, coercion, harassment]
+
+    Complaint:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/ComplaintType' }
+        applicant_id: { type: string, format: uuid }
+        anonymous: { type: boolean }
+        description: { type: string }
+        status: { type: string, enum: [filed, investigation, closed] }
+        created_at: { type: string, format: date-time }
+
+    ComplaintCreate:
+      type: object
+      required: [type, description]
+      properties:
+        type: { $ref: '#/components/schemas/ComplaintType' }
+        anonymous: { type: boolean }
+        description: { type: string }
+
+    Investigation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        complaint_id: { type: string, format: uuid }
+        investigator_ids: { type: array, items: { type: string, format: uuid } }
+        target_id: { type: string, format: uuid }
+        status: { type: string }
+        deadline: { type: string, format: date-time }
+        result: { type: string, nullable: true }
+        victim_rights: { type: object, additionalProperties: true }
+        audited_by: { type: string, format: uuid, nullable: true }
+
+    InvestigationCreate:
+      type: object
+      required: [complaint_id, target_id]
+      properties:
+        complaint_id: { type: string, format: uuid }
+        target_id: { type: string, format: uuid }
+
+    Isolation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        target_id: { type: string, format: uuid }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time }
+        conditions: { type: object, additionalProperties: true }
+        imposed_by: { type: string, format: uuid }
+
+    IsolationCreate:
+      type: object
+      required: [target_id, valid_to]
+      properties:
+        target_id: { type: string, format: uuid }
+        valid_to: { type: string, format: date-time }
+        conditions: { type: object, additionalProperties: true }
+
+    Resocialization:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        target_id: { type: string, format: uuid }
+        program: { type: object, additionalProperties: true }
+        mentors: { type: array, items: { type: string, format: uuid } }
+        status: { type: string }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    ResocializationCreate:
+      type: object
+      required: [target_id, program]
+      properties:
+        target_id: { type: string, format: uuid }
+        program: { type: object, additionalProperties: true }
+        mentors: { type: array, items: { type: string, format: uuid } }
+
+    SanctionType:
+      type: string
+      enum: [restorative_talk, temporary_isolation, resocialization, exclusion, not_imputable]
+
+    Sanction:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        target_id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/SanctionType' }
+        basis: { type: string }
+        decided_by: { type: string, format: uuid }
+        decided_at: { type: string, format: date-time }
+        status: { type: string }
+
+    SanctionCreate:
+      type: object
+      required: [target_id, type, basis]
+      properties:
+        target_id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/SanctionType' }
+        basis: { type: string }
+
+    VictimRights:
+      type: object
+      properties:
+        anonymity: { type: boolean }
+        relocation_provided: { type: boolean }
+        psychologist_assigned: { type: boolean }
+        participation: { type: boolean }
+9. domains/jury.yaml
+yaml
+paths:
+  /jury/sessions:
+    post:
+      tags: [Jury]
+      summary: Создать сессию Жюри
+      operationId: createJurySession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JurySessionCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JurySession' }
+
+  /jury/sessions/{id}:
+    get:
+      tags: [Jury]
+      summary: Сессия
+      operationId: getJurySession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Сессия
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JurySession' }
+
+  /jury/sessions/{id}/vote:
+    post:
+      tags: [Jury]
+      summary: Голосовать
+      operationId: voteJury
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vote]
+              properties:
+                vote: { type: string, enum: [yes, no, abstain] }
+      responses:
+        '200':
+          description: Принято
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JurySession' }
+
+  /jury/sessions/{id}/decision:
+    post:
+      tags: [Jury]
+      summary: Вынести решение
+      operationId: decideJury
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string }
+      responses:
+        '200':
+          description: Вынесено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JurySession' }
+
+  /jury/sessions/{id}/veto:
+    post:
+      tags: [Jury]
+      summary: Вето Жюри
+      operationId: vetoJury
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '201':
+          description: Вето наложено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Veto' }
+
+  /jury/appeals:
+    post:
+      tags: [Jury]
+      summary: Подать апелляцию
+      operationId: createAppeal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AppealCreate' }
+      responses:
+        '201':
+          description: Подана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appeal' }
+
+  /jury/appeals/{id}:
+    get:
+      tags: [Jury]
+      summary: Апелляция
+      operationId: getAppeal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Апелляция
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appeal' }
+
+  /jury/outside-trust-network:
+    post:
+      tags: [Jury]
+      summary: Присвоить статус «вне сети доверия»
+      operationId: assignOutsideTrust
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id, reason]
+              properties:
+                participant_id: { type: string, format: uuid }
+                reason: { type: string }
+      responses:
+        '201':
+          description: Присвоено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OutsideTrust' }
+
+  /jury/outside-trust-network/{participant_id}:
+    get:
+      tags: [Jury]
+      summary: Статус «вне сети доверия»
+      operationId: getOutsideTrust
+      parameters:
+        - name: participant_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Статус
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OutsideTrust' }
+
+components:
+  schemas:
+    JurySessionType:
+      type: string
+      enum: [normal_12, extended_24]
+
+    JurySession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/JurySessionType' }
+        subject_id: { type: string, format: uuid }
+        participants: { type: array, items: { type: string, format: uuid } }
+        moderator_id: { type: string, format: uuid }
+        votes: { type: object, additionalProperties: true }
+        decision: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    JurySessionCreate:
+      type: object
+      required: [type, subject_id]
+      properties:
+        type: { $ref: '#/components/schemas/JurySessionType' }
+        subject_id: { type: string, format: uuid }
+
+    Veto:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [semantic_guardian, jury] }
+        decision_ref: { type: string, format: uuid }
+        reason: { type: string }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time }
+        status: { type: string }
+
+    Appeal:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        jury_session_id: { type: string, format: uuid }
+        council_type: { type: string }
+        result: { type: string, nullable: true }
+        decided_at: { type: string, format: date-time, nullable: true }
+
+    AppealCreate:
+      type: object
+      required: [jury_session_id, council_type]
+      properties:
+        jury_session_id: { type: string, format: uuid }
+        council_type: { type: string }
+
+    OutsideTrust:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        reason: { type: string }
+        valid_from: { type: string, format: date-time }
+        review_at: { type: string, format: date-time }
+        status: { type: string }
+10. domains/psy.yaml
+yaml
+paths:
+  /psy/sessions:
+    get:
+      tags: [Psy]
+      summary: Сессии
+      operationId: listPsySessions
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PsySession' }
+    post:
+      tags: [Psy]
+      summary: Назначить сессию
+      operationId: createPsySession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PsySessionCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PsySession' }
+
+  /psy/sessions/{id}/complete:
+    post:
+      tags: [Psy]
+      summary: Завершить сессию
+      operationId: completePsySession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes: { type: string }
+      responses:
+        '200':
+          description: Завершена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PsySession' }
+
+  /psy/observers:
+    get:
+      tags: [Psy]
+      summary: Наблюдатели
+      operationId: listPsyObservers
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PsyObserver' }
+    post:
+      tags: [Psy]
+      summary: Назначить наблюдателя
+      operationId: createPsyObserver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PsyObserverCreate' }
+      responses:
+        '201':
+          description: Назначен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PsyObserver' }
+
+  /psy/crisis:
+    post:
+      tags: [Psy]
+      summary: Кризис интерпретации
+      operationId: createPsyCrisis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id]
+              properties:
+                participant_id: { type: string, format: uuid }
+                notes: { type: string }
+      responses:
+        '201':
+          description: Открыт
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PsyCrisis' }
+
+  /psy/reflective-discharge:
+    post:
+      tags: [Psy]
+      summary: Рефлексивная разгрузка
+      operationId: createReflectiveDischarge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id, days]
+              properties:
+                participant_id: { type: string, format: uuid }
+                days: { type: integer, minimum: 3 }
+      responses:
+        '201':
+          description: Назначена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PsyDischarge' }
+
+  /psy/mood:
+    get:
+      tags: [Psy]
+      summary: Коллективные настроения
+      operationId: getMoodMetrics
+      parameters:
+        - name: direction_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Метрики
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MoodMetric' }
+
+  /psy/resonance:
+    post:
+      tags: [Psy]
+      summary: Поиск резонанса
+      operationId: startResonance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id]
+              properties:
+                participant_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Запущено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PsyDischarge' }
+
+  /psy/wellbeing:
+    get:
+      tags: [Psy]
+      summary: Субъективное благополучие
+      operationId: getWellbeing
+      parameters:
+        - name: participant_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Данные
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wellbeing' }
+
+  /psy/hygiene:
+    post:
+      tags: [Psy]
+      summary: Гигиена смыслов
+      operationId: createHygiene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [direction_id, measure]
+              properties:
+                direction_id: { type: string, format: uuid }
+                measure: { type: string }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Hygiene' }
+
+components:
+  schemas:
+    PsySessionType:
+      type: string
+      enum: [onboarding, crisis, discharge, resonance]
+
+    PsySession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        psychologist_id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/PsySessionType' }
+        notes: { type: string, nullable: true }
+        status: { type: string }
+        scheduled_at: { type: string, format: date-time }
+
+    PsySessionCreate:
+      type: object
+      required: [participant_id, type, scheduled_at]
+      properties:
+        participant_id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/PsySessionType' }
+        scheduled_at: { type: string, format: date-time }
+
+    PsyObserver:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time, nullable: true }
+
+    PsyObserverCreate:
+      type: object
+      required: [participant_id, direction_id]
+      properties:
+        participant_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+
+    PsyCrisis:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        status: { type: string }
+        notes: { type: string, nullable: true }
+
+    PsyDischarge:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        days: { type: integer }
+        status: { type: string }
+
+    MoodMetric:
+      type: object
+      properties:
+        direction_id: { type: string, format: uuid }
+        metric: { type: string }
+        value: { type: number }
+        period: { type: string }
+
+    Wellbeing:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        score: { type: number }
+        trend: { type: string }
+
+    Hygiene:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        measure: { type: string }
+        status: { type: string }
+11. domains/quanta.yaml
+yaml
+paths:
+  /quanta:
+    get:
+      tags: [Quanta]
+      summary: Каталог квантов
+      operationId: listQuanta
+      parameters:
+        - name: filter[level]
+          in: query
+          schema: { type: integer }
+        - name: filter[status]
+          in: query
+          schema: { $ref: '#/components/schemas/QuantumStatus' }
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Quantum' }
+    post:
+      tags: [Quanta]
+      summary: Обнаружить квант
+      operationId: createQuantum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QuantumCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quantum' }
+
+  /quanta/{id}:
+    get:
+      tags: [Quanta]
+      summary: Карточка кванта
+      operationId: getQuantum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Квант
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quantum' }
+
+  /quanta/{id}/audit:
+    post:
+      tags: [Quanta]
+      summary: Аудит кванта
+      operationId: auditQuantum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Проведён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quantum' }
+
+  /quanta/{id}/test:
+    post:
+      tags: [Quanta]
+      summary: Тест в ячейках
+      operationId: testQuantum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cell_ids]
+              properties:
+                cell_ids: { type: array, items: { type: string, format: uuid }, minItems: 3, maxItems: 5 }
+      responses:
+        '200':
+          description: Тестируется
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quantum' }
+
+  /quanta/{id}/scale:
+    post:
+      tags: [Quanta]
+      summary: Масштабировать
+      operationId: scaleQuantum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Масштабируется
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quantum' }
+
+  /quanta/{id}/stop:
+    post:
+      tags: [Quanta]
+      summary: Остановить
+      operationId: stopQuantum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Остановлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quantum' }
+
+  /quanta/mandatory:
+    get:
+      tags: [Quanta]
+      summary: Обязательные кванты
+      operationId: listMandatoryQuanta
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Quantum' }
+
+  /quanta/{id}/apply:
+    post:
+      tags: [Quanta]
+      summary: Внедрить квант в общине
+      operationId: applyQuantum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [community_id]
+              properties:
+                community_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Внедрён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuantumCatalogEntry' }
+
+components:
+  schemas:
+    QuantumStatus:
+      type: string
+      enum: [detected, audit, testing, scaling, active, cancelled]
+
+    Quantum:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        level: { type: integer }
+        type: { type: string }
+        source_cell_id: { type: string, format: uuid }
+        description: { type: string }
+        area_of_applicability: { type: object, additionalProperties: true }
+        limitations: { type: object, additionalProperties: true }
+        success_criteria: { type: object, additionalProperties: true }
+        stop_criteria: { type: object, additionalProperties: true }
+        status: { $ref: '#/components/schemas/QuantumStatus' }
+        mandatory: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    QuantumCreate:
+      type: object
+      required: [level, type, source_cell_id, description]
+      properties:
+        level: { type: integer }
+        type: { type: string }
+        source_cell_id: { type: string, format: uuid }
+        description: { type: string }
+        area_of_applicability: { type: object, additionalProperties: true }
+        limitations: { type: object, additionalProperties: true }
+        success_criteria: { type: object, additionalProperties: true }
+        stop_criteria: { type: object, additionalProperties: true }
+        mandatory: { type: boolean }
+
+    QuantumCatalogEntry:
+      type: object
+      properties:
+        quantum_id: { type: string, format: uuid }
+        community_id: { type: string, format: uuid }
+        applied: { type: boolean }
+12. domains/planetary.yaml
+yaml
+paths:
+  /planetary/communities:
+    get:
+      tags: [Planetary]
+      summary: Общины
+      operationId: listCommunities
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Community' }
+    post:
+      tags: [Planetary]
+      summary: Создать общину
+      operationId: createCommunity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Community' }
+
+  /planetary/communities/{id}:
+    get:
+      tags: [Planetary]
+      summary: Карточка общины
+      operationId: getCommunity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Община
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Community' }
+
+  /planetary/council:
+    get:
+      tags: [Planetary]
+      summary: Совет Протоколов
+      operationId: getPlanetaryCouncil
+      responses:
+        '200':
+          description: Совет
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlanetaryCouncil' }
+    post:
+      tags: [Planetary]
+      summary: Назначить делегата
+      operationId: addPlanetaryCouncilMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlanetaryCouncilMemberCreate' }
+      responses:
+        '201':
+          description: Назначен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlanetaryCouncilMember' }
+
+  /planetary/bridges:
+    get:
+      tags: [Planetary]
+      summary: Мосты Потоков
+      operationId: listBridges
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Bridge' }
+    post:
+      tags: [Planetary]
+      summary: Установить мост
+      operationId: createBridge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BridgeCreate' }
+      responses:
+        '201':
+          description: Установлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bridge' }
+
+  /planetary/bridges/{id}/convert:
+    post:
+      tags: [Planetary]
+      summary: Конвертация
+      operationId: convertBridge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number }
+      responses:
+        '200':
+          description: Сконвертировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bridge' }
+
+  /planetary/plan:
+    get:
+      tags: [Planetary]
+      summary: Пятилетний план
+      operationId: getPlanetaryPlan
+      responses:
+        '200':
+          description: План
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlanetaryPlan' }
+    post:
+      tags: [Planetary]
+      summary: Утвердить план
+      operationId: createPlanetaryPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlanetaryPlanCreate' }
+      responses:
+        '201':
+          description: Утверждён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlanetaryPlan' }
+
+  /planetary/referendum:
+    post:
+      tags: [Planetary]
+      summary: Референдум
+      operationId: createPlanetaryReferendum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, threshold]
+              properties:
+                type: { type: string, enum: [convergence, gateway_dissolve, core] }
+                threshold: { type: number }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Referendum' }
+
+  /planetary/pulse:
+    get:
+      tags: [Planetary]
+      summary: Пульс
+      operationId: getPlanetaryPulse
+      responses:
+        '200':
+          description: Пульс
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Pulse' }
+
+  /planetary/reserve:
+    get:
+      tags: [Planetary]
+      summary: Резерв
+      operationId: getPlanetaryReserve
+      responses:
+        '200':
+          description: Резерв
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reserve' }
+
+  /planetary/expansion/freeze:
+    post:
+      tags: [Planetary]
+      summary: Заморозка расширения
+      operationId: freezeExpansion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Заморожено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExpansionStatus' }
+
+  /planetary/expansion/birth:
+    post:
+      tags: [Planetary]
+      summary: Рождение общины
+      operationId: birthCommunity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityCreate' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Community' }
+
+  /planetary/expansion/transfer:
+    post:
+      tags: [Planetary]
+      summary: Передача квантов
+      operationId: transferQuanta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [community_id, quantum_ids]
+              properties:
+                community_id: { type: string, format: uuid }
+                quantum_ids: { type: array, items: { type: string, format: uuid } }
+      responses:
+        '201':
+          description: Передано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuantumCatalogEntry' }
+
+components:
+  schemas:
+    CommunityStatus:
+      type: string
+      enum: [incubation, active, node, center]
+
+    Community:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, minLength: 2, maxLength: 2 }
+        name: { type: string }
+        status: { $ref: '#/components/schemas/CommunityStatus' }
+        level: { type: integer }
+        mother_community_id: { type: string, format: uuid, nullable: true }
+        protocol_version: { type: string }
+        created_at: { type: string, format: date-time }
+
+    CommunityCreate:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, minLength: 2, maxLength: 2 }
+        name: { type: string }
+        mother_community_id: { type: string, format: uuid, nullable: true }
+
+    PlanetaryCouncilMember:
+      type: object
+      properties:
+        member_id: { type: string, format: uuid }
+        community_id: { type: string, format: uuid }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time, nullable: true }
+        type: { type: string, enum: [delegate, expert, guardian] }
+
+    PlanetaryCouncilMemberCreate:
+      type: object
+      required: [member_id, community_id, type]
+      properties:
+        member_id: { type: string, format: uuid }
+        community_id: { type: string, format: uuid }
+        type: { type: string, enum: [delegate, expert, guardian] }
+
+    PlanetaryCouncil:
+      type: object
+      properties:
+        members: { type: array, items: { $ref: '#/components/schemas/PlanetaryCouncilMember' } }
+
+    Bridge:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        community_a: { type: string, format: uuid }
+        community_b: { type: string, format: uuid }
+        coefficient: { type: number }
+        status: { type: string }
+        established_at: { type: string, format: date-time }
+
+    BridgeCreate:
+      type: object
+      required: [community_a, community_b, coefficient]
+      properties:
+        community_a: { type: string, format: uuid }
+        community_b: { type: string, format: uuid }
+        coefficient: { type: number }
+
+    PlanetaryPlan:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        period: { type: string }
+        plan: { type: object, additionalProperties: true }
+        approved_by: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    PlanetaryPlanCreate:
+      type: object
+      required: [period, plan]
+      properties:
+        period: { type: string }
+        plan: { type: object, additionalProperties: true }
+
+    Referendum:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [convergence, gateway_dissolve, core] }
+        threshold: { type: number }
+        result: { type: object, additionalProperties: true, nullable: true }
+        status: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Pulse:
+      type: object
+      properties:
+        community_id: { type: string, format: uuid }
+        base_goods_level: { type: number }
+        direction_load: { type: object, additionalProperties: true }
+        top_signals: { type: array, items: { type: object, additionalProperties: true } }
+        created_at: { type: string, format: date-time }
+
+    Reserve:
+      type: object
+      properties:
+        total_volume: { type: number }
+        distributed: { type: number }
+        available: { type: number }
+
+    ExpansionStatus:
+      type: object
+      properties:
+        frozen: { type: boolean }
+        reason: { type: string, nullable: true }
+        frozen_at: { type: string, format: date-time, nullable: true }
+13. domains/convergence.yaml
+yaml
+paths:
+  /convergence/plans:
+    post:
+      tags: [Convergence]
+      summary: Создать план конвергенции
+      operationId: createConvergencePlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConvergencePlanCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvergencePlan' }
+
+  /convergence/plans/{id}:
+    get:
+      tags: [Convergence]
+      summary: Статус
+      operationId: getConvergencePlan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: План
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvergencePlan' }
+
+  /convergence/plans/{id}/declaration:
+    post:
+      tags: [Convergence]
+      summary: Декларация
+      operationId: signDeclaration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signed_by]
+              properties:
+                signed_by: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Подписана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvergencePlan' }
+
+  /convergence/plans/{id}/council:
+    post:
+      tags: [Convergence]
+      summary: Совет конвергенции
+      operationId: createConvergenceCouncil
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [members]
+              properties:
+                members: { type: array, items: { type: object, additionalProperties: true } }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvergenceCouncil' }
+
+  /convergence/plans/{id}/stage/{n}:
+    post:
+      tags: [Convergence]
+      summary: Перейти к этапу
+      operationId: advanceConvergenceStage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: n
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0, maximum: 5 }
+      responses:
+        '200':
+          description: Переведён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvergencePlan' }
+
+  /convergence/plans/{id}/debts:
+    post:
+      tags: [Convergence]
+      summary: Конверсия долгов
+      operationId: convertDebts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, amount, action]
+              properties:
+                type: { type: string, enum: [external, internal] }
+                amount: { type: number }
+                action: { type: string, enum: [annul, convert] }
+                coefficient: { type: number }
+      responses:
+        '201':
+          description: Сконвертировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DebtConversion' }
+
+  /convergence/plans/{id}/assets:
+    post:
+      tags: [Convergence]
+      summary: Конверсия активов
+      operationId: convertAssets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [asset_type, value, destination_direction_id]
+              properties:
+                asset_type: { type: string }
+                value: { type: number }
+                destination_direction_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Сконвертировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssetConversion' }
+
+  /convergence/plans/{id}/weapons:
+    post:
+      tags: [Convergence]
+      summary: Конверсия вооружений
+      operationId: convertWeapons
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weapon_type, action]
+              properties:
+                weapon_type: { type: string }
+                action: { type: string, enum: [utilize, reserve, energy] }
+      responses:
+        '201':
+          description: Сконвертировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WeaponConversion' }
+
+  /convergence/plans/{id}/culture:
+    post:
+      tags: [Convergence]
+      summary: Центры культурного моста
+      operationId: createCulturalCenter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lon]
+              properties:
+                lat: { type: number }
+                lon: { type: number }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CulturalCenter' }
+
+  /convergence/plans/{id}/complete:
+    post:
+      tags: [Convergence]
+      summary: Завершить переход
+      operationId: completeConvergence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Завершён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvergencePlan' }
+
+components:
+  schemas:
+    ConvergencePlan:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        state_name: { type: string }
+        stage: { type: integer, minimum: 0, maximum: 5 }
+        status: { type: string }
+        coordinator_id: { type: string, format: uuid, nullable: true }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    ConvergencePlanCreate:
+      type: object
+      required: [state_name]
+      properties:
+        state_name: { type: string }
+        coordinator_id: { type: string, format: uuid, nullable: true }
+
+    ConvergenceCouncil:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        plan_id: { type: string, format: uuid }
+        members: { type: array, items: { type: object, additionalProperties: true } }
+
+    DebtConversion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        plan_id: { type: string, format: uuid }
+        type: { type: string }
+        amount: { type: number }
+        action: { type: string }
+        coefficient: { type: number, nullable: true }
+
+    AssetConversion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        plan_id: { type: string, format: uuid }
+        asset_type: { type: string }
+        value: { type: number }
+        destination_direction_id: { type: string, format: uuid }
+
+    WeaponConversion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        plan_id: { type: string, format: uuid }
+        weapon_type: { type: string }
+        action: { type: string }
+        verified_by: { type: string, format: uuid, nullable: true }
+
+    CulturalCenter:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        plan_id: { type: string, format: uuid }
+        location:
+          type: object
+          properties:
+            lat: { type: number }
+            lon: { type: number }
+        status: { type: string }
+14. domains/semantic.yaml
+yaml
+paths:
+  /semantic/drift:
+    get:
+      tags: [Semantic]
+      summary: Семантический дрейф
+      operationId: listSemanticDrift
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SemanticDrift' }
+    post:
+      tags: [Semantic]
+      summary: Зафиксировать дрейф
+      operationId: createSemanticDrift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SemanticDriftCreate' }
+      responses:
+        '201':
+          description: Зафиксирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SemanticDrift' }
+
+  /semantic/alarm:
+    post:
+      tags: [Semantic]
+      summary: Семантическая тревога
+      operationId: createSemanticAlarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [drift_id]
+              properties:
+                drift_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Объявлена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SemanticAlarm' }
+
+  /semantic/veto:
+    post:
+      tags: [Semantic]
+      summary: Вето Стража
+      operationId: createSemanticVeto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision_ref, reason]
+              properties:
+                decision_ref: { type: string, format: uuid }
+                reason: { type: string }
+      responses:
+        '201':
+          description: Наложено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Veto' }
+
+  /semantic/veto/{id}:
+    delete:
+      tags: [Semantic]
+      summary: Снять вето
+      operationId: liftSemanticVeto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Снято }
+
+  /semantic/report:
+    get:
+      tags: [Semantic]
+      summary: Доклад о смысловом поле
+      operationId: getSemanticReport
+      responses:
+        '200':
+          description: Доклад
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SemanticReport' }
+
+  /semantic/pressure:
+    post:
+      tags: [Semantic]
+      summary: Сигнал давления на Стража
+      operationId: reportPressure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description: { type: string }
+      responses:
+        '201':
+          description: Зафиксировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SemanticAlarm' }
+
+  /semantic/dictionary:
+    get:
+      tags: [Semantic]
+      summary: Словарь терминов
+      operationId: listDictionary
+      responses:
+        '200':
+          description: Словарь
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DictionaryTerm' }
+    post:
+      tags: [Semantic]
+      summary: Добавить термин
+      operationId: createDictionaryTerm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DictionaryTermCreate' }
+      responses:
+        '201':
+          description: Добавлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DictionaryTerm' }
+
+  /semantic/translations/check:
+    post:
+      tags: [Semantic]
+      summary: Проверка перевода
+      operationId: checkTranslation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [original, translated, language]
+              properties:
+                original: { type: string }
+                translated: { type: string }
+                language: { type: string }
+      responses:
+        '200':
+          description: Результат
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TranslationCheck' }
+
+components:
+  schemas:
+    SemanticDrift:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        term: { type: string }
+        original_meaning: { type: string }
+        detected_meaning: { type: string }
+        severity: { type: integer }
+        detected_by: { type: string, format: uuid }
+        status: { type: string }
+
+    SemanticDriftCreate:
+      type: object
+      required: [term, original_meaning, detected_meaning, severity]
+      properties:
+        term: { type: string }
+        original_meaning: { type: string }
+        detected_meaning: { type: string }
+        severity: { type: integer }
+
+    SemanticAlarm:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        drift_id: { type: string, format: uuid, nullable: true }
+        priority: { type: integer }
+        raised_by: { type: string, format: uuid }
+        status: { type: string }
+        escalated_to: { type: string, nullable: true, enum: [council, forum, referendum] }
+
+    SemanticReport:
+      type: object
+      properties:
+        year: { type: integer }
+        terms: { type: array, items: { type: string } }
+        drift: { type: object, additionalProperties: true }
+        recommendations: { type: array, items: { type: string } }
+
+    DictionaryTerm:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        term: { type: string }
+        definition: { type: string }
+        version: { type: integer }
+
+    DictionaryTermCreate:
+      type: object
+      required: [term, definition]
+      properties:
+        term: { type: string }
+        definition: { type: string }
+
+    TranslationCheck:
+      type: object
+      properties:
+        ok: { type: boolean }
+        drift: { type: array, items: { type: object, additionalProperties: true } }
+        recommendation: { type: string, nullable: true }
+15. domains/experiments.yaml
+yaml
+paths:
+  /experiments:
+    get:
+      tags: [Experiments]
+      summary: Список экспериментов
+      operationId: listExperiments
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Experiment' }
+    post:
+      tags: [Experiments]
+      summary: Подать эксперимент
+      operationId: createExperiment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExperimentCreate' }
+      responses:
+        '201':
+          description: Подан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Experiment' }
+
+  /experiments/{id}:
+    get:
+      tags: [Experiments]
+      summary: Детали
+      operationId: getExperiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Эксперимент
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Experiment' }
+
+  /experiments/{id}/approve:
+    post:
+      tags: [Experiments]
+      summary: Утвердить
+      operationId: approveExperiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Утверждён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Experiment' }
+
+  /experiments/{id}/join:
+    post:
+      tags: [Experiments]
+      summary: Присоединиться
+      operationId: joinExperiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Присоединён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExperimentParticipant' }
+
+  /experiments/{id}/leave:
+    post:
+      tags: [Experiments]
+      summary: Выйти
+      operationId: leaveExperiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Вышел }
+
+  /experiments/{id}/complete:
+    post:
+      tags: [Experiments]
+      summary: Завершить
+      operationId: completeExperiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Завершён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Experiment' }
+
+  /experiments/{id}/results:
+    get:
+      tags: [Experiments]
+      summary: Результаты
+      operationId: getExperimentResults
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Результаты
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExperimentResults' }
+
+  /dissident-projects:
+    post:
+      tags: [Experiments]
+      summary: Создать диссидентский проект
+      operationId: createDissidentProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DissidentProjectCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DissidentProject' }
+
+  /dissident-projects/{id}:
+    get:
+      tags: [Experiments]
+      summary: Статус
+      operationId: getDissidentProject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Проект
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DissidentProject' }
+
+  /dissident-projects/{id}/petition:
+    post:
+      tags: [Experiments]
+      summary: Подписать петицию
+      operationId: signDissidentPetition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Подписано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DissidentProject' }
+
+  /dissident-projects/{id}/report:
+    post:
+      tags: [Experiments]
+      summary: Отчёт
+      operationId: reportDissidentProject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+      responses:
+        '200':
+          description: Отчёт принят
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DissidentProject' }
+
+  /dissident-projects/{id}/review:
+    post:
+      tags: [Experiments]
+      summary: Пересмотр
+      operationId: reviewDissidentProject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Пересмотрено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DissidentProject' }
+
+components:
+  schemas:
+    Experiment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        external_id: { type: string, example: "EXP-01-2026" }
+        goal: { type: string }
+        term_days: { type: integer, maximum: 1825 }
+        participants: { type: array, items: { type: string, format: uuid } }
+        criteria: { type: object, additionalProperties: true }
+        status: { type: string, enum: [filed, approved, active, completed, cancelled] }
+        approved_by: { type: string, format: uuid, nullable: true }
+
+    ExperimentCreate:
+      type: object
+      required: [goal, term_days, criteria]
+      properties:
+        goal: { type: string }
+        term_days: { type: integer, maximum: 1825 }
+        criteria: { type: object, additionalProperties: true }
+
+    ExperimentParticipant:
+      type: object
+      properties:
+        experiment_id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        joined_at: { type: string, format: date-time }
+
+    ExperimentResults:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        protocol_id: { type: string, format: uuid }
+        successes: { type: array, items: { type: string } }
+        failures: { type: array, items: { type: string } }
+        stats: { type: object, additionalProperties: true }
+        published: { type: boolean }
+
+    DissidentProject:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        initiator_id: { type: string, format: uuid }
+        description: { type: string }
+        petition_count: { type: integer }
+        required_percent: { type: number }
+        resource_source: { type: string, enum: [deferred_flow, freedom_reserve] }
+        status: { type: string }
+        report_interval_days: { type: integer }
+        closed_at: { type: string, format: date-time, nullable: true }
+
+    DissidentProjectCreate:
+      type: object
+      required: [description]
+      properties:
+        description: { type: string }
+16. domains/learning.yaml
+yaml
+paths:
+  /learning/courses:
+    get:
+      tags: [Learning]
+      summary: Курсы
+      operationId: listCourses
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Course' }
+    post:
+      tags: [Learning]
+      summary: Создать курс
+      operationId: createCourse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CourseCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Course' }
+
+  /learning/courses/{id}/enroll:
+    post:
+      tags: [Learning]
+      summary: Записаться
+      operationId: enrollCourse
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Записан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enrollment' }
+
+  /learning/courses/{id}/complete:
+    post:
+      tags: [Learning]
+      summary: Завершить
+      operationId: completeCourse
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Завершён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enrollment' }
+
+  /learning/digital-mentor:
+    get:
+      tags: [Learning]
+      summary: Цифровой наставник
+      operationId: getDigitalMentor
+      responses:
+        '200':
+          description: Наставник
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalMentor' }
+
+  /learning/digital-mentor/transfer:
+    post:
+      tags: [Learning]
+      summary: Передать человеку
+      operationId: transferToHuman
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mentee_id, human_mentor_id, reason]
+              properties:
+                mentee_id: { type: string, format: uuid }
+                human_mentor_id: { type: string, format: uuid }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Передан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalMentor' }
+
+  /learning/ptt:
+    post:
+      tags: [Learning]
+      summary: Запустить ПТТ
+      operationId: startPtt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [goal, duration_days]
+              properties:
+                goal: { type: string }
+                duration_days: { type: integer, maximum: 90 }
+      responses:
+        '201':
+          description: Запущен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ptt' }
+
+  /learning/ptt/{id}:
+    get:
+      tags: [Learning]
+      summary: Статус ПТТ
+      operationId: getPtt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: ПТТ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ptt' }
+
+  /cognitive-routes:
+    get:
+      tags: [Learning]
+      summary: Маршруты
+      operationId: listCognitiveRoutes
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CognitiveRoute' }
+    post:
+      tags: [Learning]
+      summary: Подать маршрут
+      operationId: createCognitiveRoute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CognitiveRouteCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CognitiveRoute' }
+
+  /cognitive-routes/{id}/complete:
+    post:
+      tags: [Learning]
+      summary: Завершить маршрут
+      operationId: completeCognitiveRoute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Завершён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CognitiveRoute' }
+
+  /cognitive-routes/queue/{direction_id}:
+    get:
+      tags: [Learning]
+      summary: Очередь на маршрут
+      operationId: getCognitiveRouteQueue
+      parameters:
+        - name: direction_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Очередь
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CognitiveRouteQueue' }
+
+  /refresh-courses:
+    post:
+      tags: [Learning]
+      summary: Рефреш-курс
+      operationId: startRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id, direction_1, direction_2]
+              properties:
+                participant_id: { type: string, format: uuid }
+                direction_1: { type: string, format: uuid }
+                direction_2: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Запущен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefreshCourse' }
+
+  /modules/basic-defense:
+    post:
+      tags: [Learning]
+      summary: Модуль «Базовая защита»
+      operationId: completeBasicDefense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id]
+              properties:
+                participant_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Пройден
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModulePass' }
+
+  /modules/respect:
+    post:
+      tags: [Learning]
+      summary: Модуль «Уважение и границы»
+      operationId: completeRespect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participant_id]
+              properties:
+                participant_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Пройден
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModulePass' }
+
+  /integration/mentors:
+    get:
+      tags: [Learning]
+      summary: Наставники-интеграторы
+      operationId: listIntegratorMentors
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/IntegratorMentor' }
+    post:
+      tags: [Learning]
+      summary: Назначить интегратора
+      operationId: assignIntegratorMentor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mentor_id, direction_id]
+              properties:
+                mentor_id: { type: string, format: uuid }
+                direction_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Назначен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IntegratorMentor' }
+
+components:
+  schemas:
+    Course:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        modules: { type: array, items: { type: object, additionalProperties: true } }
+        duration_days: { type: integer }
+
+    CourseCreate:
+      type: object
+      required: [title, modules]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        modules: { type: array, items: { type: object, additionalProperties: true } }
+        duration_days: { type: integer }
+
+    Enrollment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        course_id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        status: { type: string }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    DigitalMentor:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        mentor_type: { type: string, enum: [ai] }
+        active_mentees: { type: integer, maximum: 50 }
+        algorithm_version: { type: string }
+
+    Ptt:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        goal: { type: string }
+        duration_days: { type: integer }
+        status: { type: string }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    CognitiveRoute:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        mentor_id: { type: string, format: uuid }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+        status: { type: string }
+        certificate_issued: { type: boolean }
+
+    CognitiveRouteCreate:
+      type: object
+      required: [participant_id, direction_id]
+      properties:
+        participant_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+
+    CognitiveRouteQueue:
+      type: object
+      properties:
+        direction_id: { type: string, format: uuid }
+        queue: { type: array, items: { type: string, format: uuid } }
+        free_slots: { type: integer }
+
+    RefreshCourse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        direction_1: { type: string, format: uuid }
+        direction_2: { type: string, format: uuid }
+        module_basic_defense: { type: boolean }
+        module_respect: { type: boolean }
+        passed_at: { type: string, format: date-time, nullable: true }
+
+    ModulePass:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        module: { type: string }
+        passed_at: { type: string, format: date-time }
+
+    IntegratorMentor:
+      type: object
+      properties:
+        mentor_id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        mentees: { type: array, items: { type: string, format: uuid } }
+        max_mentees: { type: integer, maximum: 3 }
+17. domains/automation.yaml
+yaml
+paths:
+  /automation/queue:
+    get:
+      tags: [Automation]
+      summary: Очередь решений ИИ
+      operationId: getAutomationQueue
+      responses:
+        '200':
+          description: Очередь
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AutomationDecision' }
+
+  /automation/decisions/{id}/approve:
+    post:
+      tags: [Automation]
+      summary: Утвердить решение
+      operationId: approveAutomationDecision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Утверждено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AutomationDecision' }
+
+  /automation/decisions/{id}/reject:
+    post:
+      tags: [Automation]
+      summary: Отклонить решение
+      operationId: rejectAutomationDecision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Отклонено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AutomationDecision' }
+
+  /automation/section/{id}/disable:
+    post:
+      tags: [Automation]
+      summary: Отключить автоматизацию
+      operationId: disableAutomation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Отключено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AutomationSection' }
+
+  /automation/operator/audit:
+    get:
+      tags: [Automation]
+      summary: Аудит оператора
+      operationId: auditOperator
+      parameters:
+        - name: operator_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Аудит
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OperatorAudit' }
+
+components:
+  schemas:
+    AutomationDecision:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string }
+        content: { type: object, additionalProperties: true }
+        ai_recommendation: { type: string, enum: [approve, reject] }
+        deadline: { type: string, format: date-time }
+        status: { type: string, enum: [pending, approved, rejected, deferred] }
+        rejection_reason: { type: string, nullable: true }
+
+    AutomationSection:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction_id: { type: string, format: uuid }
+        enabled: { type: boolean }
+        operator_id: { type: string, format: uuid, nullable: true }
+
+    OperatorAudit:
+      type: object
+      properties:
+        operator_id: { type: string, format: uuid }
+        approval_rate: { type: number }
+        error_count: { type: integer }
+        status: { type: string }
+        recommendations: { type: array, items: { type: string } }
+18. domains/aggregator.yaml
+yaml
+paths:
+  /aggregator/signals:
+    get:
+      tags: [Aggregator]
+      summary: Поток сигналов
+      operationId: getAggregatorSignals
+      responses:
+        '200':
+          description: Поток
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AggregatorSignal' }
+
+  /aggregator/clusters:
+    post:
+      tags: [Aggregator]
+      summary: Кластеризовать
+      operationId: createAggregatorCluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AggregatorClusterCreate' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AggregatorCluster' }
+
+  /aggregator/clusters/{id}/validate:
+    post:
+      tags: [Aggregator]
+      summary: Валидировать
+      operationId: validateAggregatorCluster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [valid]
+              properties:
+                valid: { type: boolean }
+                comment: { type: string }
+      responses:
+        '200':
+          description: Валидирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AggregatorCluster' }
+
+  /aggregator/clusters/{id}/route:
+    post:
+      tags: [Aggregator]
+      summary: Маршрутизировать
+      operationId: routeAggregatorCluster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_direction_id, justification]
+              properties:
+                target_direction_id: { type: string, format: uuid }
+                justification: { type: string }
+      responses:
+        '200':
+          description: Маршрутизирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AggregatorCluster' }
+
+components:
+  schemas:
+    AggregatorSignal:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        theme: { type: string }
+        source_id: { type: string, format: uuid }
+        priority: { $ref: '#/components/schemas/Priority' }
+        received_at: { type: string, format: date-time }
+
+    AggregatorCluster:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        signal_ids: { type: array, items: { type: string, format: uuid } }
+        pattern: { type: string }
+        relevance: { type: number }
+        status: { type: string, enum: [new, validated, rejected, routed] }
+        target_direction_id: { type: string, format: uuid, nullable: true }
+
+    AggregatorClusterCreate:
+      type: object
+      required: [signal_ids, pattern]
+      properties:
+        signal_ids: { type: array, items: { type: string, format: uuid } }
+        pattern: { type: string }
+19. domains/connectivity.yaml
+yaml
+paths:
+  /connectivity/queue:
+    get:
+      tags: [Connectivity]
+      summary: Очередь запросов
+      operationId: getConnectivityQueue
+      responses:
+        '200':
+          description: Очередь
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ConnectivityItem' }
+
+  /connectivity/route:
+    post:
+      tags: [Connectivity]
+      summary: Маршрутизировать
+      operationId: routeConnectivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RouteRequest' }
+      responses:
+        '200':
+          description: Маршрутизировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConnectivityItem' }
+
+  /connectivity/prefilter:
+    post:
+      tags: [Connectivity]
+      summary: Префильтрация
+      operationId: prefilterConnectivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signal_id]
+              properties:
+                signal_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Результат
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrefilterResult' }
+
+  /connectivity/overdue:
+    get:
+      tags: [Connectivity]
+      summary: Просрочки
+      operationId: getConnectivityOverdue
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ConnectivityItem' }
+
+  /connectivity/escalate:
+    post:
+      tags: [Connectivity]
+      summary: Эскалация
+      operationId: escalateConnectivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signal_id, reason]
+              properties:
+                signal_id: { type: string, format: uuid }
+                reason: { type: string }
+      responses:
+        '201':
+          description: Эскалировано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Arbitration' }
+
+  /connectivity/protocol:
+    get:
+      tags: [Connectivity]
+      summary: Протокол Коннективности
+      operationId: getConnectivityProtocol
+      parameters:
+        - name: signal_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Протокол
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ConnectivityItem' }
+
+components:
+  schemas:
+    ConnectivityItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        signal_id: { type: string, format: uuid }
+        current_direction_id: { type: string, format: uuid, nullable: true }
+        target_direction_id: { type: string, format: uuid, nullable: true }
+        priority: { $ref: '#/components/schemas/Priority' }
+        deadline: { type: string, format: date-time }
+        status: { type: string, enum: [queued, routed, overdue, escalated] }
+        iterations: { type: integer }
+
+    RouteRequest:
+      type: object
+      required: [signal_id, target_direction_id]
+      properties:
+        signal_id: { type: string, format: uuid }
+        target_direction_id: { type: string, format: uuid }
+        reason: { type: string }
+
+    PrefilterResult:
+      type: object
+      properties:
+        signal_id: { type: string, format: uuid }
+        format_ok: { type: boolean }
+        etiquette_ok: { type: boolean }
+        violations: { type: array, items: { type: string } }
+20. domains/admin.yaml
+yaml
+paths:
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Сводка
+      operationId: getAdminDashboard
+      responses:
+        '200':
+          description: Сводка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminDashboard' }
+
+  /admin/mandates/map:
+    get:
+      tags: [Admin]
+      summary: Карта мандатов
+      operationId: getMandatesMap
+      responses:
+        '200':
+          description: Карта
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MandatesMap' }
+
+  /admin/delegate:
+    post:
+      tags: [Admin]
+      summary: Делегировать функцию
+      operationId: adminDelegate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DelegationCreate' }
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delegation' }
+
+  /admin/rotate:
+    post:
+      tags: [Admin]
+      summary: Принудительная ротация
+      operationId: adminRotate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mandate_id, successor_id]
+              properties:
+                mandate_id: { type: string, format: uuid }
+                successor_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Ротирован
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mandate' }
+
+  /admin/regimes:
+    get:
+      tags: [Admin]
+      summary: Режимы
+      operationId: adminListRegimes
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Regime' }
+
+  /admin/bootstrap:
+    post:
+      tags: [Admin]
+      summary: Первичная настройка
+      operationId: adminBootstrap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                seed: { type: boolean, default: true }
+      responses:
+        '201':
+          description: Настроено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminDashboard' }
+
+  /admin/seed:
+    post:
+      tags: [Admin]
+      summary: Загрузить шаблоны
+      operationId: adminSeed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templates: { type: array, items: { type: string } }
+      responses:
+        '201':
+          description: Загружено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminDashboard' }
+
+  /admin/logs:
+    get:
+      tags: [Admin]
+      summary: Все логи
+      operationId: adminLogs
+      parameters:
+        - name: entity_type
+          in: query
+          schema: { type: string }
+        - name: entity_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Логи
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AuditLogEntry' }
+
+components:
+  schemas:
+    AdminDashboard:
+      type: object
+      properties:
+        participants_total: { type: integer }
+        directions_total: { type: integer }
+        active_mandates: { type: integer }
+        open_signals: { type: integer }
+        active_regimes: { type: integer }
+
+    MandatesMap:
+      type: object
+      properties:
+        directions: { type: array, items: { type: object, additionalProperties: true } }
+        held_by_architect: { type: array, items: { type: string } }
+        delegated: { type: array, items: { type: object, additionalProperties: true } }
+
+    AuditLogEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        actor_id: { type: string, format: uuid, nullable: true }
+        actor_type: { type: string, enum: [participant, ai, system] }
+        action: { type: string }
+        entity_type: { type: string }
+        entity_id: { type: string, format: uuid }
+        old_value: { type: object, additionalProperties: true, nullable: true }
+        new_value: { type: object, additionalProperties: true, nullable: true }
+        created_at: { type: string, format: date-time }
+21. Финальная структура проекта
+text
+spec/
+├── openapi.yaml                    ← корень
+├── domains/
+│   ├── cells.yaml                  ✅
+│   ├── mandates.yaml               ✅
+│   ├── plans.yaml                  ✅
+│   ├── tasks.yaml                  ✅
+│   ├── reports.yaml                ✅
+│   ├── otc.yaml                    ✅
+│   ├── standards.yaml              ✅
+│   ├── justice.yaml                ✅
+│   ├── jury.yaml                   ✅
+│   ├── psy.yaml                    ✅
+│   ├── quanta.yaml                 ✅
+│   ├── planetary.yaml              ✅
+│   ├── convergence.yaml            ✅
+│   ├── semantic.yaml               ✅
+│   ├── experiments.yaml            ✅
+│   ├── learning.yaml               ✅
+│   ├── automation.yaml             ✅
+│   ├── aggregator.yaml             ✅
+│   ├── connectivity.yaml           ✅
+│   └── admin.yaml                  ✅
+├── components/
+│   ├── schemas.yaml
+│   ├── parameters.yaml
+│   ├── responses.yaml
+│   └── security.yaml
+└── README.md
+22. Сборка и валидация
+bash
+# Линт
+npx @redocly/cli lint spec/openapi.yaml
+
+# Bundle
+npx @redocly/cli bundle spec/openapi.yaml -o dist/openapi.bundled.yaml
+
+# Превью
+npx @redocly/cli preview-docs spec/openapi.yaml
+
+# Генерация клиента
+npx @openapitools/openapi-generator-cli generate \
+  -i dist/openapi.bundled.yaml \
+  -g typescript-fetch \
+  -o clients/ts
+
+# Mock-сервер
+npx @stoplight/prism-cli mock dist/openapi.bundled.yaml
+23. Что покрыто полностью
+Домен	Статус
+Auth	✅
+Participants	✅
+Directions	✅
+Cells	✅
+Mandates	✅
+Plans	✅
+Tasks	✅
+Reports	✅
+OTC	✅
+Signals	✅
+Connections	✅
+Arbitrations	✅
+Universal Runs	✅
+Flows	✅
+Goods	✅
+Standards	✅
+Regimes	✅
+Balance	✅
+Verification	✅
+Archive	✅
+Justice	✅
+Jury	✅
+Psy	✅
+Gateway	✅
+Quanta	✅
+Constructor	✅
+Planetary	✅
+Convergence	✅
+Semantic	✅
+Experiments	✅
+Learning	✅
+Automation	✅
+Aggregator	✅
+Connectivity	✅
+Admin	✅
+Все 35 доменов. Эндпоинтов — ~430.

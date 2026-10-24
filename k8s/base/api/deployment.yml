@@ -1,0 +1,77 @@
+# base/api/deployment.yml
+# xartia-api: образ из Docker Desktop (пересобран из Dockerfile.api).
+# В k3d подхватывается без import (общий containerd).
+#
+# v0.0.02:
+#   - initContainer wait-for-postgres: postgres-svc → FQDN
+#     postgres-svc.xartia-data.svc.cluster.local. Postgres живёт в ns
+#     xartia-data, api — в ns xartia. Короткое имя резолвится только
+#     в пределах своего ns, поэтому нужен FQDN (или хотя бы
+#     postgres-svc.xartia-data).
+#   - DATABASE_URL в Secret api-secrets должен указывать на тот же
+#     FQDN — см. overlays/*/secrets/api.enc.yaml
+#     (postgresql://charter:charter@postgres-svc.xartia-data.svc.cluster.local:5432/charter).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: xartia
+  labels: { app: api, xartia.io/tier: app }
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: { app: api }
+  template:
+    metadata:
+      labels: { app: api }
+    spec:
+      serviceAccountName: api
+      priorityClassName: xartia-critical
+      # Ждём postgres-svc:5432 до старта api (RUN_MIGRATIONS=true).
+      # Образ postgis уже в k3d (из Сессии 3), pull не нужен.
+      initContainers:
+        - name: wait-for-postgres
+          image: postgis/postgis:15-3.4
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-svc.xartia-data.svc.cluster.local -p 5432 -U charter; do
+                echo "waiting for postgres-svc.xartia-data ..."
+                sleep 2
+              done
+              echo "postgres-svc.xartia-data ready"
+          resources:
+            requests: { cpu: "10m", memory: "32Mi" }
+            limits:   { cpu: "100m", memory: "128Mi" }
+      containers:
+        - name: api
+          image: xartia-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 3000 }
+          envFrom:
+            - configMapRef: { name: api-config }
+            - secretRef:    { name: api-secrets }
+          resources:
+            requests: { cpu: "200m", memory: "512Mi" }
+            limits:   { cpu: "2",    memory: "2Gi" }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 3000 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /health/live, port: 3000 }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet: { path: /health/live, port: 3000 }
+            failureThreshold: 30
+            periodSeconds: 5
+            timeoutSeconds: 5

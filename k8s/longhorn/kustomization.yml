@@ -1,0 +1,21 @@
+# longhorn/kustomization.yml
+# StorageClass'ы применяются ТОЛЬКО после установки Longhorn (Helm).
+# Если применить раньше — provisioner driver.longhorn.io не найден,
+# PVC будут в Pending.
+#
+# Применение:
+#   helm install longhorn longhorn/longhorn -n longhorn-system
+#   kubectl apply -k k8s/longhorn/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - storageclass-r1.yml
+  - storageclass-r2.yml
+  - storageclass-r3.yml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: xartia
+      app.kubernetes.io/managed-by: kustomize
+      xartia.io/tier: storage

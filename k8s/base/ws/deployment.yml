@@ -1,0 +1,71 @@
+# base/ws/deployment.yml
+# WS — отдельный процесс из образа xartia-api (W.0.01.01).
+# Запуск: node_modules/.bin/tsx src/ws/server.ts (порт 3001).
+#
+# v0.0.02:
+#   - initContainer wait-for-redis: redis-svc → FQDN
+#     redis-svc.xartia-data.svc.cluster.local. Redis живёт в ns xartia-data,
+#     ws — в ns xartia. Короткое имя резолвится только в пределах своего
+#     ns, поэтому нужен FQDN.
+#   - REDIS_URL в Secret api-secrets должен указывать на тот же FQDN —
+#     см. overlays/*/secrets/api.enc.yaml
+#     (redis://redis-svc.xartia-data.svc.cluster.local:6379).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ws
+  namespace: xartia
+  labels: { app: ws, xartia.io/tier: app }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: ws }
+  template:
+    metadata:
+      labels: { app: ws }
+    spec:
+      priorityClassName: xartia-critical
+      # WS в старте подключается к Redis (subscribe). Ждём, пока он поднимется.
+      initContainers:
+        - name: wait-for-redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis-svc.xartia-data.svc.cluster.local -p 6379 ping; do
+                echo "waiting for redis-svc.xartia-data ..."
+                sleep 2
+              done
+              echo "redis-svc.xartia-data ready"
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "100m", memory: "64Mi" }
+      containers:
+        - name: ws
+          image: xartia-api:latest
+          imagePullPolicy: IfNotPresent
+          command: ["node_modules/.bin/tsx", "src/ws/server.ts"]
+          ports:
+            - { name: ws, containerPort: 3001 }
+          envFrom:
+            - configMapRef: { name: api-config }
+            - secretRef:    { name: api-secrets }
+          env:
+            - { name: WS_PORT, value: "3001" }
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "1",    memory: "1Gi" }
+          readinessProbe:
+            httpGet: { path: /health/live, port: 3001 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /health/live, port: 3001 }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3

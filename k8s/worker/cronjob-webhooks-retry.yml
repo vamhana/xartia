@@ -1,0 +1,95 @@
+# ============================================================================
+# I.3.05.08 — CronJob: обработка retry webhook-доставок.
+#
+# Дёргает POST /webhooks/process-retries. Право webhook:Act.
+# Логика — в C.0.37.02 (processRetries).
+#
+# Расписание: каждую минуту. Retry-backoff — 60/300/1800 сек, поэтому
+# нужна точность до минуты. ConcurrencyPolicy: Forbid — если предыдущий
+# job не успел, второй не запускается.
+#
+# Токен: сервисный участник В90003-01, Secret xartia-webhooks-cron.
+# ============================================================================
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: webhooks-process-retries
+  namespace: xartia
+  labels:
+    app: xartia
+    module: webhooks
+    cron-id: I.3.05.08
+spec:
+  schedule: "* * * * *"          # каждую минуту
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 30    # 30 сек — retry чувствителен к задержке
+  jobTemplate:
+    spec:
+      backoffLimit: 1              # 1 retry — не плодим параллельные
+      activeDeadlineSeconds: 50    # не дольше 50 сек, чтобы уложиться в минуту
+      template:
+        metadata:
+          labels:
+            app: xartia
+            module: webhooks
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: process-retries
+              image: curlimages/curl:8.10.1
+              env:
+                - name: API_URL
+                  value: "http://api-svc:3000"
+                - name: CRON_PHONE
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-webhooks-cron
+                      key: phone
+                - name: CRON_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: xartia-webhooks-cron
+                      key: password
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  echo "[cron] logging in as $CRON_PHONE"
+
+                  login_response=$(curl -fsS \
+                    -X POST "$API_URL/auth/login" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"phone\":\"$CRON_PHONE\",\"password\":\"$CRON_PASSWORD\"}")
+
+                  token=$(echo "$login_response" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+                  if [ -z "$token" ]; then
+                    echo "[cron] ERROR: no access_token"
+                    exit 1
+                  fi
+
+                  response=$(curl -fsS \
+                    -X POST "$API_URL/webhooks/process-retries" \
+                    -H "Authorization: Bearer $token" \
+                    -H "Content-Type: application/json" \
+                    -d '{}')
+
+                  echo "[cron] response: $response"
+
+                  if echo "$response" | grep -q '"processed"'; then
+                    echo "[cron] OK"
+                    exit 0
+                  fi
+                  echo "[cron] ERROR: unexpected response"
+                  exit 1
+              resources:
+                requests: { cpu: "10m", memory: "16Mi" }
+                limits:   { cpu: "100m", memory: "64Mi" }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000

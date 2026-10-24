@@ -1,0 +1,36 @@
+# base/network/allow-web-to-api.yml
+# nginx (web) → api-svc:3000 для /__api/ proxy.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-to-api
+  namespace: xartia
+spec:
+  podSelector:
+    matchLabels: { app: api }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app: web }
+      ports:
+        - { protocol: TCP, port: 3000 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-egress-to-api
+  namespace: xartia
+spec:
+  podSelector:
+    matchLabels: { app: web }
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: { app: api }
+      ports:
+        - { protocol: TCP, port: 3000 }

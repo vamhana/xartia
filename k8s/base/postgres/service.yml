@@ -1,0 +1,25 @@
+# base/postgres/service.yml
+# Headless — для StatefulSet (стабильный DNS: postgres-0.postgres.xartia-data.svc).
+# ClusterIP — для приложения (postgres.xartia-data.svc:5432).
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: xartia-data
+  labels: { app: postgres }
+spec:
+  clusterIP: None
+  selector: { app: postgres }
+  ports:
+    - { name: pg, port: 5432, targetPort: 5432 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+  namespace: xartia-data
+  labels: { app: postgres }
+spec:
+  selector: { app: postgres }
+  ports:
+    - { name: pg, port: 5432, targetPort: 5432 }
