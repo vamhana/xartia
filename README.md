@@ -1,5 +1,7 @@
 # XartIA — рабочее пространство коллектива
 
+[![CI](https://github.com/vamhana/xartia/actions/workflows/ci.yml/badge.svg)](https://github.com/vamhana/xartia/actions/workflows/ci.yml)
+
 Продукт для группы разработчиков, которая строит собственный продукт и продаёт
 его наружу. Вклад — это код, а не отчёт о занятости: задачи, ревью и Потоки
 видны всем, роли выдаются мандатом и истекают.
