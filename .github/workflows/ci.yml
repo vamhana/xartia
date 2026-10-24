@@ -203,5 +203,3 @@ jobs:
             echo "::error title=Smoke::${line}"
           done
 
-        if: failure()
-        run: tail -200 /tmp/api.log
