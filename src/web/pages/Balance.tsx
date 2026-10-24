@@ -331,39 +331,49 @@ function OversightBlock(): ReactElement {
             background: node.kind === 'plan' ? colors.bgSoft : 'transparent',
           }}
         >
-          <button
-            type="button"
-            style={styles.ovToggle}
-            onClick={() => toggle(node.id)}
-            disabled={!hasChildren}
-          >
-            {hasChildren ? (isOpen ? '▾' : '▸') : '·'}
-          </button>
-          <span style={styles.ovKind}>{OVERSIGHT_KIND_LABEL[node.kind]}</span>
-          <span style={styles.ovTitle}>{node.title}</span>
-          <span style={styles.ovSub}>{node.subtitle}</span>
-          <span style={styles.ovPeople}>чел.: {node.people}</span>
-          <span style={styles.ovCounts}>
-            <span style={{ color: colors.danger }}>−{node.overdue}</span>
-            <span style={{ color: colors.success }}>+{node.early}</span>
-            <span style={{ color: colors.textMuted }}>{node.done}/{node.total}</span>
-          </span>
-          {node.coordinator ? (
-            <span style={styles.ovCoord}>{node.coordinator}</span>
-          ) : null}
-          {node.signals.length > 0 ? (
-            <Badge tone="danger">{`сигналов: ${node.signals.length}`}</Badge>
-          ) : null}
-          {node.kind === 'cell' || node.kind === 'person' || node.kind === 'branch' ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              loading={signalM.isPending}
-              onClick={() => signalM.mutate(node)}
+          {/* Первая линия: что это и кто. Вторая: счётчики, координатор,
+              кнопка. Раньше всё стояло в одну строку и на узкой панели
+              координатор и кнопка уезжали за край. */}
+          <div style={styles.ovMain}>
+            <button
+              type="button"
+              style={styles.ovToggle}
+              onClick={() => toggle(node.id)}
+              disabled={!hasChildren}
             >
-              Сигнал Совету
-            </Button>
-          ) : null}
+              {hasChildren ? (isOpen ? '▾' : '▸') : '·'}
+            </button>
+            <span style={styles.ovKind}>{OVERSIGHT_KIND_LABEL[node.kind]}</span>
+            <span style={styles.ovTitle}>{node.title}</span>
+            <span style={styles.ovSub}>{node.subtitle}</span>
+          </div>
+          <div style={styles.ovMeta}>
+            <span style={styles.ovCounts}>
+              <span style={{ color: colors.danger }}>−{node.overdue}</span>
+              <span style={{ color: colors.success }}>+{node.early}</span>
+              <span style={{ color: colors.textMuted }}>{node.done}/{node.total}</span>
+            </span>
+            <span style={styles.ovPeople}>чел.: {node.people}</span>
+            {node.kind !== 'person' ? (
+              <span style={styles.ovCoord}>
+                {node.kind === 'plan' ? 'Куратор' : 'Координатор'}:{' '}
+                {node.coordinator ?? 'не назначен'}
+              </span>
+            ) : null}
+            {node.signals.length > 0 ? (
+              <Badge tone="danger">{`сигналов: ${node.signals.length}`}</Badge>
+            ) : null}
+            {node.kind === 'cell' || node.kind === 'person' || node.kind === 'branch' ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={signalM.isPending}
+                onClick={() => signalM.mutate(node)}
+              >
+                Сигнал Совету
+              </Button>
+            ) : null}
+          </div>
         </div>
         {isOpen && node.children.map((child) => renderNode(child, depth + 1))}
       </div>
@@ -984,15 +994,27 @@ const styles = {
     flexDirection: 'column' as const,
     border: `1px solid ${colors.borderSoft}`,
     borderRadius: radius.md,
-    overflow: 'hidden',
   },
   ovRow: {
     display: 'flex',
-    alignItems: 'center',
-    gap: 6,
+    flexDirection: 'column' as const,
+    gap: 2,
     padding: '6px 0',
     borderBottom: `1px solid ${colors.borderSoft}`,
     fontSize: fontSize.sm,
+  },
+  ovMain: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
+  },
+  ovMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap' as const,
+    gap: 10,
+    paddingLeft: 28,
   },
   ovToggle: {
     width: 22,
@@ -1002,12 +1024,20 @@ const styles = {
     cursor: 'pointer',
     fontSize: 13,
   },
-  ovKind: { color: colors.textDim, fontSize: fontSize.xs, width: 64 },
-  ovTitle: { fontWeight: 500, minWidth: 180 },
-  ovSub: { color: colors.textMuted, fontSize: fontSize.xs, flex: 1 },
-  ovPeople: { color: colors.textMuted, fontSize: fontSize.xs, width: 64 },
-  ovCounts: { display: 'flex', gap: 8, fontSize: fontSize.xs, width: 110 },
-  ovCoord: { color: colors.textMuted, fontSize: fontSize.xs, width: 130 },
+  ovKind: { color: colors.textDim, fontSize: fontSize.xs, minWidth: 56 },
+  ovTitle: { fontWeight: 500 },
+  ovSub: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+    flex: 1,
+    minWidth: 100,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  ovPeople: { color: colors.textMuted, fontSize: fontSize.xs, whiteSpace: 'nowrap' as const },
+  ovCounts: { display: 'flex', gap: 8, fontSize: fontSize.xs, whiteSpace: 'nowrap' as const },
+  ovCoord: { color: colors.text, fontSize: fontSize.xs, whiteSpace: 'nowrap' as const },
 
   page: { display: 'flex' as const, flexDirection: 'column' as const, gap: spacing.md },
   header: {
