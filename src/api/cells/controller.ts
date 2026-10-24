@@ -5,6 +5,10 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import {
+  distributeCellDailyPlan,
+  getDelegationTree,
+} from '../../core/cells/delegation.js';
+import {
   assignCellDailyTask,
   getCellDailyPlan,
   listCellPlanCandidates,
@@ -233,6 +237,55 @@ export async function registerCellsRoutes(app: FastifyInstance): Promise<void> {
         requesterId: auth.participantId,
       });
       reply.send({ ...day, audit_id: req.auditId });
+    },
+  );
+
+  // -------- Передача наряда дочерним ячейкам (C.0.41.04) --------
+
+  app.get(
+    '/cells/:id/daily-plan/tree',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams), validateQuery(cellPlanQuery)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const q = req.query as z.infer<typeof cellPlanQuery>;
+      const tree = await getDelegationTree(p.id, q.date);
+      reply.send({ ...tree, audit_id: req.auditId });
+    },
+  );
+
+  app.post(
+    '/cells/:id/daily-plan/distribute',
+    {
+      preHandler: [
+        authMiddleware,
+        requireRight('plan', 'C'),
+        validateParams(uuidIdParams),
+        validateBody(z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          assignments: z.array(z.object({
+            child_cell_id: uuidSchema,
+            task_ids: z.array(uuidSchema).max(50),
+          })).min(1).max(50),
+        })),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const b = req.body as {
+        date: string;
+        assignments: Array<{ child_cell_id: string; task_ids: string[] }>;
+      };
+      const result = await distributeCellDailyPlan({
+        cellId: p.id as never,
+        date: b.date,
+        assignments: b.assignments.map((a) => ({
+          childCellId: a.child_cell_id as never,
+          taskIds: a.task_ids as never[],
+        })),
+        requesterId: auth.participantId,
+      });
+      reply.status(201).send({ ...result, audit_id: req.auditId });
     },
   );
 

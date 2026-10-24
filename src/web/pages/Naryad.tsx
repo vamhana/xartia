@@ -68,8 +68,20 @@ export function NaryadPage(): ReactElement {
     ['participants', 'naryad'],
     '/participants?per_page=100',
   );
+  const childrenQ = useApiQuery<{ data: Array<{ id: string; number: string }> }>(
+    ['cell-children', activeCell],
+    `/cells/${activeCell}/children`,
+    { enabled: !!activeCell },
+  );
+  const treeQ = useApiQuery<{
+    parent: { tasks: PlanTask[] };
+    children: Array<{ cellNumber: string; tasks: PlanTask[] }>;
+  }>(['cell-plan-tree', activeCell, date], `/cells/${activeCell}/daily-plan/tree?date=${date}`, {
+    enabled: !!activeCell,
+  });
 
   const [busy, setBusy] = useState(false);
+  const [delegateTo, setDelegateTo] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
@@ -97,6 +109,38 @@ export function NaryadPage(): ReactElement {
         task_ids: [...planTasks.map((t) => t.taskId), taskId],
       });
       reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const distribute = async (): Promise<void> => {
+    const groups = new Map<string, string[]>();
+    for (const [taskId, childId] of Object.entries(delegateTo)) {
+      if (!childId) {continue;}
+      const list = groups.get(childId) ?? [];
+      list.push(taskId);
+      groups.set(childId, list);
+    }
+    if (groups.size === 0) {
+      setError('Выберите хотя бы одну задачу и дочернюю ячейку');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await apiPost(`/cells/${activeCell}/daily-plan/distribute`, {
+        date,
+        assignments: Array.from(groups.entries()).map(([childCellId, taskIds]) => ({
+          child_cell_id: childCellId,
+          task_ids: taskIds,
+        })),
+      });
+      setDelegateTo({});
+      reload();
+      void treeQ.refetch();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка');
     } finally {
@@ -196,6 +240,62 @@ export function NaryadPage(): ReactElement {
           </>
         )}
       </Card>
+
+      {activeCell && (childrenQ.data?.data ?? []).length > 0 && (
+        <Card
+          title="Передача в дочерние ячейки"
+          subtitle={`${childrenQ.data?.data.length ?? 0} дочерних ячеек — каждая ведёт свой наряд`}
+        >
+          {planTasks.length === 0 ? (
+            <p style={styles.muted}>Сначала составьте наряд на эту ячейку.</p>
+          ) : (
+            <>
+              <div style={styles.rows}>
+                {planTasks.map((t) => (
+                  <div key={t.taskId} style={styles.row}>
+                    <span style={styles.extId}>{t.externalId}</span>
+                    <span style={styles.desc}>{t.description}</span>
+                    <select
+                      style={styles.select}
+                      value={delegateTo[t.taskId] ?? ''}
+                      onChange={(e) =>
+                        setDelegateTo((prev) => ({ ...prev, [t.taskId]: e.target.value }))
+                      }
+                      disabled={busy}
+                    >
+                      <option value="">— оставить у себя —</option>
+                      {(childrenQ.data?.data ?? []).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          ячейка {c.number}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <Button variant="secondary" loading={busy} onClick={() => void distribute()}>
+                  Передать выбранные
+                </Button>
+              </div>
+            </>
+          )}
+          {(treeQ.data?.children ?? []).length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={styles.meta}>Наряды дочерних ячеек:</div>
+              {(treeQ.data?.children ?? []).map((c) => (
+                <div key={c.cellNumber} style={styles.row}>
+                  <span style={styles.extId}>ячейка {c.cellNumber}</span>
+                  <span style={styles.desc}>
+                    задач: {c.tasks.length}, назначено:{' '}
+                    {c.tasks.filter((t) => t.assignedTo).length}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {cells.length > 0 && (
         <Card title="Задачи направления" subtitle="Что можно добавить в наряд">
