@@ -39,6 +39,7 @@ import { redis } from '../../lib/redis.js';
 import { encryptField, decryptField, hashForSearch } from '../../security/encryption.js';
 import { revokeAllForParticipant } from '../../security/jwt.js';
 import { hashPassword, verifyPassword } from '../../security/password.js';
+import { listParticipantsWithRole } from '../../security/rbac.js';
 import { emitInterviewEnded } from '../../ws/interview.js';
 import { logAction } from '../audit.js';
 import { WELCOME_PACK } from '../constants.js';
@@ -46,9 +47,140 @@ import {
   AppError, ConflictError, ForbiddenError, NotFoundError,
   UnauthorizedError, ValidationError,
 } from '../errors.js';
+import { Role } from '../roles.js';
 import type { UUID, ISODateTime, RegistrationStatus } from '../types.js';
 
 import { createParticipant, type Participant } from './entity.js';
+
+// -------- Уведомления пути участника --------
+//
+// Заявка — не «строчка в таблице», а событие для четырёх функций Хартии:
+//   инкубация (направление 11) проводит аудит и подбирает направление и
+//   наставника; балансировка учитывает +1 заявку; ноология проверяет, те ли
+//   вопросы задаёт инкубация; верификация — не бот ли регистрируется.
+// Если у функции в нужном направлении никого нет — пишем Первому Архитектору,
+// чтобы заявка не висела без ответа (I.2.12: «нет влияния» — тоже нарушение).
+
+interface FunctionNotice {
+  role: Role;
+  directionNumber: number | null;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+}
+
+async function recipientsFor(role: Role, directionNumber: number | null): Promise<UUID[]> {
+  if (directionNumber === null) {
+    const all = await listParticipantsWithRole(role);
+    if (all.length > 0) {return all;}
+  } else {
+    const dir = await queryOne<{ id: string }>(
+      `SELECT id FROM directions WHERE number = $1 AND status = 'active'`,
+      [directionNumber],
+    );
+    const ids = dir ? await listParticipantsWithRole(role, dir.id) : [];
+    if (ids.length > 0) {return ids;}
+  }
+  // Фолбэк: Первый Архитектор — не «начальник», а гарант, что процедура
+  // не встанет, если функция ещё не занята.
+  return listParticipantsWithRole(Role.FIRST_ARCHITECT);
+}
+
+async function deliver(notice: FunctionNotice): Promise<void> {
+  try {
+    const recipients = await recipientsFor(notice.role, notice.directionNumber);
+    for (const recipientId of recipients) {
+      await sendNotification({
+        recipientId,
+        type: notice.type,
+        priority: 'standard',
+        title: notice.title,
+        body: notice.body,
+        data: notice.data,
+      });
+    }
+  } catch (e) {
+    // Уведомление — побочный эффект: сбой не отменяет регистрацию.
+    logger.warn({ err: e, type: notice.type }, 'journey notification failed');
+  }
+}
+
+/** Событие «новая заявка» → четыре функции + балансировка. */
+async function notifyRegistration(requestId: UUID): Promise<void> {
+  const data = { requestId, link: '/admin/requests' };
+  await deliver({
+    role: Role.COUNCIL_MEMBER,
+    directionNumber: 11, // Социальная Инкубация
+    type: 'registration.incubation',
+    title: 'Новая заявка: нужен аудит',
+    body: 'Проведите аудит заявки, подберите направление и наставника.',
+    data,
+  });
+  await deliver({
+    role: Role.BALANCER,
+    directionNumber: null,
+    type: 'registration.balancing',
+    title: 'Новая заявка в системе',
+    body: 'Учтите заявку в балансе: +1 кандидат.',
+    data,
+  });
+  await deliver({
+    role: Role.NOOLOG,
+    directionNumber: 6, // Ноология
+    type: 'registration.noology',
+    title: 'Проверка вопросов инкубации',
+    body: 'Проверьте, правильные ли вопросы задаёт инкубация по этой заявке.',
+    data,
+  });
+  await deliver({
+    role: Role.VERIFIER,
+    directionNumber: 13, // Верификация и Надёжность
+    type: 'registration.verification',
+    title: 'Проверка регистрации',
+    body: 'Проверьте, не бот ли регистрируется (доступ к аудиту — у верификации).',
+    data,
+  });
+}
+
+/** Событие «человек принят» → куратору направления и балансировке. */
+async function notifyAccepted(participant: Participant): Promise<void> {
+  try {
+    const dir = participant.directionId
+      ? await queryOne<{ number: number; name: string }>(
+          `SELECT number, name FROM directions WHERE id = $1`,
+          [participant.directionId],
+        )
+      : null;
+    const data = {
+      participantId: participant.id,
+      link: `/admin/participants?selected=${participant.id}`,
+    };
+    if (participant.directionId) {
+      const council = await listParticipantsWithRole(Role.COUNCIL_MEMBER, participant.directionId);
+      for (const recipientId of council) {
+        await sendNotification({
+          recipientId,
+          type: 'participant.accepted',
+          priority: 'standard',
+          title: 'Новый участник в направлении',
+          body: `${participant.name} (${participant.externalId}) принят. Назначьте наставника.`,
+          data,
+        });
+      }
+    }
+    await deliver({
+      role: Role.BALANCER,
+      directionNumber: null,
+      type: 'participant.balancing',
+      title: 'Участник принят',
+      body: `${participant.name} (${participant.externalId}) вошёл в контур${dir ? ` направления ${dir.number}` : ''}.`,
+      data,
+    });
+  } catch (e) {
+    logger.warn({ err: e, participantId: participant.id }, 'accepted notification failed');
+  }
+}
 
 // -------- Публичные типы --------
 
@@ -270,6 +402,10 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
     newValue: { phone_hash: phoneHash.slice(0, 8), messengers: Object.keys(input.messengers) },
   });
 
+  // Заявка уходит четырём функциям: инкубация, балансировка, ноология,
+  // верификация. Фолбэк — Первый Архитектор.
+  await notifyRegistration(requestId);
+
   return { requestId, status: 'new' };
 }
 
@@ -480,6 +616,10 @@ export async function createFromRequest(
   });
 
   await emitInterviewEnded(input.requestId, 'completed');
+
+  // Человек вошёл в контур: куратор направления назначает наставника,
+  // балансировка учитывает +1 участника.
+  await notifyAccepted(entity);
 
   return { participant: entity, temporaryPassword: tempPassword };
 }

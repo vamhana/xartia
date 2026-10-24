@@ -3621,6 +3621,7 @@
 
 |2026-10-24: createFromRequest возвращает { participant, temporaryPassword } (пароль показывается один раз); добавлены listRegistrationRequests() — очередь заявок с маской телефона — и nextWaveNumber(wave) для приёма без ручного номера.
 
+|2026-10-24 (путь участника): заявка рассылается четырём функциям — инкубация (Совет направления 11), балансировка (BALANCER), ноология (NOOLOG #6), верификация (VERIFIER #13); если у функции никого нет — Первому Архитектору. При приёме куратор направления получает «назначьте наставника», балансировка — +1 участник.
 |C.0.02.03|Core|Common|TypeScript|src/core/onboarding/service.ts|C.0.07.01, C.0.07.02|v.0.0.01|Draft|—|
 |Описание: Онбординг. Создаёт welcome-задачу «Первый день» и сразу назначает её новому участнику. Отдельной сущности «онбординг» нет: используется обычный домен задач (C.0.07), поэтому задача видна в /tasks, по ней работает отчёт и ОТК.
 |Публичный API:
@@ -6857,6 +6858,7 @@
 - `crypto.randomUUID()` (глобальный) — расхождение с `newUUID` из L.0.01.01.
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно через I.9.04.38.
 
+|2026-10-24: assignIntegratorService стал идемпотентным (проверка mentor_id+direction_id) — UNIQUE-индекса в схеме нет, и повторное назначение создавало вторую строку, из-за чего ученик «терялся» в старой.
 |C.0.28.02|Core|Domain|TypeScript|src/core/convergence/service.ts|C.0.28.01, C.0.14.02 (dynamic), C.0.24.02 (dynamic), C.0.19.02 (dynamic), C.0.27.02 (dynamic), C.0.01.02, C.0.01.04, C.0.01.05, L.0.01.01, L.0.01.05, L.0.01.09|v.0.0.03|Draft|V.7, I.7.2, I.7.4.1, I.7.4.3, I.7.4.4, I.7.7.4, I.7.8.1|
 |Описание: Сервис Convergence. Переход внешнего государства (V.7). **20 публичных функций** + 5 интерфейсов (`PlanFilter`, `CreatePlanInput`, `ConvertDebtsInput`, `ConvertAssetsInput`, `ConvertWeaponsInput`) + 2 реэкспорта (`CONVERGENCE_MAX_MONTHS`, `type StageCriteria`) + 6 приватных row-mappers (`rowToPlan`, `rowToCouncil`, `rowToDebt`, `rowToAsset`, `rowToWeapon`, `rowToCulture`) + 1 хелпер (`bestEffort`). **`CONVERGENCE_MAX_STAGE = CONVERGENCE_STAGES - 1`** (B.7). **`advanceStage(planId, targetStage, requesterId)`** — targetStage из контроллера (B.6). Интеграции — best-effort dynamic import: C.0.14.02 (`flows.addFlow` в `convertDebts`), C.0.24.02 (`gateway.acceptAsset` в `convertAssets`), C.0.19.02 (`verification.createAuditService` в `convertWeapons` и `auditProgress`), C.0.27.02 (`planetary.accreditCommunity` в `complete` — TODO).
 |Публичный API:
@@ -8757,6 +8759,12 @@
 |↘ ПРЕДОСТАВЛЯЕТ: данные для A.1.38.01 → F.4.02.30 (/ для гостя).
 |Реализация: COUNT(*)::text → parseInt, чтобы не зависеть от типа int8 в pg. Персональные данные не выбираются — это проверяет scripts/test-public.ts.
 
+|C.0.45.01|Core|Service|TypeScript|src/core/mentors/service.ts|C.0.28.01|v.0.0.01|Draft|—|
+|Описание: Наставничество как процедура: назначение наставника ученику пишется в реестр integrator_mentors и участника (mentor_id), наставник получает уведомление с карточкой ученика, балансировка — +ученик; карточка ученика отдаёт задачи (всего/в работе/принято) и Поток.
+|Публичный API:
+- assignMentorService(menteeId, mentorId, requesterId), listMentorRegistry(directionId?), getMenteeCard(menteeId).
+|↙ ПОТРЕБЛЯЕТ: C.0.28.01 (assignIntegratorService, addIntegratorMenteeService, listIntegrators), A.1.35.01 (admin-роуты), L.0.01.11 (уведомления).
+|↘ ПРЕДОСТАВЛЯЕТ: PATCH /admin/participants/:id {mentor_id}, GET /admin/mentors, GET /admin/participants/:id/mentee-card; проверка — scripts/test-journey.ts (I.9.04.55).
 |D.2.01.01|DB|Migration|SQL|db/migrations/001_extensions.sql|—|v.0.0.01|Draft|D.2.01.02|
 |Описание: Первая миграция. Устанавливает 5 PostgreSQL-расширений, без которых не поднимается ни одна последующая миграция. Идемпотентна (IF NOT EXISTS). Завершается DO-блоком, который выводит список установленных расширений через RAISE NOTICE. Дополняет удалённые D.1.* schema: pgcrypto (gen_random_uuid, шифрование PII), postgis (GEOGRAPHY для participants.geolocation, tasks.location, reports.geolocation, cultural_centers.location), pg_trgm (триграммный поиск в справочниках), btree_gist (TSTZRANGE-индексы: balance_metrics.period, mood_metrics.period), uuid-ossp (резерв).
 |Публичный API (расширения):

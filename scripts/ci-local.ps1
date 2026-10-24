@@ -87,6 +87,7 @@ if (-not $StaticOnly) {
   Invoke-Step 'smoke: collective' { pnpm tsx scripts/test-collective.ts $phone $password }
   Invoke-Step 'smoke: onboarding-role' { pnpm tsx scripts/test-onboarding-role.ts $phone $password }
   Invoke-Step 'smoke: notifications' { pnpm tsx scripts/test-notification-link.ts $phone $password }
+  Invoke-Step 'smoke: journey' { pnpm tsx scripts/test-journey.ts $phone $password }
   Invoke-Step 'smoke: gateway' { pnpm tsx scripts/test-gateway.ts $phone $password }
   Invoke-Step 'smoke: tasks' { pnpm tsx scripts/test-tasks.ts $phone $password }
 }

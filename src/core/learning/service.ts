@@ -585,6 +585,18 @@ export async function assignIntegratorService(
   directionId: UUID,
   requesterId: UUID,
 ): Promise<IntegratorMentor> {
+  // Идемпотентность: один наставник — одна строка на направление.
+  // Раньше полагались на UNIQUE-индекс, которого в схеме нет: повторное
+  // назначение создавало вторую строку, и ученик «терялся» в старой.
+  const existing = await queryOne<IntegratorRow>(
+    `SELECT * FROM integrator_mentors
+      WHERE mentor_id = $1 AND direction_id = $2
+      ORDER BY created_at
+      LIMIT 1`,
+    [mentorId, directionId],
+  );
+  if (existing) {return rowToIntegrator(existing);}
+
   const im = assignIntegrator(mentorId, directionId);
   try {
     await query(

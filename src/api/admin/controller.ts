@@ -46,6 +46,7 @@ import {
   rejectRecoveryRequest,
 } from '../../core/participants/service.js';
 import { getById as getDirectionById } from '../../core/directions/service.js';
+import { assignMentorService, getMenteeCard, listMentorRegistry } from '../../core/mentors/service.js';
 import { createWelcomeTask } from '../../core/onboarding/service.js';
 import type { RegistrationStatus } from '../../core/types.js';
 import { Role } from '../../core/roles.js';
@@ -148,6 +149,10 @@ const participantsListQuery = z.object({
   search: z.string().min(1).max(255).optional(),
   page: z.coerce.number().int().min(1).default(1),
   per_page: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+const mentorsQuery = z.object({
+  direction_id: z.string().uuid().optional(),
 });
 
 const mandatesListQuery = z.object({
@@ -637,18 +642,53 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuthContext(request);
       const p = request.params as z.infer<typeof participantIdParams>;
       const b = request.body as z.infer<typeof participantPatchBody>;
+      // Наставник — не просто колонка: назначение пишется в реестр
+      // (integrator_mentors), наставник получает карточку ученика,
+      // балансировка — уведомление. Поэтому mentor_id обрабатывается
+      // отдельным сервисом, а не UPDATE'ом в updateParticipantAdmin.
+      const { mentor_id: mentorId, ...rest } = b;
       const updated = await updateParticipantAdmin(
         p.id,
         {
-          ...(b.name !== undefined ? { name: b.name } : {}),
-          ...(b.pseudonym !== undefined ? { pseudonym: b.pseudonym } : {}),
-          ...(b.status !== undefined ? { status: b.status } : {}),
-          ...(b.direction_id !== undefined ? { directionId: b.direction_id } : {}),
-          ...(b.mentor_id !== undefined ? { mentorId: b.mentor_id } : {}),
+          ...(rest.name !== undefined ? { name: rest.name } : {}),
+          ...(rest.pseudonym !== undefined ? { pseudonym: rest.pseudonym } : {}),
+          ...(rest.status !== undefined ? { status: rest.status } : {}),
+          ...(rest.direction_id !== undefined ? { directionId: rest.direction_id } : {}),
         },
         auth.participantId,
       );
+      if (mentorId) {
+        await assignMentorService(p.id, mentorId, auth.participantId);
+      }
       reply.send({ ...updated, audit_id: request.auditId });
+    },
+  );
+
+  // GET /admin/mentors — реестр наставников (для выбора в админке).
+  app.get(
+    '/admin/mentors',
+    {
+      preHandler: [authMiddleware, validateQuery(mentorsQuery)],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      await requireArchitect(request);
+      const q = request.query as z.infer<typeof mentorsQuery>;
+      const data = await listMentorRegistry(q.direction_id);
+      reply.send({ data, audit_id: request.auditId });
+    },
+  );
+
+  // GET /admin/participants/:id/mentee-card — что видит наставник об ученике.
+  app.get(
+    '/admin/participants/:id/mentee-card',
+    {
+      preHandler: [authMiddleware, validateParams(participantIdParams)],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      await requireArchitect(request);
+      const p = request.params as z.infer<typeof participantIdParams>;
+      const card = await getMenteeCard(p.id);
+      reply.send({ ...card, audit_id: request.auditId });
     },
   );
 

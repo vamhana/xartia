@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   708
-  Файлов в проекте:        705
+  Блоков в спецификации:   709
+  Файлов в проекте:        708
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -43,12 +43,13 @@
   X.0.01.06        CHANGELOG.md
 
 ========================================================================
-2. ФАЙЛЫ БЕЗ БЛОКОВ: 0
+2. ФАЙЛЫ БЕЗ БЛОКОВ: 2
 ========================================================================
-  (нет)
+  docs/journey.md [12489 б]
+  scripts/test-journey.ts [8024 б]
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 515
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 516
 ========================================================================
   A.1.00.01        src/server.ts [15803 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -85,7 +86,7 @@
   A.1.32.01        src/api/automation/controller.ts [12721 б]
   A.1.33.01        src/api/aggregator/controller.ts [11535 б]
   A.1.34.01        src/api/connectivity/controller.ts [5648 б]
-  A.1.35.01        src/api/admin/controller.ts [28588 б]
+  A.1.35.01        src/api/admin/controller.ts [30387 б]
   A.1.36.01        src/api/chat/controller.ts [13128 б]
   A.1.37.01        src/api/collective/controller.ts [1305 б]
   A.1.38.01        src/api/public/controller.ts [646 б]
@@ -117,7 +118,7 @@
   C.0.01.05        src/core/audit.ts [11968 б]
   C.0.01.06        src/core/rights.ts [15670 б]
   C.0.02.01        src/core/participants/entity.ts [6480 б]
-  C.0.02.02        src/core/participants/service.ts [38875 б]
+  C.0.02.02        src/core/participants/service.ts [45114 б]
   C.0.02.03        src/core/onboarding/service.ts [3778 б]
   C.0.03.01        src/core/directions/entity.ts [2493 б]
   C.0.03.02        src/core/directions/service.ts [4093 б]
@@ -178,7 +179,7 @@
   C.0.30.01        src/core/experiments/entity.ts [11240 б]
   C.0.30.02        src/core/experiments/service.ts [30872 б]
   C.0.31.01        src/core/learning/entity.ts [8173 б]
-  C.0.31.02        src/core/learning/service.ts [20966 б]
+  C.0.31.02        src/core/learning/service.ts [21611 б]
   C.0.32.01        src/core/automation/entity.ts [12348 б]
   C.0.32.02        src/core/automation/service.ts [25207 б]
   C.0.33.01        src/core/aggregator/entity.ts [6956 б]
@@ -200,6 +201,7 @@
   C.0.41.02        src/core/bulk/service.ts [8013 б]
   C.0.42.01        src/core/collective/service.ts [6320 б]
   C.0.43.01        src/core/public/service.ts [1636 б]
+  C.0.45.01        src/core/mentors/service.ts [6821 б]
   D.2.01.01        db/migrations/001_extensions.sql [1330 б]
   D.2.01.02        db/migrations/002_enums.sql [22159 б]
   D.2.01.03        db/migrations/003_tables.sql [102487 б]
@@ -328,7 +330,7 @@
   I.0.01.04        docker/docker-compose.yml [4734 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [9513 б]
+  I.1.01.16        .github/workflows/ci.yml [9729 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -343,7 +345,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [262948 б]
+  I.10.05.04       tsconfig.tsbuildinfo [263271 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [132363 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -433,7 +435,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [4750 б]
+  I.9.02.18        scripts/ci-local.ps1 [4836 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -561,7 +563,7 @@
   W.2.12.01        src/ws/chat.ts [4002 б]
   W.2.13.01        src/ws/interview.ts [5504 б]
   W.2.14.01        src/ws/psy.ts [7200 б]
-  X.0.01.07        README.md [6741 б]
+  X.0.01.07        README.md [6880 б]
   X.0.01.08        docs/roadmap.md [29308 б]
   X.0.01.11        docs/product-v0.1.md [28734 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
@@ -731,6 +733,6 @@
 СВОДКА
 ========================================================================
   Блоков без файлов:    33
-  Файлов без блоков:    0
-  Файлов с содержимым:  515
+  Файлов без блоков:    2
+  Файлов с содержимым:  516
   Пустых файлов:        157
