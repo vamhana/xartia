@@ -15587,6 +15587,7 @@
 
 |2026-10-24: добавлен сервис minio (bitnami/minio, MINIO_DEFAULT_BUCKETS=charter-media,charter-archive,charter-gateway) и шаг «Базовые справочники» (I.9.02.19). Без хранилища smoke-тест задач падал на «Артефакт не сохранился»: S3-хранилище — обязательная часть контура отчёта.
 |2026-10-24 (minio): хранилище поднимается шагом docker run coollabsio/minio (образ minio/minio недоступен на Docker Hub, quay.io требует авторизацию), бакеты создаёт I.9.02.20. Первая попытка через services с bitnami/minio падала: образа больше нет в Docker Hub.
+|2026-10-24 (диагностика): каждый smoke-шаг пишет вывод в /tmp/smoke-*.log (tee + pipefail), а при падении строки ✗ публикуются аннотацией check-run — логи джоба требуют токена (403), аннотации читаются публичным API.
 |I.2.01.01|Infra|Monitoring|YAML|monitoring/prometheus.yml|I.5.07.01|v.0.0.01|Draft|—|
 |Описание: Prometheus конфиг. Сбор метрик со всех сервисов. Scrape интервалы. Service discovery через K8s.
 |Публичный API (элементы):

@@ -328,7 +328,7 @@
   I.0.01.04        docker/docker-compose.yml [4734 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [6540 б]
+  I.1.01.16        .github/workflows/ci.yml [8184 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -562,7 +562,7 @@
   W.2.13.01        src/ws/interview.ts [5504 б]
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [6741 б]
-  X.0.01.08        docs/roadmap.md [28639 б]
+  X.0.01.08        docs/roadmap.md [29308 б]
   X.0.01.11        docs/product-v0.1.md [28734 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
 
