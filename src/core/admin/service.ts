@@ -528,9 +528,13 @@ async function getFirstArchitectId(): Promise<UUID | null> {
 }
 
 async function seedRoles(): Promise<number> {
-  // 8 базовых ролей × 14 постоянных направлений + ASSOCIATED.
+  // Базовые роли × все активные направления + ASSOCIATED.
   // UNIQUE (direction_id, name) — D.2.01.20, поэтому ON CONFLICT DO NOTHING
   // реально работает.
+  //
+  // Раньше здесь стояло «number BETWEEN 1 AND 14»: направления 15 (Внешний
+  // шлюз), 16 (Сетевая экосистема) и 17 (Правозащита) оставались без ролей,
+  // и участник такого направления не мог получить ни ASSOCIATED, ни OTC.
   //
   // ASSOCIATED — статусная роль, в схеме D.2.01.07 не была. Добавлена здесь,
   // чтобы bootstrap-participant (I.9.02.03) находил существующую запись,
@@ -550,7 +554,7 @@ async function seedRoles(): Promise<number> {
       ('OBLIVION',       'permanent', NULL, NULL, NULL, '[]'),
       ('ASSOCIATED',     'permanent', 1095, NULL, NULL, '[]')
     ) AS r(name, type, max_term_days, max_terms, cooldown_days, conflicts_with)
-    WHERE d.number BETWEEN 1 AND 14
+    WHERE d.status = 'active'
     ON CONFLICT (direction_id, name) DO NOTHING
     RETURNING 1 AS x
   `);

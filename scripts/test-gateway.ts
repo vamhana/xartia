@@ -84,7 +84,7 @@ async function findArch(phone: string) {
 
 async function findOtherDirection(excludeId: string): Promise<string> {
   const row = await queryOne<{ id: string }>(
-    `SELECT id FROM directions WHERE id <> $1 AND status = 'active' LIMIT 1`,
+    `SELECT id FROM directions WHERE id <> $1 AND status = 'active' ORDER BY number LIMIT 1`,
     [excludeId],
   );
   if (!row) {throw new Error('No other active direction');}
