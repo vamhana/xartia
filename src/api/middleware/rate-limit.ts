@@ -56,6 +56,12 @@ function buildKey(req: FastifyRequest, config: RateLimitConfig, keyByOverride?: 
 
 export function rateLimit(options: RateLimitOptions = {}): preHandlerHookHandler {
   return async (req: FastifyRequest, reply: FastifyReply) => {
+    // RATE_LIMIT_ENABLED=false — документированный выключатель (.env.example,
+    // k8s configmap), но до сих пор он нигде не читался: в CI, где он выставлен,
+    // лимиты продолжали работать и smoke-тесты падали с 429 RATE_LIMIT.
+    // Проверяем на каждом вызове, а не при импорте: значение приходит из env.
+    if (process.env['RATE_LIMIT_ENABLED'] === 'false') {return;}
+
     const config = options.config ?? getConfigForRole(tryGetRole(req), req.url, req.method);
 
     const key = buildKey(req, config, options.keyBy);

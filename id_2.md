@@ -3000,6 +3000,7 @@
 - L.0.01.05 logger не импортируется — логирования нет.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.18 test-rate-limit.ts.|
 
+|2026-10-24: RATE_LIMIT_ENABLED=false наконец читается — раньше переменная была только в .env.example и k8s-configmap, а middleware её игнорировал. Из-за этого в CI, где она выставлена, smoke-проверки падали на 429 RATE_LIMIT (запись отчёта).
 |A.1.99.06|API|Middleware|TypeScript|src/api/middleware/validation.ts|C.0.01.02|v.0.0.02|Draft|I.1.9|
 |Описание: Middleware валидации Zod. 4 экспорта: `validationMiddleware(options)` — универсальный, `validateBody/Query/Params(schema)` — обёртки. Порядок: params → query → body. Замена `request.<field> = result.data` (применяет Zod-коэрсию, defaults, transform; отсекает unknown). `mapIssues` использует `error.issues` (совместимо с Zod 3 и Zod 4; `errors` удалён в v4). Русские сообщения об ошибках.|
 |Публичный API (экспорты):
