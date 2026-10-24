@@ -190,6 +190,10 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-branches-otc.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-branches-otc.log
+      - name: Smoke — дерево и наряд
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-tree-naryad.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-tree-naryad.log
       - name: Smoke — Шлюз
         run: |
           set -o pipefail

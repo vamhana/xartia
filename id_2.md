@@ -320,6 +320,7 @@
 - **`POST /cells/:id/members` — `role_in_cell`** — enum из 8 значений; совместимость роли с направлением не проверяется (сервис тоже не проверяет — техдолг C.0.04.02).
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.03 test-cells.ts (полный цикл: login → cleanup → POST /cells → GET /cells → POST /cells/:id/members → GET /cells/:id/members → GET /cells/:id → GET /me → GET /cells/tree/:id). |
 
+|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
 |A.1.05.01|API|REST|TypeScript|src/api/mandates/controller.ts|C.0.05.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.04|Draft|I.1.7, III.4|
 |Описание: Контроллер Mandates. **11 эндпоинтов**: список / due / get / create / rotate / revoke / process-expired / cooldowns / delegations (list/create/revoke). **Rate-limit (`api.write`) на всех мутациях** (POST /mandates, /rotate, DELETE /mandates, POST /delegations, DELETE /delegations, POST /process-expired). Права: `mandate:C/R/D/Act` через `requireRight`. **`DELETE /mandates/:id` — `reason` из query** (`validateQuery(revokeQuerySchema)`, основной канал; `body.reason` — fallback, Fastify 5 не парсит body для DELETE). `uuidIdParams` из L.0.01.03. 7 Zod-схем (6 публичных + `revokeQuerySchema`). |
 |Публичный API:
@@ -461,6 +462,7 @@
 |2026-10-24 (отклонения): GET /plans/deviations (only_behind, lead_direction_id), GET /plans/:id/deviation, POST /plans/:id/deviation/signal — балансировка поднимает сигнал направлению, повторный в течение 24 часов → 409.
 |2026-10-24 (опережение): сигнал поднимается и когда план идёт быстрее графика (status ahead) — «проверьте, можно ли перенести опыт на отстающие участки». on_track → 409.
 
+|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
 |A.1.07.01|API|REST|TypeScript|src/api/tasks/controller.ts|C.0.07.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5|
 |Описание: Контроллер Tasks. **9 эндпоинтов** (из 11 заявленных): список, мои, карточка, создание, assign, take, submit, accept, return. Отсутствуют `PATCH /tasks/:id`, `POST /tasks/:id/change-priority` (roadmap — нет сервисных функций `update`/`changePriority`). Права: `task:C` (create, assign), `otc:C` (accept, return). **`take`/`submit` — self-service** (только `authMiddleware`, проверка `assignedTo` в сервисе). **Rate-limit (`api.write`) на 6 мутациях** (create, assign, take, submit, accept, return). `uuidIdParams`, `taskStatusSchema`, `prioritySchema` из L.0.01.03. 5 Zod-схем. **`createBody.description` — max(5000)**, `required_competencies` — max(50). |
 |Публичный API:
@@ -529,6 +531,7 @@
 
 |2026-10-25: GET /tasks/overdue (список не сданных в ОТК) и POST /tasks/overdue/scan — сигналы направлениям по просрочкам с защитой 24 часа, уведомление балансировке.
 
+|2026-10-25: GET /tasks/overdue (список не сданных в ОТК) и POST /tasks/overdue/scan — сигналы направлениям по просрочкам с защитой 24 часа, уведомление балансировке.
 |A.1.08.01|API|REST|TypeScript|src/api/reports/controller.ts|C.0.08.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5, II.7|
 |Описание: Контроллер Reports. **4 эндпоинта** из 5 заявленных (отсутствует `GET /reports/:id/upload-url` — presigned S3, roadmap). **JSON-контракт с `media_url`** (не multipart). **`requireRight('report','V')` на всех GET** — было: любой авторизованный читал любой отчёт с `media/geolocation/comment`. **`writeLimit` на POST**. `uuidIdParams`/`uuidTaskParams` из L.0.01.03 (было локальные схемы). **`media_url` — `max(2048)`**, **`geolocation.lat/lon` — min/max** (`-90..90`/`-180..180`). Валидация type↔comment/media_url — в сервисе (`chk_report_type_media` — последняя линия). Проверка «отчёт может сдать только assignee» — в сервисе (`B2`: `ForbiddenError`, не `ConflictError`). |
 |Публичный API:
@@ -4143,6 +4146,12 @@
 |↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), D.2.01.03 (tasks.parent_task_id).
 |↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/branches, GET /plans/:id/branches), F.4.02.10 (блок «Ветки планов»).
 
+|C.0.06.05|Core|Service|TypeScript|src/core/plans/tree.ts|C.0.06.02|v.0.0.01|Draft|—|
+|Описание: Дерево работ плана: рекурсивный запрос (корни + потомки) и сборка вложенных узлов с агрегатами «принято/всего» и исполнителем. Позволяет раскрыть микрорайон → дом → работу → человека.
+|Публичный API:
+- getPlanTree(planId) → { roots: WorkTreeNode[], total, done }.
+|↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), D.2.01.03 (tasks.parent_task_id), D.2.01.02 (participants).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/:id/tree), F.4.02.31 (страница дерева), I.9.04.59.
 |C.0.07.01|Core|Domain|TypeScript|src/core/tasks/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.5|
 |Описание: Доменная сущность Задача. Таблица переходов статусов. Deadline вычисляется в createTask. Отсутствует changePriority.
 |Публичный API:
@@ -4276,6 +4285,7 @@
 |2026-10-24: назначение/сдача/приёмка/возврат задачи отправляют уведомление (send в lib/notifications) с data.link — колокольчик открывает событие. Сдача уведомляет роль OTC направления. Ошибка отправки не отменяет доменную операцию (try/catch + лог).
 |2026-10-25 (начисление): приёмка начисляет Поток в acceptTaskService — раньше это делал только ОТК-сервис, и приёмка через /tasks/:id/accept оставляла исполнителя без Потока.
 
+|2026-10-25 (начисление): приёмка начисляет Поток в acceptTaskService — раньше это делал только ОТК-сервис, и приёмка через /tasks/:id/accept оставляла исполнителя без Потока.
 |C.0.07.04|Core|Service|TypeScript|src/core/tasks/overdue.ts|C.0.07.02|v.0.0.01|Draft|—|
 |Описание: Задачи, не сданные в ОТК: срок истёк, статус created/assigned/in_progress. Плюс защита от повторного сигнала по направлению (24 часа, маркер [просрочка:<directionId>]).
 |Публичный API:
@@ -4283,6 +4293,12 @@
 |↙ ПОТРЕБЛЯЕТ: C.0.07.02 (tasks), C.0.10.02 (signals).
 |↘ ПРЕДОСТАВЛЯЕТ: A.1.07.01 (GET /tasks/overdue, POST /tasks/overdue/scan), F.4.02.10 (блок «Не сданы в ОТК»), I.9.04.58.
 
+|C.0.41.03|Core|Service|TypeScript|src/core/cells/daily.ts|C.0.41.01|v.0.0.01|Draft|—|
+|Описание: Наряд ячейки: составление наряда на дату (задачи направления ячейки), распределение по участникам, запрет назначать чужому, список кандидатов. Координатор верхнего уровня раздаёт по ячейкам, каждая ведёт свой наряд.
+|Публичный API:
+- getCellDailyPlan(cellId, date), upsertCellDailyPlan({cellId, date, taskIds, approvedById}), assignCellDailyTask({...}), listCellPlanCandidates(cellId).
+|↙ ПОТРЕБЛЯЕТ: C.0.41.01 (cells, cell_members), D.2.01.03 (tasks), D.2.01.37 (cell_daily_plans).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.04.01 (GET/POST /cells/:id/daily-plan, assign), F.4.02.32 (страница «Наряд»), I.9.04.59.
 |C.0.08.01|Core|Domain|TypeScript|src/core/reports/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|II.5, II.7|
 |Описание: Доменная сущность Отчёт. Минимальная: createReport, canBeSubmittedBy, getMediaKey. Отсутствуют validateReport и attachMedia.
 |Публичный API:
@@ -4523,6 +4539,7 @@
 |2026-10-24 (апелляция): appeal() уведомляет роль OTC направления — «Апелляция на решение ОТК» (priority high, link /otc).
 |2026-10-25: убрано двойное начисление Потока в decide() — оно переехало в acceptTaskService (единственный путь приёмки).
 
+|2026-10-25: убрано двойное начисление Потока в decide() — оно переехало в acceptTaskService (единственный путь приёмки).
 |C.0.10.01|Core|Domain|TypeScript|src/core/signals/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.1|
 |Описание: Доменная сущность Сигнал. 8 из 11 заявленных функций. Отсутствуют respond, setLeadDirection, escalateToArbitration. Добавлены canTransition, changeStatus.
 |Публичный API:
@@ -10340,6 +10357,10 @@
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (plans), D.2.01.05 (signals), D.2.01.02 (participants).
 |↘ ПРЕДОСТАВЛЯЕТ: C.0.06.02 (createPlanService с signalId/curatorId, getPlanProgress), C.0.10.02 (сигнал отдаёт план), F.4.02.06 (блок «План по сигналу»).
 
+|D.2.01.37|DB|Migration|SQL|db/migrations/037_cell_daily_plan.sql|D.2.01.03|v.0.0.01|Draft|—|
+|Описание: Наряд ячейки: таблицы cell_daily_plans (cell_id, date, approved_by, status; UNIQUE cell+date) и cell_daily_plan_tasks (plan_id, task_id, assigned_to, position). Отдельно от daily_plans, потому что там UNIQUE (direction_id, date) — наряд направления один на день, а ячеек много.
+|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (cells, tasks, participants).
+|↘ ПРЕДОСТАВЛЯЕТ: C.0.41.03, A.1.04.01, F.4.02.32.
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -11334,6 +11355,7 @@
 |2026-10-24 (опережение): в таблице отклонений колонка «Статус» (Отстаёт / Быстрее) и кнопка меняет подпись — «Сигнал: отставание» / «Сигнал: быстрее».
 |2026-10-25: блоки «Ветки планов» (каждый участок отдельно) и «Не сданы в ОТК» (список + «Поднять сигналы направлениям»).
 
+|2026-10-25: блоки «Ветки планов» (каждый участок отдельно) и «Не сданы в ОТК» (список + «Поднять сигналы направлениям»).
 |F.4.02.11|Frontend|Page|React|src/web/pages/Verification.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.10, F.4.99.12|v.0.0.01|Draft|III.2|
 |Описание: Панель Верификации. 5 табов: аудиты, перепроверки, аудит кода, целостность, gateway-suspend. Проверка прав через useRights (audit:C, audit:E, audit:A). Тональная инфраструктура: Table, Modal, Form, MetricCard.|
 |Публичный API:
@@ -12493,6 +12515,16 @@
 |↘ ПРЕДОСТАВЛЯЕТ: вход в продукт для приглашённых по ссылке; ведёт на /register и /login.
 |Реализация: fetch напрямую (без auth-обёртки), база — VITE_API_URL или /__api; при недоступном API показывает fallback-цифры (17 направлений) и не падает.
 
+|F.4.02.31|Frontend|Page|React|src/web/pages/PlanTree.tsx|C.0.06.05|v.0.0.01|Draft|—|
+|Описание: Страница дерева работ (/plans/:id): раскрытие/сворачивание веток, выбор узла, карточка «статус, исполнитель, срок, поддерево принято N из M». Дерево как папки: микрорайон → дом → работа → человек.
+|Публичный API: export function PlanTreePage(): ReactElement; маршрут /plans/:id.
+|↙ ПОТРЕБЛЯЕТ: A.1.06.01 (GET /plans/:id, GET /plans/:id/tree), F.4.99.25 (Badge), F.4.99.24 (Card).
+|↘ ПРЕДОСТАВЛЯЕТ: переход из блока «План по сигналу» (F.4.02.06).
+|F.4.02.32|Frontend|Page|React|src/web/pages/Naryad.tsx|C.0.41.03|v.0.0.01|Draft|—|
+|Описание: Страница «Наряд»: выбор ячейки, состав наряда на дату, распределение задач по участникам ячейки и добавление задач направления в наряд.
+|Публичный API: export function NaryadPage(): ReactElement; маршрут /naryad.
+|↙ ПОТРЕБЛЯЕТ: A.1.04.01 (GET/POST /cells/:id/daily-plan, assign), A.1.04.01 (GET /cells, /cells/:id/members), A.1.03.01 (/participants).
+|↘ ПРЕДОСТАВЛЯЕТ: пункт меню «Наряд» (F.4.99.18).
 |F.4.02.98|Frontend|Page|TypeScript|src/web/pages/Otc.tsx|F.4.99.12, F.4.99.20, F.4.99.22, F.4.99.24, F.4.99.25, F.4.99.26|v.0.0.01|Draft|III.2, II.4.3|
 |Описание: Страница ОТК (вариант с lowercase-именем файла; семантически — очередь отчётов ОТК). Дублирует функционально F.4.02.08 (`OTC.tsx`). Список отчётов со `status='submitted'` с возможностью принять или вернуть с обязательной причиной. Автообновление каждые 20 сек. Отображение приоритета захардкожено на `'standard'` — техдолг: `OtcQueueItem` должен содержать `priority` из задачи.
 |Публичный API:
@@ -24177,6 +24209,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |↙ ПОТРЕБЛЯЕТ: C.0.07.02 (уведомления задач), A.1.07.01 (tasks), A.1.96.01 (notifications/history, read).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: notifications» в I.1.01.16 и I.9.02.18.
 
+|I.9.04.55|Infra|Test|TypeScript|scripts/test-journey.ts|C.0.02.02|v.0.0.01|Draft|—|
+|Описание: Сквозной тест пути участника: заявка → уведомления инкубации/балансировке/ноологии/верификации → приём двух участников → назначение наставника → наставник видит ученика → реестр и карточка ученика.
+|Публичный API: pnpm tsx scripts/test-journey.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.02.02 (participants), C.0.45.01 (mentors), L.0.01.11 (уведомления).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — путь участника» в I.1.01.16 и I.9.02.18.
 |I.9.04.56|Infra|Test|TypeScript|scripts/test-signal-plan.ts|C.0.06.02|v.0.0.01|Draft|—|
 |Описание: Сквозной тест пути сигнала: сигнал → план с signal_id и curator_id → из сигнала виден план → GET /plans?signal_id → уведомления куратору и автору → утверждение/активация → задача в плане → прогресс в сигнале.
 |Публичный API: pnpm tsx scripts/test-signal-plan.ts <phone> <password>.
@@ -24195,6 +24232,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |↙ ПОТРЕБЛЯЕТ: C.0.06.04 (branches), C.0.07.04 (overdue), C.0.07.02 (accept), C.0.09.02 (OTC).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — ветки и приёмка ОТК» в I.1.01.16 и I.9.02.18.
 
+|I.9.04.59|Infra|Test|TypeScript|scripts/test-tree-naryad.ts|C.0.06.05|v.0.0.01|Draft|—|
+|Описание: Тест дерева и наряда: план с домом и работой отдаётся деревом (2 узла) → свежий участник входит в ячейку → наряд составляется и задача назначается участнику → чужому назначать нельзя (403) → наряд читается на дату.
+|Публичный API: pnpm tsx scripts/test-tree-naryad.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.06.05 (tree), C.0.41.03 (cell daily), A.1.04.01 (cells API).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — дерево и наряд» в I.1.01.16 и I.9.02.18.
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:
@@ -30452,6 +30494,11 @@ REMOVED. Файл удалён при миграции на ESLint 9 flat config
 - Dependencies между фазами.
   |Примечания: Обновляется при изменении приоритетов. Синхронизировано с X.0.01.06 (CHANGELOG).
 
+|X.0.01.13|Docs|Doc|Markdown|docs/journey.md|—|v.0.0.01|Draft|—|
+|Описание: Модель пути участника и пути сигнала: шаги, кто действует, что происходит в системе, статус каждого шага (работает/частично/нет), слабые места и порядок работ.
+|Публичный API: —
+|↙ ПОТРЕБЛЯЕТ: —
+|↘ ПРЕДОСТАВЛЯЕТ: основу для решений о следующем шаге продукта.
 |X.0.01.09|Docs|Scenarios|Markdown|docs/scenarios.md|V.1|v.0.0.01|Draft|V.1|
 |Описание: Сценарии. Регистрация 17 айтишников. Первые задачи. Делегирование. Полные user stories с шагами.
 |Публичный API:

@@ -36,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/flows',              icon: '🔄', label: 'Потоки' },
   { path: '/balance',            icon: '⚖️', label: 'Балансировка' },
   { path: '/cells',              icon: '🏢', label: 'Ячейки' },
+  { path: '/naryad',             icon: '📋', label: 'Наряд' },
   { path: '/experiments',        icon: '🧪', label: 'Эксперименты' },
   
   // ── Знание и сознание ───────────────────────────────────

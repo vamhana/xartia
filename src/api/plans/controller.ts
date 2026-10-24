@@ -16,6 +16,7 @@ import { z } from 'zod';
 import {
   computePlanBranches, listPlanBranches,
 } from '../../core/plans/branches.js';
+import { getPlanTree } from '../../core/plans/tree.js';
 import {
   computeDeviation, hasRecentDeviationSignal, listDeviations,
 } from '../../core/plans/deviation.js';
@@ -124,6 +125,17 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
         ...(q.only_behind === 'true' ? { onlyBehind: true } : {}),
       });
       reply.send({ data: result.data, meta: { total: result.total }, audit_id: req.auditId });
+    },
+  );
+
+  // GET /plans/:id/tree — дерево работ: дом → этаж → работы → люди.
+  app.get(
+    '/plans/:id/tree',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const tree = await getPlanTree(p.id);
+      reply.send({ ...tree, audit_id: req.auditId });
     },
   );
 

@@ -5,6 +5,12 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import {
+  assignCellDailyTask,
+  getCellDailyPlan,
+  listCellPlanCandidates,
+  upsertCellDailyPlan,
+} from '../../core/cells/daily.js';
+import {
   listCells,
   getById,
   getMembers,
@@ -149,6 +155,87 @@ export async function registerCellsRoutes(app: FastifyInstance): Promise<void> {
   );
 
   // DELETE /cells/:id/members/:participant_id — удаление (право: cell:D)
+  // -------- Наряд ячейки (C.0.41.03) --------
+  // Наряд приходит на ячейку, координатор распределяет по людям.
+
+  const cellPlanQuery = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
+
+  app.get(
+    '/cells/:id/daily-plan',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams), validateQuery(cellPlanQuery)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const q = req.query as z.infer<typeof cellPlanQuery>;
+      const day = await getCellDailyPlan(p.id, q.date);
+      reply.send({ ...day, audit_id: req.auditId });
+    },
+  );
+
+  app.get(
+    '/cells/:id/daily-plan/candidates',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const data = await listCellPlanCandidates(p.id);
+      reply.send({ data, audit_id: req.auditId });
+    },
+  );
+
+  app.post(
+    '/cells/:id/daily-plan',
+    {
+      preHandler: [
+        authMiddleware,
+        requireRight('plan', 'C'),
+        validateParams(uuidIdParams),
+        validateBody(z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          task_ids: z.array(uuidSchema).min(1).max(50),
+        })),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const b = req.body as { date: string; task_ids: string[] };
+      const day = await upsertCellDailyPlan({
+        cellId: p.id,
+        date: b.date,
+        taskIds: b.task_ids as never[],
+        approvedById: auth.participantId,
+      });
+      reply.status(201).send({ ...day, audit_id: req.auditId });
+    },
+  );
+
+  app.post(
+    '/cells/:id/daily-plan/:task_id/assign',
+    {
+      preHandler: [
+        authMiddleware,
+        requireRight('plan', 'C'),
+        validateParams(uuidIdParams.extend({ task_id: uuidSchema })),
+        validateBody(z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          participant_id: uuidSchema,
+        })),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as { id: string; task_id: string };
+      const b = req.body as { date: string; participant_id: string };
+      const day = await assignCellDailyTask({
+        cellId: p.id,
+        date: b.date,
+        taskId: p.task_id as never,
+        participantId: b.participant_id as never,
+        requesterId: auth.participantId,
+      });
+      reply.send({ ...day, audit_id: req.auditId });
+    },
+  );
+
   app.delete(
     '/cells/:id/members/:participant_id',
     { preHandler: [authMiddleware, requireRight('cell', 'D'), validateParams(memberParams)] },

@@ -365,7 +365,10 @@ function PlanBlock({
           </div>
         </div>
         <div style={styles.detailActions}>
-          <Button variant="secondary" onClick={() => navigate(`/tasks?plan_id=${plan.id}`)}>
+          <Button variant="secondary" onClick={() => navigate(`/plans/${plan.id}`)}>
+            Дерево работ
+          </Button>
+          <Button variant="ghost" onClick={() => navigate(`/tasks?plan_id=${plan.id}`)}>
             Задачи плана
           </Button>
         </div>

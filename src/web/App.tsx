@@ -27,6 +27,8 @@ import { ReportPage } from './pages/Report';
 import { WorkspacePage } from './pages/Workspace';
 import { TasksPage } from './pages/Tasks';
 import { DailyPlanPage } from './pages/DailyPlan';
+import { NaryadPage } from './pages/Naryad';
+import { PlanTreePage } from './pages/PlanTree';
 import { SignalsPage } from './pages/Signals';
 import { GoodsPage } from './pages/Goods';
 import { FlowsPage } from './pages/Flows';
@@ -429,6 +431,14 @@ export function App(): ReactElement {
               </div>
             </Layout></RequireAuth>
           } />
+          <Route
+            path="/naryad"
+            element={<RequireAuth><Layout><NaryadPage /></Layout></RequireAuth>}
+          />
+          <Route
+            path="/plans/:id"
+            element={<RequireAuth><Layout><PlanTreePage /></Layout></RequireAuth>}
+          />
           <Route path="/chat" element={<RequireAuth><Layout><ChatPage /></Layout></RequireAuth>} />
           <Route
             path="/form-demo"
