@@ -79,6 +79,11 @@ jobs:
       DATABASE_REPLICA_URL: postgresql://charter:charter@localhost:5432/charter
       REDIS_URL: redis://localhost:6379
       RATE_LIMIT_ENABLED: 'false'
+      # S3-клиент падает при импорте, если переменных нет (L.0.01.07).
+      # В smoke-тестах S3 не используется — достаточно валидных значений.
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: ci-minio
+      S3_SECRET_KEY: ci-minio-secret
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
