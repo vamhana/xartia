@@ -33,6 +33,8 @@ export interface OversightNode {
   done: number;
   overdue: number;
   early: number;
+  /** Сколько разных людей задействовано на уровне. */
+  people: number;
   signals: OversightSignal[];
   children: OversightNode[];
 }
@@ -196,11 +198,15 @@ export async function getOversightTree(
     const signalsFor = (pred: (s: SignalRow) => boolean): OversightSignal[] =>
       signals.filter(pred).map(toSignal);
 
-    const stat = (list: TaskRow[]): { total: number; done: number; overdue: number; early: number } => {
+    const stat = (list: TaskRow[]): {
+      total: number; done: number; overdue: number; early: number; people: number;
+    } => {
       let done = 0;
       let overdue = 0;
       let early = 0;
+      const people = new Set<string>();
       for (const t of list) {
+        if (t.assigned_to) {people.add(t.assigned_to);}
         const accepted = t.status === 'accepted';
         if (accepted) {
           done += 1;
@@ -209,7 +215,7 @@ export async function getOversightTree(
           overdue += 1;
         }
       }
-      return { total: list.length, done, overdue, early };
+      return { total: list.length, done, overdue, early, people: people.size };
     };
 
     const roots = tasks.filter((t) => !t.parent_task_id || !byId.has(t.parent_task_id));
@@ -306,6 +312,7 @@ export async function getOversightTree(
             directionId: (plan.lead_direction_id as UUID | null) ?? null,
             planId: plan.id as UUID,
             total: 1,
+            people: t.assigned_to ? 1 : 0,
             done: t.status === 'accepted' ? 1 : 0,
             overdue: t.status !== 'accepted' && t.deadline && t.deadline.getTime() < now ? 1 : 0,
             early: 0,

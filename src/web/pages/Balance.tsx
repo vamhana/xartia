@@ -257,6 +257,7 @@ interface OversightNode {
   done: number;
   overdue: number;
   early: number;
+  people: number;
   signals: OversightSignal[];
   children: OversightNode[];
 }
@@ -341,6 +342,7 @@ function OversightBlock(): ReactElement {
           <span style={styles.ovKind}>{OVERSIGHT_KIND_LABEL[node.kind]}</span>
           <span style={styles.ovTitle}>{node.title}</span>
           <span style={styles.ovSub}>{node.subtitle}</span>
+          <span style={styles.ovPeople}>чел.: {node.people}</span>
           <span style={styles.ovCounts}>
             <span style={{ color: colors.danger }}>−{node.overdue}</span>
             <span style={{ color: colors.success }}>+{node.early}</span>
@@ -1003,6 +1005,7 @@ const styles = {
   ovKind: { color: colors.textDim, fontSize: fontSize.xs, width: 64 },
   ovTitle: { fontWeight: 500, minWidth: 180 },
   ovSub: { color: colors.textMuted, fontSize: fontSize.xs, flex: 1 },
+  ovPeople: { color: colors.textMuted, fontSize: fontSize.xs, width: 64 },
   ovCounts: { display: 'flex', gap: 8, fontSize: fontSize.xs, width: 110 },
   ovCoord: { color: colors.textMuted, fontSize: fontSize.xs, width: 130 },
 
