@@ -144,6 +144,8 @@
 | Web (`F.4.99.27`) | заголовок карточки — человеческий (`WIDGET_TITLES` + overrides), а не «table · tasks» |
 | Core (`C.0.07.02`) | назначение, сдача, приёмка и возврат задачи отправляют уведомление с `data.link`; сдача уведомляет роль OTC направления; падение отправки не отменяет операцию |
 | Web (`F.4.99.15`) | клик по уведомлению ведёт на событие: crisis/regime → `/regimes`, semantic → `/semantic`, integrity → `/verification`, gateway → `/gateway`, community → `/planetary`; фолбэк по `data.taskId/reportId/signalId`; выпадашка закрывается |
+| Web (`F.4.99.27`) | пустой виджет больше не выглядит поломкой: заголовок + подсказка (`EMPTY_HINTS`), что делать («Задач нет — возьмите из очереди направления») |
+| Тест (`I.9.04.54`) | `scripts/test-notification-link.ts`: назначение → уведомление с `data.link` → `PATCH /notifications/:id/read` → статус сохранён; шаг в CI |
 
 **Проверено:** назначение задачи ОТК создаёт уведомление «Вам назначена задача»
 с `data.link = /tasks/<id>/report`; панель ОТК отдаёт `otc_queue` в `widgetData`;

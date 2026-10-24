@@ -64,6 +64,39 @@ const WIDGET_TITLES: Record<string, string> = {
   'container/layout': 'Контейнер',
 };
 
+/** Что делать, если данных нет — вместо пустой рамки. */
+const EMPTY_HINTS: Record<string, string> = {
+  my_tasks: 'Задач нет. Возьмите задачу из очереди направления на странице «Задачи».',
+  tasks: 'Задач пока нет. Создайте задачу или дождитесь плана направления.',
+  otc_queue: 'Очередь пуста — проверять нечего. Хороший момент, чтобы взять задачу.',
+  signals: 'Сигналов нет. Если есть проблема или идея — подайте сигнал.',
+  flows: 'Потоков пока нет: они начисляются за принятые задачи.',
+  balance: 'Баланс не рассчитан — нет принятых задач за период.',
+  capsule: 'Капсула пуста: положите туда излишек Потока.',
+  cells: 'Ячеек нет — направление ещё не собрало группы.',
+  archive: 'Архив пуст: сюда попадают завершённые задачи и решения.',
+  communities: 'Общин нет — планетарный уровень ещё не начат.',
+  regimes: 'Активных режимов нет — обычный контур.',
+  passport: 'Паспорт недоступен: обновите страницу.',
+};
+
+/** Пусто ли значение для виджета: null, [], {data: []} и т.п. */
+function isWidgetDataEmpty(data: unknown): boolean {
+  if (data === null || data === undefined) {return true;}
+  if (Array.isArray(data)) {return data.length === 0;}
+  if (typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    const inner = obj['data'];
+    if (Array.isArray(inner)) {return inner.length === 0;}
+    const rows = obj['rows'];
+    if (Array.isArray(rows)) {return rows.length === 0;}
+    // Объект из одних пустых значений тоже считаем пустым.
+    const values = Object.values(obj).filter((v) => v !== null && v !== undefined);
+    return values.length === 0;
+  }
+  return false;
+}
+
 // Реэкспорт для обратной совместимости с потребителями
 // (Workspace, Constructor). Внутри они импортируются из .constants.js,
 // но если где-то остался старый импорт — продолжит работать.
@@ -466,12 +499,25 @@ export function PanelCanvas(props: PanelCanvasProps): ReactElement {
               Достигнута максимальная вложенность ({MAX_DEPTH})
             </div>
           ) : (
-            <WidgetRenderer
-              instance={inst as unknown as WidgetInstanceRef}
-              widget={w as unknown as WidgetLibraryEntry}
-              context={context}
-              data={data}
-            />
+            isWidgetDataEmpty(data) ? (
+              // Пустая рамка выглядит как поломка. Лучше честный empty-state
+              // с подсказкой, что делать дальше.
+              <div style={styles.emptyState}>
+                <div style={styles.emptyTitle}>
+                  {WIDGET_TITLES[`${w.type}/${w.entity}`] ?? 'Нет данных'}
+                </div>
+                <div style={styles.emptyHint}>
+                  {EMPTY_HINTS[w.entity] ?? 'Данных пока нет'}
+                </div>
+              </div>
+            ) : (
+              <WidgetRenderer
+                instance={inst as unknown as WidgetInstanceRef}
+                widget={w as unknown as WidgetLibraryEntry}
+                context={context}
+                data={data}
+              />
+            )
           )}
         </WidgetShell>
       </div>
@@ -745,4 +791,16 @@ const styles = {
     textAlign: 'center' as const,
   },
   muted: { color: colors.textMuted, fontSize: fontSize.sm },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    gap: 6,
+    padding: spacing.md,
+    textAlign: 'center' as const,
+  },
+  emptyTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: 500 },
+  emptyHint: { color: colors.textDim, fontSize: fontSize.xs, lineHeight: 1.5 },
 } as const;

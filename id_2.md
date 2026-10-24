@@ -14836,6 +14836,7 @@
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан. Косвенно — F.4.02.18 Constructor.tsx (корень + вложенные контейнеры, drag из палитры), F.4.98.01 Workspace.tsx (bare, interactive=false).|
 
 |2026-10-24: заголовок виджета — человеческий (карта WIDGET_TITLES + overrides.title), а не «table · tasks».
+|2026-10-24 (empty-state): если данных у виджета нет (null, [], {data: []}), вместо пустой рамки показывается заголовок и подсказка EMPTY_HINTS («Задач нет — возьмите из очереди направления», «Очередь пуста — проверять нечего» и т.д.).
 |F.4.99.28|Frontend|UI|TypeScript|src/web/components/ui/PanelCanvas.constants.ts|F.4.99.05|v.0.0.02|Draft|VIII.1|
 |Описание: Константы PanelCanvas, вынесенные в отдельный модуль. Причина выделения — vite-plugin-react (Fast Refresh) требует, чтобы файл экспортировал либо только компоненты, либо только не-компоненты. PanelCanvas.tsx экспортирует компонент PanelCanvas, поэтому все константы (COLS, ZOOM_LEVELS, SCREEN_SIZES, BASE_ROW_HEIGHT и т.д.) вынесены сюда. Обеспечивает корректную работу HMR без полной перезагрузки страницы. Также используется DndManager'ом и потребителями (Constructor.tsx, Workspace.tsx) для тулбаров.|
 |Публичный API:
@@ -24071,6 +24072,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |Публичный API: pnpm tsx scripts/test-onboarding-role.ts <architect_phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: A.1.01.01, A.1.03.01 (/roles), A.1.35.01 (accept с role), S.0.01.03 (assignRole).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: onboarding-role» в I.1.01.16 и I.9.02.18.
+|I.9.04.54|Infra|Test|TypeScript|scripts/test-notification-link.ts|C.0.07.02|v.0.0.01|Draft|—|
+|Описание: Smoke-тест «уведомление → переход к событию»: назначение задачи самому себе → в /notifications/history появляется task.assigned с data.link=/tasks/<id>/report → PATCH /notifications/:id/read → статус сохраняется.
+|Публичный API: pnpm tsx scripts/test-notification-link.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.07.02 (уведомления задач), A.1.07.01 (tasks), A.1.96.01 (notifications/history, read).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: notifications» в I.1.01.16 и I.9.02.18.
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:
