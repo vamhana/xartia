@@ -138,6 +138,8 @@ jobs:
         run: pnpm tsx scripts/test-collective.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
       - name: Smoke — роль при приёме
         run: pnpm tsx scripts/test-onboarding-role.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+      - name: Smoke — Шлюз
+        run: pnpm tsx scripts/test-gateway.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
       - name: Smoke — уведомления
         run: pnpm tsx scripts/test-notification-link.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
       - name: Smoke — задачи

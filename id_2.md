@@ -11634,6 +11634,7 @@
 - Нет визуализации обязательной Верификации сделок (I.2.7).
 ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
+|2026-10-24: вкладка «Обзор» стала первой и открывается по умолчанию: KPI (доход, расход, баланс, активы, ждут решения, самодостаточность), баннер «Что такое Шлюз», последние сделки; пустой контур объясняется, а не выглядит поломкой. Сводка считается на клиенте из /gateway/transactions и /gateway/assets — отдельный endpoint дублировал бы данные.
 |F.4.02.17|Frontend|Page|React|src/web/pages/Quanta.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.05, F.4.99.07, F.4.99.10, F.4.99.12, F.4.99.20, F.4.99.24, F.4.99.25, F.4.99.26|v.0.0.03|Draft|IV.3, I.3.3.1|
 |Описание: Панель Quanta. **3 таба**: Каталог / Обязательные / Обнаружение. **Master-detail** в «Каталоге» по образцу Signals.tsx. Жизненный цикл: detected → audit → testing → scaling → active → cancelled. Полная реализация. **~30 KB**, ~600 строк, локальный Modal, useRights. |
 |Публичный API:
@@ -23858,6 +23859,7 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 ИЗМЕНЕНИЯ: —
 ТЕСТОВОЕ ПОКРЫТИЕ: A.1.24.01, C.0.24.02, S.0.01.07 (косвенно) — B2, B3, B4 (partial), B5, B6, B7, B8, B10, B24.
 
+|2026-10-24: скрипт включён в CI («Smoke — Шлюз») — проходит совет, сделки (approve/audit, B3/B4), активы, Гаранта, Свидетелей, Оборону, самодостаточность и роспуск; чистит за собой состояние.
 |I.9.04.47|Infra|Tools|TypeScript|scripts/test-constructor.ts|A.1.26.01, A.1.98.01, C.0.26.01, C.0.26.02, C.0.26.03, L.0.01.01, L.0.01.09, L.0.01.12, L.0.01.xx (redis), S.0.xx (encryption/password)|v0.0.01|Draft|A.1.26.01, A.1.98.01|
 |Описание: CLI-тест Конструктора. **~22 секции**: setup (worker, roles, container/leaf widget) → panel create/get/list/patch/delete → widgets (root/container/leaf, B8 listWidgets entity, B4 cycle, B5 cascade) → publish/versions (B6) → B2 (patch/delete active → 409) → B38 (contextual: global normal + role-specific crisis, exact priority + fallback) → B37 (checkRightInMatrix unit) → B1 (/panels/me scoping) → render (with 404) → rights-matrix CRUD (create/dup 409/list) → cache invalidate (B9) → widgets library. Cleanup по `MARKER='CONSTRUCTOR-TEST:'`.
 |Публичный API:

@@ -86,7 +86,16 @@ interface Witness {
   createdAt: string;
 }
 
-type Tab = 'council' | 'transactions' | 'assets' | 'guarantor' | 'witnesses' | 'defense' | 'self' | 'dissolve';
+type Tab =
+  | 'overview'
+  | 'council'
+  | 'transactions'
+  | 'assets'
+  | 'guarantor'
+  | 'witnesses'
+  | 'defense'
+  | 'self'
+  | 'dissolve';
 
 // ─── Константы ───────────────────────────────────────────────────
 
@@ -142,6 +151,7 @@ const GUARANTOR_STATUS_TONE: Record<GuarantorStatus, BadgeTone> = {
 };
 
 const TAB_LABEL: Record<Tab, string> = {
+  overview: 'Обзор',
   council: 'Совет',
   transactions: 'Сделки',
   assets: 'Активы',
@@ -155,7 +165,7 @@ const TAB_LABEL: Record<Tab, string> = {
 // ─── Страница ────────────────────────────────────────────────────
 
 export function GatewayPage(): ReactElement {
-  const [tab, setTab] = useState<Tab>('council');
+  const [tab, setTab] = useState<Tab>('overview');
 
   return (
     <div style={styles.page}>
@@ -177,6 +187,7 @@ export function GatewayPage(): ReactElement {
         ))}
       </div>
 
+      {tab === 'overview' ? <OverviewSection onOpenTab={setTab} /> : null}
       {tab === 'council' ? <CouncilSection /> : null}
       {tab === 'transactions' ? <TransactionsSection /> : null}
       {tab === 'assets' ? <AssetsSection /> : null}
@@ -185,6 +196,227 @@ export function GatewayPage(): ReactElement {
       {tab === 'defense' ? <DefenseSection /> : null}
       {tab === 'self' ? <SelfSufficiencySection /> : null}
       {tab === 'dissolve' ? <DissolveSection /> : null}
+    </div>
+  );
+}
+
+// ─── Обзор ───────────────────────────────────────────────────────
+
+function money(value: number): string {
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(value);
+}
+
+/**
+ * Обзор Шлюза — первое, что должен видеть человек, открывший раздел.
+ * Считается на клиенте из уже существующих списков: отдельный endpoint
+ * «сводка» дублировал бы данные и расходился бы с ними.
+ */
+function OverviewSection({
+  onOpenTab,
+}: {
+  onOpenTab: (t: Tab) => void;
+}): ReactElement {
+  const txQ = useApiQuery<{ data: Transaction[] }>(
+    ['gateway', 'transactions', 'overview'],
+    '/gateway/transactions',
+  );
+  const assetsQ = useApiQuery<{ data: Asset[] }>(
+    ['gateway', 'assets', 'overview'],
+    '/gateway/assets',
+  );
+  const selfQ = useApiQuery<{ canDissolve: boolean; reasons: string[] }>(
+    ['gateway', 'self-sufficiency'],
+    '/gateway/self-sufficiency',
+  );
+
+  const loading = txQ.isLoading || assetsQ.isLoading || selfQ.isLoading;
+  const transactions = txQ.data?.data ?? [];
+  const assets = assetsQ.data?.data ?? [];
+
+  const total = (type: TxType): number =>
+    transactions
+      .filter(
+        (t) =>
+          t.type === type &&
+          (t.status === 'approved' || t.status === 'completed'),
+      )
+      .reduce((acc, t) => acc + (t.amountExternal ?? 0), 0);
+
+  const income = total('sale');
+  const expense = total('purchase');
+  const balance = income - expense;
+  const pending = transactions.filter((t) => t.status === 'pending').length;
+  const assetsValue = assets
+    .filter((a) => a.status !== 'converted')
+    .reduce((acc, a) => acc + a.value, 0);
+  const converted = assets
+    .filter((a) => a.status === 'converted')
+    .reduce((acc, a) => acc + a.value, 0);
+
+  const isEmpty = transactions.length === 0 && assets.length === 0;
+  const canDissolve = selfQ.data?.canDissolve ?? false;
+
+  return (
+    <div style={styles.overview}>
+      <div style={styles.banner}>
+        <div style={styles.bannerTitle}>Что такое Шлюз</div>
+        <div style={styles.bannerText}>
+          Единственная точка контакта с внешним миром. Деньги и ресурсы не входят
+          во внутренний контур напрямую: сначала сделка (продажа или закупка),
+          затем одобрение, аудит и только потом — активы и Потоки. Поэтому здесь
+          видны внешние суммы, а не внутренние балансы.
+        </div>
+      </div>
+
+      {loading ? (
+        <Spinner />
+      ) : (
+        <>
+          <div style={styles.kpiGrid}>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>Доход</div>
+              <div style={styles.kpiValue}>{money(income)}</div>
+              <div style={styles.kpiHint}>продажи, одобренные и завершённые</div>
+            </div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>Расход</div>
+              <div style={styles.kpiValue}>{money(expense)}</div>
+              <div style={styles.kpiHint}>закупки, одобренные и завершённые</div>
+            </div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>Баланс</div>
+              <div
+                style={{
+                  ...styles.kpiValue,
+                  color: balance < 0 ? colors.danger : colors.text,
+                }}
+              >
+                {money(balance)}
+              </div>
+              <div style={styles.kpiHint}>доход минус расход</div>
+            </div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>Активы</div>
+              <div style={styles.kpiValue}>{money(assetsValue)}</div>
+              <div style={styles.kpiHint}>
+                приняты в контур{converted > 0 ? `, конвертировано ${money(converted)}` : ''}
+              </div>
+            </div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>Ждут решения</div>
+              <div style={styles.kpiValue}>{pending}</div>
+              <div style={styles.kpiHint}>сделки в статусе «Ожидает»</div>
+            </div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>Самодостаточность</div>
+              <div style={styles.kpiValue}>
+                <Badge tone={canDissolve ? 'success' : 'warning'}>
+                  {canDissolve ? 'Готов' : 'Не готов'}
+                </Badge>
+              </div>
+              <div style={styles.kpiHint}>
+                условие роспуска: импорт &lt; 5% × 3 года (I.5.4.4)
+              </div>
+            </div>
+          </div>
+
+          {isEmpty ? (
+            <Card
+              title="Внешний контур пуст"
+              subtitle="Продуктов наружу пока нет — Шлюз ждёт первую сделку"
+            >
+              <p style={styles.muted}>
+                Это нормальное состояние на старте: контур есть, денег в нём ещё
+                нет. Первая продажа появится, когда коллектив выпустит продукт
+                для внешнего мира. Как только сделка появится, здесь будут
+                доход, расход, баланс и очередь на одобрение — без ручных
+                таблиц.
+              </p>
+              <div style={styles.actions}>
+                <Button variant="primary" onClick={() => onOpenTab('transactions')}>
+                  Создать сделку
+                </Button>
+                <Button variant="secondary" onClick={() => onOpenTab('assets')}>
+                  Принять актив
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <>
+              <Card
+                title="Последние сделки"
+                subtitle="Полный список — во вкладке «Сделки»"
+              >
+                <Table<Transaction>
+                  data={transactions.slice(0, 5)}
+                  columns={[
+                    {
+                      key: 'type',
+                      title: 'Тип',
+                      width: 120,
+                      render: (r) => (
+                        <Badge tone="info">{TX_TYPE_LABEL[r.type]}</Badge>
+                      ),
+                    },
+                    {
+                      key: 'description',
+                      title: 'Описание',
+                      render: (r) => (
+                        <span style={styles.truncate}>
+                          {r.description.slice(0, 70)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'amount',
+                      title: 'Сумма',
+                      width: 120,
+                      align: 'right',
+                      render: (r) =>
+                        r.amountExternal !== null
+                          ? money(r.amountExternal)
+                          : '—',
+                    },
+                    {
+                      key: 'status',
+                      title: 'Статус',
+                      width: 130,
+                      render: (r) => (
+                        <Badge tone={TX_STATUS_TONE[r.status]}>
+                          {TX_STATUS_LABEL[r.status]}
+                        </Badge>
+                      ),
+                    },
+                  ]}
+                  getRowId={(r) => r.id}
+                  emptyMessage="Сделок нет"
+                />
+                <div style={styles.actions}>
+                  <Button variant="ghost" onClick={() => onOpenTab('transactions')}>
+                    Все сделки
+                  </Button>
+                  <Button variant="ghost" onClick={() => onOpenTab('assets')}>
+                    Активы
+                  </Button>
+                </div>
+              </Card>
+
+              {pending > 0 ? (
+                <Card
+                  title={`Требуют решения: ${pending}`}
+                  subtitle="Одобрение и аудит — разные шаги, оба нужны"
+                >
+                  <div style={styles.actions}>
+                    <Button onClick={() => onOpenTab('transactions')}>
+                      Открыть очередь
+                    </Button>
+                  </div>
+                </Card>
+              ) : null}
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1256,6 +1488,35 @@ function Modal({
 
 const styles = {
   page: { display: 'flex' as const, flexDirection: 'column' as const, gap: spacing.md },
+  overview: { display: 'flex' as const, flexDirection: 'column' as const, gap: spacing.md },
+  banner: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    border: `1px solid ${colors.border}`,
+    background: colors.bgSoft,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 6,
+  },
+  bannerTitle: { fontSize: fontSize.md, fontWeight: 600, color: colors.text },
+  bannerText: { fontSize: fontSize.sm, color: colors.textMuted, lineHeight: 1.6 },
+  kpiGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: spacing.md,
+  },
+  kpiCard: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    border: `1px solid ${colors.borderSoft}`,
+    background: colors.bgSoft,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
+  kpiLabel: { fontSize: fontSize.xs, color: colors.textMuted, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+  kpiValue: { fontSize: 24, fontWeight: 600, color: colors.text },
+  kpiHint: { fontSize: fontSize.xs, color: colors.textDim, lineHeight: 1.4 },
   header: {
     display: 'flex' as const, alignItems: 'center' as const,
     gap: spacing.md,
