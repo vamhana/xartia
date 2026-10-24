@@ -71,22 +71,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 30
-      # Артефакт отчёта — обязательная часть контура «задача → отчёт → ОТК»:
-      # без хранилища smoke-тест задач падает на «Артефакт не сохранился».
-      # bitnami/minio создаёт бакеты из MINIO_DEFAULT_BUCKETS при старте.
-      minio:
-        image: bitnami/minio:latest
-        env:
-          MINIO_ROOT_USER: ci-minio
-          MINIO_ROOT_PASSWORD: ci-minio-secret
-          MINIO_DEFAULT_BUCKETS: charter-media,charter-archive,charter-gateway
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 30
     env:
       NODE_ENV: test
       API_PORT: 3000
@@ -110,6 +94,27 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      # Артефакт отчёта — обязательная часть контура «задача → отчёт → ОТК»:
+      # без хранилища smoke-тест задач падает на «Артефакт не сохранился».
+      # Запускаем MinIO шагом, а не сервисом: образу нужен аргумент `server /data`,
+      # а services в GitHub Actions не поддерживают command.
+      - name: MinIO (хранилище артефактов)
+        run: |
+          docker run -d --name ci-minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=ci-minio \
+            -e MINIO_ROOT_PASSWORD=ci-minio-secret \
+            minio/minio:latest server /data
+          for i in $(seq 1 40); do
+            if curl -fsS http://localhost:9000/minio/health/live >/dev/null; then
+              echo "MinIO поднялся за ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          docker run --rm --network host --entrypoint sh minio/mc:latest -c \
+            "mc alias set ci http://localhost:9000 ci-minio ci-minio-secret && \
+             mc mb --ignore-existing ci/charter-media ci/charter-archive ci/charter-gateway"
 
       # 017_seed_widgets.sql требует участника, поэтому миграции идут
       # в два прохода: схема → Архитектор → сиды.
