@@ -101,15 +101,25 @@ jobs:
 
       - name: Запустить API
         run: |
-          pnpm dev > /tmp/api.log 2>&1 &
-          for i in $(seq 1 60); do
+          # Без watch: tsx watch рассчитан на интерактивную разработку и в CI
+          # может вести себя иначе (нет TTY, другой слежение за файлами).
+          pnpm exec tsx src/server.ts > /tmp/api.log 2>&1 &
+          for i in $(seq 1 90); do
             if curl -fsS http://localhost:3000/health > /dev/null; then
               echo "API поднялся за ${i}s"
               exit 0
             fi
             sleep 1
           done
-          echo "API не поднялся"; tail -100 /tmp/api.log; exit 1
+          echo "API не поднялся"
+          tail -200 /tmp/api.log
+          {
+            echo '### Лог API (последние 200 строк)'
+            echo '```'
+            tail -200 /tmp/api.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
 
       - name: Smoke — система
         run: pnpm tsx scripts/test-system.ts
