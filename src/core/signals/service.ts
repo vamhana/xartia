@@ -47,6 +47,9 @@ interface SignalRow {
   status: SignalStatus;
   iterations: number;
   lead_direction_id: string | null;
+  subject_plan_id: string | null;
+  subject_task_id: string | null;
+  subject_cell_id: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -65,6 +68,9 @@ function rowToSignal(row: SignalRow): Signal {
     status: row.status,
     iterations: row.iterations,
     leadDirectionId: row.lead_direction_id,
+    subjectPlanId: row.subject_plan_id,
+    subjectTaskId: row.subject_task_id,
+    subjectCellId: row.subject_cell_id,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };
@@ -211,6 +217,9 @@ export interface CreateSignalRequest {
   directions?: UUID[];
   desiredDeadline?: string;
   leadDirectionId?: UUID;
+  subjectPlanId?: UUID;
+  subjectTaskId?: UUID;
+  subjectCellId?: UUID;
 }
 
 export async function createSignalService(
@@ -244,6 +253,9 @@ export async function createSignalService(
       ...(input.directions ? { directions: input.directions } : {}),
       ...(input.desiredDeadline ? { desiredDeadline: input.desiredDeadline } : {}),
       ...(input.leadDirectionId ? { leadDirectionId: input.leadDirectionId } : {}),
+      ...(input.subjectPlanId ? { subjectPlanId: input.subjectPlanId } : {}),
+      ...(input.subjectTaskId ? { subjectTaskId: input.subjectTaskId } : {}),
+      ...(input.subjectCellId ? { subjectCellId: input.subjectCellId } : {}),
     });
 
     try {
@@ -251,13 +263,17 @@ export async function createSignalService(
         await client.query(
           `INSERT INTO signals
              (id, external_id, initiator_id, type, description, justification,
-              directions, desired_deadline, priority, status, iterations, lead_direction_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'new', 0, $10)`,
+              directions, desired_deadline, priority, status, iterations, lead_direction_id,
+              subject_plan_id, subject_task_id, subject_cell_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'new', 0, $10, $11, $12, $13)`,
           [
             entity.id, entity.externalId, entity.initiatorId, entity.type,
             entity.description, entity.justification,
             JSON.stringify(entity.directions), entity.desiredDeadline,
             entity.priority, entity.leadDirectionId,
+            entity.subjectPlanId ?? null,
+            entity.subjectTaskId ?? null,
+            entity.subjectCellId ?? null,
           ],
         );
         await client.query(

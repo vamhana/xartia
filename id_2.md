@@ -463,6 +463,8 @@
 |2026-10-24 (опережение): сигнал поднимается и когда план идёт быстрее графика (status ahead) — «проверьте, можно ли перенести опыт на отстающие участки». on_track → 409.
 
 |2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
+|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
+|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
 |A.1.07.01|API|REST|TypeScript|src/api/tasks/controller.ts|C.0.07.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5|
 |Описание: Контроллер Tasks. **9 эндпоинтов** (из 11 заявленных): список, мои, карточка, создание, assign, take, submit, accept, return. Отсутствуют `PATCH /tasks/:id`, `POST /tasks/:id/change-priority` (roadmap — нет сервисных функций `update`/`changePriority`). Права: `task:C` (create, assign), `otc:C` (accept, return). **`take`/`submit` — self-service** (только `authMiddleware`, проверка `assignedTo` в сервисе). **Rate-limit (`api.write`) на 6 мутациях** (create, assign, take, submit, accept, return). `uuidIdParams`, `taskStatusSchema`, `prioritySchema` из L.0.01.03. 5 Zod-схем. **`createBody.description` — max(5000)**, `required_competencies` — max(50). |
 |Публичный API:
@@ -718,6 +720,7 @@
 - **`respondBody.data` — refine через `JSON.stringify`** — выполняется на каждом запросе, для больших `data` — overhead.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.20 test-signals.ts (полный цикл), I.9.04.05 test-connections (route + POST /connections), I.9.04.11 test-jury (idea-сигнал), I.9.04.23 test-universal-runs-multi. |
 
+|2026-10-25: создание сигнала принимает subject_plan_id / subject_task_id / subject_cell_id — сигнал можно привязать к плану, ветке или ячейке.
 |A.1.11.01|API|REST|TypeScript|src/api/connections/controller.ts|C.0.11.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.3|
 |Описание: Контроллер Connections. **9 эндпоинтов**: 4 GET + 5 мутаций. Отсутствует `POST /connections/:id/escalate` (вынесен в A.1.12.01). **`writeLimit` на 6 мутациях** (POST /connections + 5 action). **`requireRight('connection','V')` на 4 GET** — PII: `positions`/`cause`/`protocol`. `uuidIdParams`/`uuidSignalParams`/`uuidDirectionParams` из L.0.01.03 (было локальные `idParams`/`signalParams`/`directionParams` — 12-14-й дубли). **`connectionResultSchema`** из L.0.01.03 (было inline enum). **`protocolBody.protocol` — refine JSON ≤ 100KB**. **`recordPositionService` получает `auth.directionId`** — для B3-проверки в сервисе. |
 |Публичный API:
@@ -4152,6 +4155,12 @@
 - getPlanTree(planId) → { roots: WorkTreeNode[], total, done }.
 |↙ ПОТРЕБЛЯЕТ: C.0.06.02 (plans), D.2.01.03 (tasks.parent_task_id), D.2.01.02 (participants).
 |↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/:id/tree), F.4.02.31 (страница дерева), I.9.04.59.
+|C.0.06.06|Core|Service|TypeScript|src/core/plans/oversight.ts|C.0.06.05|v.0.0.01|Draft|—|
+|Описание: Дерево надзора для балансировки и Совета: план (микрорайон) → ветка (дом) → ячейка → человек. На каждом уровне счётчики (всего/принято/просрочено/сдано раньше), координатор и привязанные сигналы (subject_plan_id / subject_task_id / subject_cell_id).
+|Публичный API:
+- getOversightTree(directionId?) → OversightNode[], getSignalCountForPlan(planId).
+|↙ ПОТРЕБЛЯЕТ: C.0.06.05 (tree), C.0.41.01 (cell_members), C.0.10.02 (signals.subject_*).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.06.01 (GET /plans/oversight), F.4.02.10 (дерево надзора на панели балансировки).
 |C.0.07.01|Core|Domain|TypeScript|src/core/tasks/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.5|
 |Описание: Доменная сущность Задача. Таблица переходов статусов. Deadline вычисляется в createTask. Отсутствует changePriority.
 |Публичный API:
@@ -4285,6 +4294,7 @@
 |2026-10-24: назначение/сдача/приёмка/возврат задачи отправляют уведомление (send в lib/notifications) с data.link — колокольчик открывает событие. Сдача уведомляет роль OTC направления. Ошибка отправки не отменяет доменную операцию (try/catch + лог).
 |2026-10-25 (начисление): приёмка начисляет Поток в acceptTaskService — раньше это делал только ОТК-сервис, и приёмка через /tasks/:id/accept оставляла исполнителя без Потока.
 
+|2026-10-25 (начисление): приёмка начисляет Поток в acceptTaskService — раньше это делал только ОТК-сервис, и приёмка через /tasks/:id/accept оставляла исполнителя без Потока.
 |2026-10-25 (начисление): приёмка начисляет Поток в acceptTaskService — раньше это делал только ОТК-сервис, и приёмка через /tasks/:id/accept оставляла исполнителя без Потока.
 |C.0.07.04|Core|Service|TypeScript|src/core/tasks/overdue.ts|C.0.07.02|v.0.0.01|Draft|—|
 |Описание: Задачи, не сданные в ОТК: срок истёк, статус created/assigned/in_progress. Плюс защита от повторного сигнала по направлению (24 часа, маркер [просрочка:<directionId>]).
@@ -4539,6 +4549,7 @@
 |2026-10-24 (апелляция): appeal() уведомляет роль OTC направления — «Апелляция на решение ОТК» (priority high, link /otc).
 |2026-10-25: убрано двойное начисление Потока в decide() — оно переехало в acceptTaskService (единственный путь приёмки).
 
+|2026-10-25: убрано двойное начисление Потока в decide() — оно переехало в acceptTaskService (единственный путь приёмки).
 |2026-10-25: убрано двойное начисление Потока в decide() — оно переехало в acceptTaskService (единственный путь приёмки).
 |C.0.10.01|Core|Domain|TypeScript|src/core/signals/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.1|
 |Описание: Доменная сущность Сигнал. 8 из 11 заявленных функций. Отсутствуют respond, setLeadDirection, escalateToArbitration. Добавлены canTransition, changeStatus.
@@ -10361,6 +10372,10 @@
 |Описание: Наряд ячейки: таблицы cell_daily_plans (cell_id, date, approved_by, status; UNIQUE cell+date) и cell_daily_plan_tasks (plan_id, task_id, assigned_to, position). Отдельно от daily_plans, потому что там UNIQUE (direction_id, date) — наряд направления один на день, а ячеек много.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (cells, tasks, participants).
 |↘ ПРЕДОСТАВЛЯЕТ: C.0.41.03, A.1.04.01, F.4.02.32.
+|D.2.01.38|DB|Migration|SQL|db/migrations/038_signal_subject.sql|D.2.01.03|v.0.0.01|Draft|—|
+|Описание: Привязка сигнала к объекту надзора: signals.subject_plan_id / subject_task_id / subject_cell_id (nullable, FK) + индексы. Без этого «напротив дома сигнал» не нарисовать — все сигналы висели на направлении.
+|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (signals, plans, tasks, cells).
+|↘ ПРЕДОСТАВЛЯЕТ: C.0.10.02 (создание с subject_*), C.0.06.06 (дерево надзора).
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -11356,6 +11371,8 @@
 |2026-10-25: блоки «Ветки планов» (каждый участок отдельно) и «Не сданы в ОТК» (список + «Поднять сигналы направлениям»).
 
 |2026-10-25: блоки «Ветки планов» (каждый участок отдельно) и «Не сданы в ОТК» (список + «Поднять сигналы направлениям»).
+|2026-10-25: блоки «Ветки планов» (каждый участок отдельно) и «Не сданы в ОТК» (список + «Поднять сигналы направлениям»).
+|2026-10-25: вместо плоского списка отклонений — дерево надзора (раскрывающиеся уровни, счётчики «−просрочено / +раньше», координатор, бейдж сигналов, кнопка «Сигнал Совету»).
 |F.4.02.11|Frontend|Page|React|src/web/pages/Verification.tsx|F.4.99.02, F.4.99.03, F.4.99.04, F.4.99.10, F.4.99.12|v.0.0.01|Draft|III.2|
 |Описание: Панель Верификации. 5 табов: аудиты, перепроверки, аудит кода, целостность, gateway-suspend. Проверка прав через useRights (audit:C, audit:E, audit:A). Тональная инфраструктура: Table, Modal, Form, MetricCard.|
 |Публичный API:

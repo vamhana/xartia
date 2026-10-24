@@ -17,6 +17,7 @@ import {
   computePlanBranches, listPlanBranches,
 } from '../../core/plans/branches.js';
 import { getPlanTree } from '../../core/plans/tree.js';
+import { getOversightTree } from '../../core/plans/oversight.js';
 import {
   computeDeviation, hasRecentDeviationSignal, listDeviations,
 } from '../../core/plans/deviation.js';
@@ -101,6 +102,18 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
       audit_id: req.auditId,
     });
   });
+
+  // GET /plans/oversight — дерево надзора для балансировки и Совета:
+  // микрорайон → дом → ячейка → человек, с сигналами на каждом уровне.
+  app.get(
+    '/plans/oversight',
+    { preHandler: [authMiddleware, validateQuery(z.object({ lead_direction_id: uuidSchema.optional() }))] },
+    async (req, reply) => {
+      const q = req.query as { lead_direction_id?: string };
+      const data = await getOversightTree(q.lead_direction_id as never);
+      reply.send({ data, audit_id: req.auditId });
+    },
+  );
 
   // GET /plans/branches — параллельные ветки планов (дом №1 … дом №20).
   app.get(

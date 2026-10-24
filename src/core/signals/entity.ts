@@ -21,6 +21,10 @@ export interface Signal {
   status: SignalStatus;
   iterations: number;
   leadDirectionId: UUID | null;
+  /** К чему привязан сигнал: план (микрорайон), задача (дом/работа), ячейка. */
+  subjectPlanId: UUID | null;
+  subjectTaskId: UUID | null;
+  subjectCellId: UUID | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
@@ -38,6 +42,9 @@ export interface SignalResponse {
 }
 
 export interface CreateSignalInput {
+  subjectPlanId?: UUID | null;
+  subjectTaskId?: UUID | null;
+  subjectCellId?: UUID | null;
   id: UUID;
   externalId: string;
   initiatorId: UUID;
@@ -72,6 +79,9 @@ export function createSignal(input: CreateSignalInput): Signal {
     status: 'new',
     iterations: 0,
     leadDirectionId: input.leadDirectionId ?? null,
+    subjectPlanId: input.subjectPlanId ?? null,
+    subjectTaskId: input.subjectTaskId ?? null,
+    subjectCellId: input.subjectCellId ?? null,
     createdAt: now,
     updatedAt: now,
   };

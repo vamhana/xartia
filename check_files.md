@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   724
-  Файлов в проекте:        721
+  Блоков в спецификации:   726
+  Файлов в проекте:        723
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 531
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 533
 ========================================================================
   A.1.00.01        src/server.ts [15803 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -56,11 +56,11 @@
   A.1.03.01        src/api/directions/controller.ts [2240 б]
   A.1.04.01        src/api/cells/controller.ts [8824 б]
   A.1.05.01        src/api/mandates/controller.ts [10040 б]
-  A.1.06.01        src/api/plans/controller.ts [13404 б]
+  A.1.06.01        src/api/plans/controller.ts [14088 б]
   A.1.07.01        src/api/tasks/controller.ts [10963 б]
   A.1.08.01        src/api/reports/controller.ts [4195 б]
   A.1.09.01        src/api/otc/controller.ts [6151 б]
-  A.1.10.01        src/api/signals/controller.ts [8768 б]
+  A.1.10.01        src/api/signals/controller.ts [9128 б]
   A.1.11.01        src/api/connections/controller.ts [7408 б]
   A.1.12.01        src/api/arbitrations/controller.ts [7169 б]
   A.1.13.01        src/api/universal-runs/controller.ts [5938 б]
@@ -130,6 +130,7 @@
   C.0.06.03        src/core/plans/deviation.ts [6876 б]
   C.0.06.04        src/core/plans/branches.ts [4702 б]
   C.0.06.05        src/core/plans/tree.ts [3962 б]
+  C.0.06.06        src/core/plans/oversight.ts [12949 б]
   C.0.07.01        src/core/tasks/entity.ts [4736 б]
   C.0.07.02        src/core/tasks/service.ts [20881 б]
   C.0.07.04        src/core/tasks/overdue.ts [3300 б]
@@ -137,8 +138,8 @@
   C.0.08.02        src/core/reports/service.ts [7527 б]
   C.0.09.01        src/core/otc/entity.ts [2834 б]
   C.0.09.02        src/core/otc/service.ts [17151 б]
-  C.0.10.01        src/core/signals/entity.ts [4951 б]
-  C.0.10.02        src/core/signals/service.ts [16962 б]
+  C.0.10.01        src/core/signals/entity.ts [5423 б]
+  C.0.10.02        src/core/signals/service.ts [17712 б]
   C.0.11.01        src/core/connections/entity.ts [4943 б]
   C.0.11.02        src/core/connections/service.ts [12478 б]
   C.0.12.01        src/core/arbitrations/entity.ts [3394 б]
@@ -243,6 +244,7 @@
   D.2.01.35        db/migrations/035_role_widgets.sql [6479 б]
   D.2.01.36        db/migrations/036_plan_signal_curator.sql [1691 б]
   D.2.01.37        db/migrations/037_cell_daily_plan.sql [1741 б]
+  D.2.01.38        db/migrations/038_signal_subject.sql [1367 б]
   F.4.01.01        src/web/App.tsx [14362 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -258,7 +260,7 @@
   F.4.02.07        src/web/pages/Goods.tsx [21825 б]
   F.4.02.08        src/web/pages/OTC.tsx [13221 б]
   F.4.02.09        src/web/pages/Regimes.tsx [28909 б]
-  F.4.02.10        src/web/pages/Balance.tsx [37544 б]
+  F.4.02.10        src/web/pages/Balance.tsx [37061 б]
   F.4.02.11        src/web/pages/Verification.tsx [35558 б]
   F.4.02.12        src/web/pages/Archive.tsx [31679 б]
   F.4.02.13        src/web/pages/Justice.tsx [44558 б]
@@ -353,7 +355,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264643 б]
+  I.10.05.04       tsconfig.tsbuildinfo [263680 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [130349 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -506,7 +508,7 @@
   I.9.04.56        scripts/test-signal-plan.ts [7129 б]
   I.9.04.57        scripts/test-plan-deviation.ts [7903 б]
   I.9.04.58        scripts/test-branches-otc.ts [10106 б]
-  I.9.04.59        scripts/test-tree-naryad.ts [8776 б]
+  I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -580,7 +582,7 @@
   X.0.01.08        docs/roadmap.md [29308 б]
   X.0.01.11        docs/product-v0.1.md [28734 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
-  X.0.01.13        docs/journey.md [14887 б]
+  X.0.01.13        docs/journey.md [15770 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -748,5 +750,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  531
+  Файлов с содержимым:  533
   Пустых файлов:        157

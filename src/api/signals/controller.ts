@@ -57,6 +57,9 @@ const createBody = z.object({
   directions: z.array(uuidSchema).optional(),
   desired_deadline: z.string().datetime({ offset: true }).optional(),
   lead_direction_id: uuidSchema.optional(),
+  subject_plan_id: uuidSchema.optional(),
+  subject_task_id: uuidSchema.optional(),
+  subject_cell_id: uuidSchema.optional(),
 });
 
 const respondBody = z.object({
@@ -126,6 +129,9 @@ export async function registerSignalsRoutes(app: FastifyInstance): Promise<void>
         ...(b.directions ? { directions: b.directions } : {}),
         ...(b.desired_deadline ? { desiredDeadline: b.desired_deadline } : {}),
         ...(b.lead_direction_id ? { leadDirectionId: b.lead_direction_id } : {}),
+        ...(b.subject_plan_id ? { subjectPlanId: b.subject_plan_id } : {}),
+        ...(b.subject_task_id ? { subjectTaskId: b.subject_task_id } : {}),
+        ...(b.subject_cell_id ? { subjectCellId: b.subject_cell_id } : {}),
       }, auth.participantId);
       reply.status(201).send({ ...signal, audit_id: req.auditId });
     },

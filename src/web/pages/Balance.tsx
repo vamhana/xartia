@@ -138,222 +138,6 @@ function formatMs(ms: number): string {
 
 // ─── Страница ────────────────────────────────────────────────────
 
-interface PlanDeviationRow {
-  planId: string;
-  externalId: string;
-  title: string;
-  total: number;
-  done: number;
-  overdue: number;
-  expectedDone: number;
-  status: 'behind' | 'on_track' | 'ahead';
-}
-
-/**
- * Отклонения планов — рабочий индикатор балансировки.
- * По Хартии балансировка не решает за направление: она замечает отклонение
- * и поднимает сигнал, чтобы направление проверило участок.
- */
-function DeviationsBlock(): ReactElement {
-  const qc = useQueryClient();
-  const q = useApiQuery<{ data: PlanDeviationRow[]; meta: { total: number } }>(
-    ['balance', 'deviations'],
-    '/plans/deviations',
-  );
-
-  const signalM = useMutation({
-    mutationFn: (planId: string) =>
-      apiPost(`/plans/${planId}/deviation/signal`, {}),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['balance', 'deviations'] });
-      void qc.invalidateQueries({ queryKey: ['signals'] });
-    },
-  });
-
-  const rows = q.data?.data ?? [];
-
-  return (
-    <Card
-      title="Отклонения планов"
-      subtitle="Балансировка замечает — сигнал поднимает направлению, решение за ним"
-    >
-      {q.isLoading ? (
-        <Spinner />
-      ) : rows.length === 0 ? (
-        <p style={styles.muted}>
-          Отклонений нет: все активные планы идут в графике.
-        </p>
-      ) : (
-        <Table<PlanDeviationRow>
-          data={rows}
-          getRowId={(r) => r.planId}
-          columns={[
-            {
-              key: 'title',
-              title: 'План',
-              render: (r) => (
-                <div>
-                  <div>{r.title}</div>
-                  <div style={styles.muted}>{r.externalId}</div>
-                </div>
-              ),
-            },
-            {
-              key: 'progress',
-              title: 'Принято',
-              width: 120,
-              align: 'right',
-              render: (r) => `${r.done} / ${r.total}`,
-            },
-            {
-              key: 'overdue',
-              title: 'Просрочено',
-              width: 120,
-              align: 'right',
-              render: (r) => (
-                <span style={{ color: r.overdue > 0 ? colors.danger : colors.textMuted }}>
-                  {r.overdue}
-                </span>
-              ),
-            },
-            {
-              key: 'expected',
-              title: 'Ожидалось',
-              width: 120,
-              align: 'right',
-              render: (r) => r.expectedDone,
-            },
-            {
-              key: 'status',
-              title: 'Статус',
-              width: 130,
-              render: (r) => (
-                <Badge tone={r.status === 'behind' ? 'danger' : 'info'}>
-                  {r.status === 'behind' ? 'Отстаёт' : 'Быстрее'}
-                </Badge>
-              ),
-            },
-            {
-              key: 'action',
-              title: '',
-              width: 190,
-              render: (r) => (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={signalM.isPending}
-                  onClick={() => signalM.mutate(r.planId)}
-                >
-                  {r.status === 'behind' ? 'Сигнал: отставание' : 'Сигнал: быстрее'}
-                </Button>
-              ),
-            },
-          ]}
-        />
-      )}
-      {signalM.isError && (
-        <p style={{ color: colors.warning, fontSize: 13, marginTop: 8 }}>
-          {signalM.error instanceof Error ? signalM.error.message : 'Не удалось поднять сигнал'}
-        </p>
-      )}
-    </Card>
-  );
-}
-
-interface BranchRow {
-  planId: string;
-  planExternalId: string;
-  planTitle: string;
-  branches: Array<{
-    taskId: string;
-    externalId: string;
-    title: string;
-    total: number;
-    done: number;
-    overdue: number;
-    status: 'behind' | 'on_track' | 'ahead';
-  }>;
-}
-
-/**
- * Ветки планов: «20 домов» — это 20 параллельных участков. Общий прогресс
- * скрывает, что дом №3 на крыше, а дом №11 стоит на фундаменте.
- */
-function BranchesBlock(): ReactElement {
-  const q = useApiQuery<{ data: BranchRow[] }>(['balance', 'branches'], '/plans/branches');
-  const rows = (q.data?.data ?? []).flatMap((p) =>
-    p.branches.map((b) => ({ ...b, planTitle: p.planTitle, planExternalId: p.planExternalId })),
-  );
-
-  return (
-    <Card title="Ветки планов" subtitle="Каждый участок виден отдельно: кто отстаёт, кто уже закончил">
-      {q.isLoading ? (
-        <Spinner />
-      ) : rows.length === 0 ? (
-        <p style={styles.muted}>
-          Веток нет: планы пока не разбиты на параллельные участки
-          (корневая задача + подзадачи).
-        </p>
-      ) : (
-        <Table<(typeof rows)[number]>
-          data={rows}
-          getRowId={(r) => r.taskId}
-          columns={[
-            {
-              key: 'plan',
-              title: 'План',
-              render: (r) => (
-                <div>
-                  <div>{r.planTitle}</div>
-                  <div style={styles.muted}>{r.planExternalId}</div>
-                </div>
-              ),
-            },
-            {
-              key: 'branch',
-              title: 'Ветка',
-              render: (r) => (
-                <div>
-                  <div>{r.title}</div>
-                  <div style={styles.muted}>{r.externalId}</div>
-                </div>
-              ),
-            },
-            {
-              key: 'progress',
-              title: 'Принято',
-              width: 110,
-              align: 'right',
-              render: (r) => `${r.done} / ${r.total}`,
-            },
-            {
-              key: 'overdue',
-              title: 'Просрочено',
-              width: 120,
-              align: 'right',
-              render: (r) => (
-                <span style={{ color: r.overdue > 0 ? colors.danger : colors.textMuted }}>
-                  {r.overdue}
-                </span>
-              ),
-            },
-            {
-              key: 'status',
-              title: 'Статус',
-              width: 130,
-              render: (r) => (
-                <Badge tone={r.status === 'behind' ? 'danger' : r.status === 'ahead' ? 'success' : 'info'}>
-                  {r.status === 'behind' ? 'Отстаёт' : r.status === 'ahead' ? 'Готово' : 'В работе'}
-                </Badge>
-              ),
-            },
-          ]}
-        />
-      )}
-    </Card>
-  );
-}
-
 interface OverdueTaskRow {
   id: string;
   externalId: string;
@@ -364,9 +148,12 @@ interface OverdueTaskRow {
 }
 
 /**
- * Задачи, не сданные в ОТК: срок истёк, отчёта нет. ОТК нечего проверять,
- * пока работа не передана — это разрыв в контуре, и его видит балансировка.
+ * Отклонения планов — рабочий индикатор балансировки.
+ * По Хартии балансировка не решает за направление: она замечает отклонение
+ * и поднимает сигнал, чтобы направление проверило участок.
  */
+
+
 function OverdueBlock(): ReactElement {
   const qc = useQueryClient();
   const q = useApiQuery<{ data: OverdueTaskRow[]; meta: { total: number } }>(
@@ -447,6 +234,160 @@ function OverdueBlock(): ReactElement {
           </div>
         </>
       )}
+    </Card>
+  );
+}
+
+interface OversightSignal {
+  id: string;
+  externalId: string;
+  status: string;
+  description: string;
+}
+
+interface OversightNode {
+  kind: 'plan' | 'branch' | 'cell' | 'person';
+  id: string;
+  title: string;
+  subtitle: string;
+  coordinator: string | null;
+  directionId: string | null;
+  planId: string;
+  total: number;
+  done: number;
+  overdue: number;
+  early: number;
+  signals: OversightSignal[];
+  children: OversightNode[];
+}
+
+const OVERSIGHT_KIND_LABEL: Record<OversightNode['kind'], string> = {
+  plan: 'План',
+  branch: 'Ветка',
+  cell: 'Ячейка',
+  person: 'Человек',
+};
+
+/**
+ * Дерево надзора: микрорайон → дом → ячейка → человек.
+ * Балансировка видит, где именно провал, и поднимает сигнал Совету
+ * направления прямо из узла; Совет видит то же дерево и может связаться
+ * с координатором ячейки или исполнителем.
+ */
+function OversightBlock(): ReactElement {
+  const qc = useQueryClient();
+  const q = useApiQuery<{ data: OversightNode[] }>(
+    ['balance', 'oversight'],
+    '/plans/oversight',
+  );
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+
+  const signalM = useMutation({
+    mutationFn: (node: OversightNode) =>
+      apiPost('/signals', {
+        type: 'problem',
+        description: `[ветка:${node.id}] ${node.title}: требуется проверка (балансировка)`,
+        justification:
+          `Балансировка: ${node.title} — принято ${node.done} из ${node.total}, `
+          + `просрочено ${node.overdue}. Просьба проверить участок и решить вопрос.`,
+        priority: node.overdue > 2 ? 'high' : 'standard',
+        ...(node.directionId
+          ? { directions: [node.directionId], lead_direction_id: node.directionId }
+          : {}),
+        subject_plan_id: node.planId,
+        ...(node.kind === 'branch' ? { subject_task_id: node.id } : {}),
+        ...(node.kind === 'cell' || node.kind === 'person'
+          ? node.kind === 'cell'
+            ? { subject_cell_id: node.id }
+            : { subject_task_id: node.id }
+          : {}),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['balance', 'oversight'] });
+      void qc.invalidateQueries({ queryKey: ['signals'] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Не удалось поднять сигнал'),
+  });
+
+  const toggle = (id: string): void => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {next.delete(id);} else {next.add(id);}
+      return next;
+    });
+  };
+
+  const renderNode = (node: OversightNode, depth: number): ReactElement => {
+    const isOpen = expanded.has(node.id);
+    const hasChildren = node.children.length > 0;
+    return (
+      <div key={`${node.kind}-${node.id}`}>
+        <div
+          style={{
+            ...styles.ovRow,
+            paddingLeft: spacing.sm + depth * 16,
+            background: node.kind === 'plan' ? colors.bgSoft : 'transparent',
+          }}
+        >
+          <button
+            type="button"
+            style={styles.ovToggle}
+            onClick={() => toggle(node.id)}
+            disabled={!hasChildren}
+          >
+            {hasChildren ? (isOpen ? '▾' : '▸') : '·'}
+          </button>
+          <span style={styles.ovKind}>{OVERSIGHT_KIND_LABEL[node.kind]}</span>
+          <span style={styles.ovTitle}>{node.title}</span>
+          <span style={styles.ovSub}>{node.subtitle}</span>
+          <span style={styles.ovCounts}>
+            <span style={{ color: colors.danger }}>−{node.overdue}</span>
+            <span style={{ color: colors.success }}>+{node.early}</span>
+            <span style={{ color: colors.textMuted }}>{node.done}/{node.total}</span>
+          </span>
+          {node.coordinator ? (
+            <span style={styles.ovCoord}>{node.coordinator}</span>
+          ) : null}
+          {node.signals.length > 0 ? (
+            <Badge tone="danger">{`сигналов: ${node.signals.length}`}</Badge>
+          ) : null}
+          {node.kind === 'cell' || node.kind === 'person' || node.kind === 'branch' ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={signalM.isPending}
+              onClick={() => signalM.mutate(node)}
+            >
+              Сигнал Совету
+            </Button>
+          ) : null}
+        </div>
+        {isOpen && node.children.map((child) => renderNode(child, depth + 1))}
+      </div>
+    );
+  };
+
+  const plans = q.data?.data ?? [];
+
+  return (
+    <Card
+      title="Дерево надзора"
+      subtitle="Микрорайон → дом → ячейка → человек: где просрочка, где сигнал, кто координатор"
+    >
+      {q.isLoading ? (
+        <Spinner />
+      ) : plans.length === 0 ? (
+        <p style={styles.muted}>
+          Активных планов нет. Как только план взят в работу, здесь появится
+          дерево участков.
+        </p>
+      ) : (
+        <div style={styles.ovTree}>
+          {plans.map((plan) => renderNode(plan, 0))}
+        </div>
+      )}
+      {error && <p style={{ color: colors.danger, fontSize: 13, marginTop: 8 }}>{error}</p>}
     </Card>
   );
 }
@@ -643,9 +584,7 @@ export function BalancePage(): ReactElement {
 
       {/* Пульс + Индексы */}
       <div style={styles.twoCol}>
-        <DeviationsBlock />
-
-        <BranchesBlock />
+        <OversightBlock />
 
         <OverdueBlock />
 
@@ -1038,6 +977,35 @@ function DetectResultModal({
 // ─── Стили ───────────────────────────────────────────────────────
 
 const styles = {
+  ovTree: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    border: `1px solid ${colors.borderSoft}`,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  ovRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 0',
+    borderBottom: `1px solid ${colors.borderSoft}`,
+    fontSize: fontSize.sm,
+  },
+  ovToggle: {
+    width: 22,
+    border: 'none',
+    background: 'transparent',
+    color: colors.textMuted,
+    cursor: 'pointer',
+    fontSize: 13,
+  },
+  ovKind: { color: colors.textDim, fontSize: fontSize.xs, width: 64 },
+  ovTitle: { fontWeight: 500, minWidth: 180 },
+  ovSub: { color: colors.textMuted, fontSize: fontSize.xs, flex: 1 },
+  ovCounts: { display: 'flex', gap: 8, fontSize: fontSize.xs, width: 110 },
+  ovCoord: { color: colors.textMuted, fontSize: fontSize.xs, width: 130 },
+
   page: { display: 'flex' as const, flexDirection: 'column' as const, gap: spacing.md },
   header: {
     display: 'flex' as const,

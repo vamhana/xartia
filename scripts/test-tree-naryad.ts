@@ -188,6 +188,57 @@ async function main(): Promise<void> {
     fail('наряд не отдаёт задачи');
   }
 
+  // ── 3. Дерево надзора: план → ветка → ячейка → человек ───────────
+  await call('POST', `/plans/${plan.data.id}/approve`, {}, token);
+  await call('POST', `/plans/${plan.data.id}/activate`, {}, token);
+  await query(`UPDATE tasks SET plan_id = $1 WHERE id = $2`, [plan.data.id, house.data.id]);
+  await query(`UPDATE tasks SET assigned_to = $1 WHERE id = $2`, [workerId, work.data.id]);
+
+  const signal = await call(
+    'POST', '/signals',
+    {
+      type: 'problem',
+      description: `[ветка:${house.data.id}] Дом ${suffix}: проверка балансировки`,
+      justification: 'Балансировка: у ячейки просрочка, нужна проверка участка',
+      priority: 'standard',
+      directions: [dir.id],
+      lead_direction_id: dir.id,
+      subject_plan_id: plan.data.id,
+      subject_cell_id: cellId,
+    },
+    token,
+  );
+  if (signal.status === 201) { ok('сигнал привязан к ячейке'); }
+  else { fail(`signal → ${signal.status}`); }
+
+  const oversight = await call<{
+    data: Array<{
+      id: string;
+      kind: string;
+      children: Array<{
+        kind: string;
+        children: Array<{ kind: string; signals: unknown[]; children: Array<{ kind: string }> }>;
+      }>;
+    }>;
+  }>('GET', '/plans/oversight', undefined, token);
+  const planNode = oversight.data.data.find((n) => n.id === plan.data.id);
+  if (planNode) { ok('план в дереве надзора'); }
+  else { fail('план не попал в дерево надзора'); return; }
+
+  const branchNode = planNode.children.find((b) => b.kind === 'branch');
+  if (branchNode) { ok('ветка в дереве'); }
+  else { fail('ветка не попала в дерево'); }
+
+  const cellNode = branchNode?.children.find((c) => c.kind === 'cell');
+  if (cellNode) { ok(`ячейка в дереве, сигналов: ${cellNode.signals.length}`); }
+  else { fail('ячейка не попала в дерево'); }
+
+  if (cellNode && cellNode.signals.length >= 1) { ok('сигнал виден на уровне ячейки'); }
+  else { fail('сигнал не отображается на ячейке'); }
+
+  if (cellNode?.children.some((p2) => p2.kind === 'person')) { ok('человек в дереве'); }
+  else { fail('люди не попали в дерево'); }
+
   console.log('\n✅ done');
 }
 
