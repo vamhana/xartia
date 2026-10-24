@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   703
-  Файлов в проекте:        700
+  Блоков в спецификации:   704
+  Файлов в проекте:        701
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 510
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 511
 ========================================================================
   A.1.00.01        src/server.ts [15803 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -101,7 +101,7 @@
   A.1.95.01        src/api/search/controller.ts [6199 б]
   A.1.96.01        src/api/notifications/controller.ts [8065 б]
   A.1.97.01        src/api/webhooks/controller.ts [7795 б]
-  A.1.98.01        src/api/panels/controller.ts [7018 б]
+  A.1.98.01        src/api/panels/controller.ts [7481 б]
   A.1.99.01        src/api/middleware/auth.ts [3232 б]
   A.1.99.02        src/api/middleware/rights.ts [5299 б]
   A.1.99.03        src/api/middleware/audit.ts [2026 б]
@@ -167,8 +167,8 @@
   C.0.25.01        src/core/quanta/entity.ts [10318 б]
   C.0.25.02        src/core/quanta/service.ts [27115 б]
   C.0.26.01        src/core/constructor/entity.ts [8509 б]
-  C.0.26.02        src/core/constructor/service.ts [36379 б]
-  C.0.26.03        src/core/constructor/data-loaders.ts [27589 б]
+  C.0.26.02        src/core/constructor/service.ts [37426 б]
+  C.0.26.03        src/core/constructor/data-loaders.ts [28181 б]
   C.0.27.01        src/core/planetary/entity.ts [4523 б]
   C.0.27.02        src/core/planetary/service.ts [16963 б]
   C.0.28.01        src/core/convergence/entity.ts [11370 б]
@@ -233,6 +233,7 @@
   D.2.01.31        db/migrations/031_rights_matrix_global_unique.sql [1105 б]
   D.2.01.32        db/migrations/032_registration_phone_hash_unique.sql [1299 б]
   D.2.01.33        db/migrations/033_report_artifact.sql [1108 б]
+  D.2.01.34        db/migrations/034_panels_seed.sql [7337 б]
   F.4.01.01        src/web/App.tsx [13977 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -341,7 +342,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [262914 б]
+  I.10.05.04       tsconfig.tsbuildinfo [263017 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [132181 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -557,7 +558,7 @@
   W.2.13.01        src/ws/interview.ts [5504 б]
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [6741 б]
-  X.0.01.08        docs/roadmap.md [26162 б]
+  X.0.01.08        docs/roadmap.md [27134 б]
   X.0.01.11        docs/product-v0.1.md [20522 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
 
@@ -727,5 +728,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  510
+  Файлов с содержимым:  511
   Пустых файлов:        157

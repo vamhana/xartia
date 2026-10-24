@@ -215,11 +215,20 @@ export async function listMyPanels(
       WHERE p.active = true
         AND (
           p.role_id IS NULL
-          OR p.role_id IN (
-            SELECT pr.role_id FROM participant_roles pr
+          -- Сравниваем роли по ИМЕНИ, а не по id: в таблице roles одна и та же
+          -- функция («OTC», «COUNCIL_MEMBER») заведена отдельной строкой на
+          -- каждое направление. Панель роли — про функцию, а не про строку
+          -- направления, иначе ОТК направление 3 не увидел бы панель ОТК,
+          -- привязанную к строке направления 9.
+          OR EXISTS (
+            SELECT 1
+              FROM participant_roles pr
+              JOIN roles rp ON rp.id = pr.role_id
+              JOIN roles pt ON pt.id = p.role_id
              WHERE pr.participant_id = $1
                AND pr.status = 'active'
                AND (pr.valid_to IS NULL OR pr.valid_to > now())
+               AND pt.name = rp.name
           )
         )
         AND (
@@ -249,11 +258,17 @@ export async function getMyPanelById(
         AND p.active = true
         AND (
           p.role_id IS NULL
-          OR p.role_id IN (
-            SELECT pr.role_id FROM participant_roles pr
+          -- См. listMyPanels: роли сравниваем по имени (одна функция —
+          -- отдельная строка на каждое направление).
+          OR EXISTS (
+            SELECT 1
+              FROM participant_roles pr
+              JOIN roles rp ON rp.id = pr.role_id
+              JOIN roles pt ON pt.id = p.role_id
              WHERE pr.participant_id = $2
                AND pr.status = 'active'
                AND (pr.valid_to IS NULL OR pr.valid_to > now())
+               AND pt.name = rp.name
           )
         )
         AND (

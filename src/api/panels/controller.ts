@@ -38,6 +38,25 @@ const widgetIdParams = z.object({
   widget_id: z.string().uuid(),
 });
 
+/**
+ * Выбор панели: контекст важнее, но внутри контекста — специфичность.
+ *
+ * Порядок: роль+контекст → роль → направление → глобальная. Раньше бралась
+ * «первая normal по updated_at», из-за чего ОТК мог увидеть обзор направления
+ * вместо своей очереди, а Архитектор — чужую панель.
+ */
+function pickPanel(panels: Panel[], context?: ContextKind): Panel | null {
+  if (panels.length === 0) {return null;}
+  const score = (p: Panel): number => {
+    const ctx = context
+      ? (p.context === context ? 2 : p.context === 'normal' ? 1 : 0)
+      : (p.context === 'normal' ? 2 : 1);
+    const specificity = p.roleId ? 2 : p.directionId ? 1 : 0;
+    return ctx * 10 + specificity;
+  };
+  return [...panels].sort((a, b) => score(b) - score(a))[0] ?? null;
+}
+
 // ─── Роуты ───────────────────────────────────────────────────────
 
 export async function registerPanelsRoutes(app: FastifyInstance): Promise<void> {
@@ -55,16 +74,8 @@ export async function registerPanelsRoutes(app: FastifyInstance): Promise<void> 
     async (req, reply) => {
       const auth = getAuthContext(req);
       const panels = await listMyPanels(auth.participantId, auth.directionId);
-      const ctx = req.params.context;
 
-      // Приоритет: точное совпадение по контексту → 'normal' → первая из списка
-      const match =
-        panels.find((p) => p.context === ctx) ??
-        panels.find((p) => p.context === 'normal') ??
-        panels[0] ??
-        null;
-
-      reply.send({ data: match, audit_id: req.auditId });
+      reply.send({ data: pickPanel(panels, req.params.context), audit_id: req.auditId });
     },
   );
 
@@ -98,16 +109,9 @@ export async function registerPanelsRoutes(app: FastifyInstance): Promise<void> 
           return;
         }
       } else if (req.query.context) {
-        panel =
-          allPanels.find((p) => p.context === req.query.context) ??
-          allPanels.find((p) => p.context === 'normal') ??
-          allPanels[0] ??
-          null;
+        panel = pickPanel(allPanels, req.query.context);
       } else {
-        panel =
-          allPanels.find((p) => p.context === 'normal') ??
-          allPanels[0] ??
-          null;
+        panel = pickPanel(allPanels);
       }
 
       if (!panel) {

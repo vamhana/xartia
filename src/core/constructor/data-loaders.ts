@@ -294,6 +294,17 @@ export const DATA_LOADERS: Record<string, LoaderEntry> = {
       return { value: main?.balance ?? 0 };
     },
   },
+  // Алиас для библиотечного виджета chart/balance: в widgets.entity лежит
+  // 'balance', а loader'а с таким именем не было — виджет попадал в
+  // missingEntities и рисовал пустоту. Показываем основной Поток участника.
+  balance: {
+    cacheByEntity: true,
+    fn: async ({ ctx }) => {
+      const balances = await getBalance(ctx.participantId);
+      const main = balances.find((b) => b.type === 'main');
+      return { value: main?.balance ?? 0 };
+    },
+  },
   total_flow: {
     cacheByEntity: true,
     fn: async ({ ctx }) => {

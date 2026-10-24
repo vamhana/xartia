@@ -2724,6 +2724,7 @@
 СВЕРХ СТАРОЙ СПЕКИ: `panel_id` в `renderQuery`, 404 при недоступной панели, `available` в ответе.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.47 (B1, render via /panels/:id/render).
 
+|2026-10-24: выбор панели вынесен в pickPanel(): контекст (точный → normal) важнее, внутри контекста — специфичность (роль → направление → глобальная). Раньше бралась «первая normal по updated_at», из-за чего ОТК мог увидеть обзор направления вместо своей очереди.
 |A.1.98.02|API|UI-Components|TypeScript|src/api/ui/controller.ts|C.0.26.02, L.0.01.04|v.0.0.01|Draft|VIII.1|
 |Описание: UI-контроллер. Отдача UI-компонентов, схем, локализации. Единый источник UI-данных. Синхронизация с клиентом.
 |Публичный API (эндпоинты):
@@ -6639,6 +6640,7 @@
 СВЕРХ СТАРОЙ СПЕКИ (v0.0.02): B1–B9, B38, `listMyPanels`, `getMyPanelById`, `loadPanelData`, `includeGlobalRole`, `MAX_DEPTH`.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.47 (B2, B3, B4, B5, B6, B8, B9, B37 unit, B38 integration).
 
+|2026-10-24: listMyPanels и getMyPanelById матчат роль панели по ИМЕНИ роли, а не по id: в таблице roles одна функция заведена отдельной строкой на каждое направление, из-за чего панель «Роль: OTC» не была видна ОТК другого направления.
 |C.0.26.03|Core|Domain|TypeScript|src/core/constructor/data-loaders.ts|C.0.26.01, C.0.26.02, C.0.01.01, C.0.01.04, ~28 доменных сервисов|v.0.0.02|Draft|VIII.1|
 |Описание: Реестр data loaders для виджетов Конструктора. **28 доменов, ~93 loader'а**. Каждый loader вызывается от имени участника — фильтры по направлению/участнику/роли применяются здесь. Формат данных «натуральный» (Card → объект, Table/List/Chart/Timeline/Tree → массив, Metric/Progress/Circular → `{ value, max? }`, Map → массив `{ id, lat, lon, label?, type? }`). Ошибки loader'а не роняют панель — `Promise.allSettled` в C.0.26.02.loadPanelData. **`LoaderContext.directionId: UUID | null`** — участник без направления; **`DIRECTION_SCOPED`** — набор entity, для которых `directionId=null` → пустой результат.
 |Публичный API:
@@ -6689,6 +6691,7 @@
 СВЕРХ СТАРОЙ СПЕКИ (v0.0.01): directionId null, DIRECTION_SCOPED, layout/main_balance/total_flow.
 ТЕСТОВОЕ ПОКРЫТИЕ: косвенно через I.9.04.47 (render /panels/:id/render).
 
+|2026-10-24: добавлен loader-алиас для entity balance (как main_balance) — библиотечный виджет chart/balance ссылался на entity balance, loader отсутствовал и виджет попадал в missingEntities.
 |C.0.27.01|Core|Domain|TypeScript|src/core/planetary/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|IV.7, V.6|
 |Описание: Доменная сущность Планетарный уровень. **5 функций** + 5 type-alias + 7 интерфейсов. Чистые функции, без БД. **Импортов C.0.01.03 (Constants) нет** (старая спека ошибочно указывала).
 |Публичный API:
@@ -10262,6 +10265,11 @@
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (reports).
 |↘ ПРЕДОСТАВЛЯЕТ: колонку для C.0.08.01/C.0.08.02, A.1.08.01, C.0.09.02 (очередь ОТК).
 
+|D.2.01.34|DB|Migration|SQL|db/migrations/034_panels_seed.sql|D.2.01.03|v.0.0.01|Draft|—|
+|Описание: Панели по направлениям и ролям. Архивирует тестовые панели (не удаляет), создаёт по панели на каждое из 17 направлений, панели ролей по профилям (executor/reviewer/analyst/curator/architect) и кризисные панели для Архитектора и Совета. Идемпотентна.
+|Публичный API: DDL/DML — DO-блок; панели + panel_widgets, ссылки на widgets по (type, entity).
+|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (panels, panel_widgets, widgets, roles, directions).
+|↘ ПРЕДОСТАВЛЯЕТ: рабочие места для C.0.26.02 (listMyPanels/render) и F.4.98.01 (Workspace).
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
