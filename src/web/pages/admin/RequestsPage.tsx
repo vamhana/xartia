@@ -36,6 +36,14 @@ interface Direction {
   name: string;
 }
 
+interface RoleOption {
+  id: string;
+  directionId: string;
+  directionName: string;
+  name: string;
+  type: string;
+}
+
 interface AcceptedParticipant {
   externalId: string;
   name: string;
@@ -44,6 +52,7 @@ interface AcceptedParticipant {
 interface AcceptResponse {
   participant: AcceptedParticipant;
   temporary_password: string;
+  role: string | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -74,13 +83,19 @@ function messengersText(m: Record<string, string>): string {
 export function RequestsPage(): ReactElement {
   const [items, setItems] = useState<RegistrationRequest[]>([]);
   const [directions, setDirections] = useState<Direction[]>([]);
+  const [roles, setRoles] = useState<RoleOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [accepted, setAccepted] = useState<AcceptResponse | null>(null);
 
   // Черновик формы: одна карточка на выбранную заявку.
-  const [form, setForm] = useState<{ id: string; name: string; directionId: string } | null>(null);
+  const [form, setForm] = useState<{
+    id: string;
+    name: string;
+    directionId: string;
+    role: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,6 +121,18 @@ export function RequestsPage(): ReactElement {
     void load();
   }, [load]);
 
+  // Роли зависят от направления: список подтягиваем, когда направление выбрано.
+  const loadRoles = useCallback(async (directionId: string) => {
+    setRoles([]);
+    if (!directionId) {return;}
+    try {
+      const data = await apiGet<{ data: RoleOption[] }>('/roles', { direction_id: directionId });
+      setRoles(data.data.filter((r) => r.name !== 'FIRST_ARCHITECT'));
+    } catch {
+      setRoles([]);
+    }
+  }, []);
+
   const accept = async (request: RegistrationRequest): Promise<void> => {
     if (!form || form.id !== request.id) {return;}
     if (form.name.trim().length < 2) {
@@ -121,7 +148,11 @@ export function RequestsPage(): ReactElement {
     try {
       const result = await apiPost<AcceptResponse>(
         `/admin/registration-requests/${request.id}/accept`,
-        { name: form.name.trim(), direction_id: form.directionId },
+        {
+          name: form.name.trim(),
+          direction_id: form.directionId,
+          ...(form.role ? { role: form.role } : {}),
+        },
       );
       setAccepted(result);
       setForm(null);
@@ -160,6 +191,10 @@ export function RequestsPage(): ReactElement {
             <code style={styles.code}>{accepted.participant.externalId}</code>
             <span style={styles.acceptedLabel}>Имя</span>
             <span>{accepted.participant.name}</span>
+          </div>
+          <div style={styles.acceptedRow}>
+            <span style={styles.acceptedLabel}>Роль</span>
+            <span>{accepted.role ?? 'не выдана (можно выдать отдельно)'}</span>
           </div>
           <div style={styles.acceptedRow}>
             <span style={styles.acceptedLabel}>Пароль</span>
@@ -226,12 +261,30 @@ export function RequestsPage(): ReactElement {
                           <select
                             style={styles.input}
                             value={form.directionId}
-                            onChange={(e) => setForm({ ...form, directionId: e.target.value })}
+                            onChange={(e) => {
+                              const directionId = e.target.value;
+                              setForm({ ...form, directionId, role: '' });
+                              void loadRoles(directionId);
+                            }}
                           >
                             <option value="">— направление —</option>
                             {directions.map((d) => (
                               <option key={d.id} value={d.id}>
                                 {d.number}. {d.name}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            style={styles.input}
+                            value={form.role}
+                            onChange={(e) => setForm({ ...form, role: e.target.value })}
+                            disabled={!form.directionId}
+                            title="Роль выдаётся мандатом; без неё участник видит только справочники"
+                          >
+                            <option value="">— роль (необязательно) —</option>
+                            {roles.map((r) => (
+                              <option key={r.id} value={r.name}>
+                                {r.name}
                               </option>
                             ))}
                           </select>
@@ -252,7 +305,10 @@ export function RequestsPage(): ReactElement {
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => setForm({ id: r.id, name: '', directionId: '' })}
+                          onClick={() => {
+                            setForm({ id: r.id, name: '', directionId: '', role: '' });
+                            setRoles([]);
+                          }}
                         >
                           Рассмотреть
                         </Button>

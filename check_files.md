@@ -2,12 +2,27 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   700
-  Файлов в проекте:        695
+  Блоков в спецификации:   701
+  Файлов в проекте:        698
 
 ========================================================================
-1. БЛОКИ БЕЗ ФАЙЛОВ: 19
+1. БЛОКИ БЕЗ ФАЙЛОВ: 33
 ========================================================================
+  I.1.01.01        .github/workflows/lint.yml
+  I.1.01.02        .github/workflows/test.yml
+  I.1.01.03        .github/workflows/build.yml
+  I.1.01.04        .github/workflows/deploy.yml
+  I.1.01.05        .github/workflows/openapi.yml
+  I.1.01.06        .github/workflows/security-scan.yml
+  I.1.01.07        .github/workflows/e2e.yml
+  I.1.01.08        .github/workflows/mobile-build.yml
+  I.1.01.09        .github/workflows/release.yml
+  I.1.01.10        .github/workflows/dependency-update.yml
+  I.1.01.11        .github/workflows/db-migration-check.yml
+  I.1.01.12        .github/workflows/helm-lint.yml
+  I.1.01.13        .github/workflows/terraform-plan.yml
+  I.1.01.14        .github/workflows/changelog.yml
+  I.1.01.15        .github/workflows/nightly.yml
   I.10.01.03       .eslintrc.json
   I.3.02.06        k8s/base/api/hpa.yml
   I.3.02.07        k8s/base/api/pdb.yml
@@ -26,7 +41,6 @@
   T.0.01.01        tests/unit/**/_.test.ts
   X.0.01.05        CONTRIBUTING.md
   X.0.01.06        CHANGELOG.md
-  X.0.01.07        README.md
 
 ========================================================================
 2. ФАЙЛЫ БЕЗ БЛОКОВ: 0
@@ -34,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 506
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 508
 ========================================================================
   A.1.00.01        src/server.ts [15708 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -71,7 +85,7 @@
   A.1.32.01        src/api/automation/controller.ts [12721 б]
   A.1.33.01        src/api/aggregator/controller.ts [11535 б]
   A.1.34.01        src/api/connectivity/controller.ts [5648 б]
-  A.1.35.01        src/api/admin/controller.ts [27189 б]
+  A.1.35.01        src/api/admin/controller.ts [28588 б]
   A.1.36.01        src/api/chat/controller.ts [13128 б]
   A.1.37.01        src/api/collective/controller.ts [1305 б]
   A.1.38.01        src/api/public/controller.ts [646 б]
@@ -219,7 +233,7 @@
   D.2.01.32        db/migrations/032_registration_phone_hash_unique.sql [1299 б]
   D.2.01.33        db/migrations/033_report_artifact.sql [1108 б]
   F.4.01.01        src/web/App.tsx [13977 б]
-  F.4.01.02        src/web/pages/auth/Login.tsx [5106 б]
+  F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
   F.4.01.04        src/web/pages/auth/WaitingRoom.tsx [9150 б]
   F.4.01.05        src/web/index.html [312 б]
@@ -267,7 +281,7 @@
   F.4.04.08        src/web/pages/admin/index.ts [693 б]
   F.4.04.09        src/web/pages/admin/ParticipantPicker.tsx [12465 б]
   F.4.04.10        src/web/pages/admin/WebhooksPage.tsx [2862 б]
-  F.4.04.11        src/web/pages/admin/RequestsPage.tsx [11861 б]
+  F.4.04.11        src/web/pages/admin/RequestsPage.tsx [14011 б]
   F.4.05.01        src/web/pages/chat/ChatPage.tsx [7145 б]
   F.4.05.02        src/web/pages/chat/ChannelList.tsx [6631 б]
   F.4.05.03        src/web/pages/chat/ChannelView.tsx [22771 б]
@@ -310,7 +324,7 @@
   I.0.01.04        docker/docker-compose.yml [4734 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [4110 б]
+  I.1.01.16        .github/workflows/ci.yml [5073 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -327,7 +341,7 @@
   I.10.05.03       tsconfig.web.json [326 б]
   I.10.05.04       tsconfig.tsbuildinfo [262560 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [131663 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [131754 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -403,7 +417,7 @@
   I.9.02.03        scripts/bootstrap-participant.ts [5112 б]
   I.9.02.04        scripts/check-redis.ts [1726 б]
   I.9.02.05        scripts/get-test-ids.ts [360 б]
-  I.9.02.06        scripts/get-test-token.ts [3682 б]
+  I.9.02.06        scripts/get-test-token.ts [3681 б]
   I.9.02.07        scripts/ensure-psy-cron.ts [11042 б]
   I.9.02.08        scripts/ensure-architect.ts [9672 б]
   I.9.02.09        scripts/login-architect.ts [9855 б]
@@ -415,21 +429,21 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [4385 б]
+  I.9.02.18        scripts/ci-local.ps1 [4486 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
   I.9.03.02        scripts/_env.ts [924 б]
   I.9.04.01        scripts/test-archive.ts [20034 б]
   I.9.04.02        scripts/test-balance.ts [19147 б]
   I.9.04.03        scripts/test-cells.ts [6070 б]
-  I.9.04.04        scripts/test-chat.ts [35511 б]
+  I.9.04.04        scripts/test-chat.ts [35510 б]
   I.9.04.05        scripts/test-connections.ts [23157 б]
   I.9.04.06        scripts/test-create-from-request-race.ts [6689 б]
   I.9.04.07        scripts/test-crisis-confirm-dedup.ts [14301 б]
-  I.9.04.08        scripts/test-external-id-sequence.ts [8951 б]
+  I.9.04.08        scripts/test-external-id-sequence.ts [8950 б]
   I.9.04.09        scripts/test-goods.ts [19397 б]
-  I.9.04.10        scripts/test-idempotency.ts [12520 б]
+  I.9.04.10        scripts/test-idempotency.ts [12519 б]
   I.9.04.11        scripts/test-jury.ts [21428 б]
-  I.9.04.12        scripts/test-mandates.ts [13278 б]
+  I.9.04.12        scripts/test-mandates.ts [13277 б]
   I.9.04.13        scripts/test-otc.ts [8852 б]
   I.9.04.14        scripts/test-otc-two.ts [18765 б]
   I.9.04.15        scripts/test-passport.ts [2999 б]
@@ -443,7 +457,7 @@
   I.9.04.23        scripts/test-universal-runs-multi.ts [17161 б]
   I.9.04.24        scripts/test-verification.ts [19150 б]
   I.9.04.25        scripts/test-regime-middleware.ts [7552 б]
-  I.9.04.26        scripts/test-admin.ts [40308 б]
+  I.9.04.26        scripts/test-admin.ts [40307 б]
   I.9.04.27        scripts/test-automation.ts [17222 б]
   I.9.04.28        scripts/test-files.ts [6340 б]
   I.9.04.29        scripts/test-integrity.ts [2534 б]
@@ -470,6 +484,7 @@
   I.9.04.50        scripts/test-learning.ts [24518 б]
   I.9.04.51        scripts/test-collective.ts [3377 б]
   I.9.04.52        scripts/test-public.ts [2208 б]
+  I.9.04.53        scripts/test-onboarding-role.ts [4754 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -539,12 +554,13 @@
   W.2.12.01        src/ws/chat.ts [4002 б]
   W.2.13.01        src/ws/interview.ts [5504 б]
   W.2.14.01        src/ws/psy.ts [7200 б]
+  X.0.01.07        README.md [4452 б]
   X.0.01.08        docs/roadmap.md [25995 б]
   X.0.01.11        docs/product-v0.1.md [19636 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
 
 ========================================================================
-4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 172
+4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
 ========================================================================
   A.1.98.02        src/api/ui/controller.ts [пусто]
   F.4.03.01        src/web/components/participants/PassportCard.tsx [пусто]
@@ -552,21 +568,6 @@
   F.4.99.07        src/web/components/ui/Chat.tsx [пусто]
   I.0.01.05        docker/docker-compose.test.yml [пусто]
   I.0.01.06        docker/docker-compose.gateway.yml [пусто]
-  I.1.01.01        .github/workflows/lint.yml [пусто]
-  I.1.01.02        .github/workflows/test.yml [пусто]
-  I.1.01.03        .github/workflows/build.yml [пусто]
-  I.1.01.04        .github/workflows/deploy.yml [пусто]
-  I.1.01.05        .github/workflows/openapi.yml [пусто]
-  I.1.01.06        .github/workflows/security-scan.yml [пусто]
-  I.1.01.07        .github/workflows/e2e.yml [пусто]
-  I.1.01.08        .github/workflows/mobile-build.yml [пусто]
-  I.1.01.09        .github/workflows/release.yml [пусто]
-  I.1.01.10        .github/workflows/dependency-update.yml [пусто]
-  I.1.01.11        .github/workflows/db-migration-check.yml [пусто]
-  I.1.01.12        .github/workflows/helm-lint.yml [пусто]
-  I.1.01.13        .github/workflows/terraform-plan.yml [пусто]
-  I.1.01.14        .github/workflows/changelog.yml [пусто]
-  I.1.01.15        .github/workflows/nightly.yml [пусто]
   I.2.01.01        monitoring/prometheus.yml [пусто]
   I.2.01.02        monitoring/grafana-dashboard.json [пусто]
   I.2.01.03        monitoring/alerts.yml [пусто]
@@ -722,7 +723,7 @@
 ========================================================================
 СВОДКА
 ========================================================================
-  Блоков без файлов:    19
+  Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  506
-  Пустых файлов:        172
+  Файлов с содержимым:  508
+  Пустых файлов:        157

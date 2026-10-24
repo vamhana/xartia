@@ -136,6 +136,8 @@ jobs:
         run: pnpm tsx scripts/test-passport.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
       - name: Smoke — коллектив
         run: pnpm tsx scripts/test-collective.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
+      - name: Smoke — роль при приёме
+        run: pnpm tsx scripts/test-onboarding-role.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
       - name: Smoke — задачи
         run: pnpm tsx scripts/test-tasks.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
 

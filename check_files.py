@@ -209,7 +209,7 @@ def main():
         'id_3.md', 'клей.md', 'клей_id.md', 'клей_файл.md', 'test-longhorn.yaml',
         # Корневые meta-документы проекта (не спека — инфраструктура)
         'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md',
-        'CODE_OF_CONDUCT.md', 'SECURITY.md', 'LICENSE.md',
+        'CODE_OF_CONDUCT.md', 'SECURITY.md', 'LICENSE.md', 'LICENSE',
     }
     for f in sorted(project_files):
         if Path(f).suffix.lower() in IGNORE_EXT:

@@ -50,7 +50,7 @@ import { createWelcomeTask } from '../../core/onboarding/service.js';
 import type { RegistrationStatus } from '../../core/types.js';
 import { Role } from '../../core/roles.js';
 import { mustGetLimit } from '../../security/rate-limit.js';
-import { hasRole } from '../../security/rbac.js';
+import { assignRole, hasRole } from '../../security/rbac.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 import { logAccessDenied } from '../middleware/rights.js';
@@ -203,7 +203,7 @@ const registrationRequestParams = z.object({
 });
 
 // Приём заявки: Архитектор выбирает имя, направление и (опционально)
-// профессию/волну. Остальное выводится из заявки.
+// роль, профессию/волну. Остальное выводится из заявки.
 const acceptRegistrationBody = z.object({
   name: z.string().min(2).max(255),
   direction_id: z.string().uuid(),
@@ -214,6 +214,10 @@ const acceptRegistrationBody = z.object({
   wave: z.string().regex(/^[А-Я]$/, 'Буква волны — одна заглавная кириллическая').optional(),
   wave_number: z.number().int().min(1).max(99999).optional(),
   status: z.enum(PARTICIPANT_STATUSES).optional(),
+  // Роль выдаётся вместе с приёмом: без неё новый участник не может ничего,
+  // кроме чтения. Допустимые значения проверяет assignRole по таблице roles
+  // направления — если роли в направлении нет, приём всё равно состоится.
+  role: z.nativeEnum(Role).optional(),
 });
 
 // -------- Проверки --------
@@ -742,9 +746,31 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
         );
       }
 
+      // Роль — тоже часть приёма: без неё человек видит только справочники.
+      // Если роли нет в направлении или она конфликтует с уже выданной,
+      // приём не отменяем: участник создан, роль можно выдать отдельно.
+      let grantedRole: string | null = null;
+      if (b.role) {
+        try {
+          await assignRole({
+            participantId: created.participant.id,
+            role: b.role,
+            directionId: b.direction_id,
+            grantedBy: auth.participantId,
+          });
+          grantedRole = b.role;
+        } catch (e) {
+          request.log.warn(
+            { err: e, participantId: created.participant.id, role: b.role },
+            'role was not granted',
+          );
+        }
+      }
+
       reply.code(201).send({
         participant: created.participant,
         temporary_password: created.temporaryPassword,
+        role: grantedRole,
         welcome_task: welcomeTask,
         audit_id: request.auditId,
       });

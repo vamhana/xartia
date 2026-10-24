@@ -587,6 +587,7 @@
 
 |2026-10-24: + artifact_url (z.string().url().max(2048), необязательно) в createBody и в ответе; отчёт может нести ссылку на PR/коммит.
 
+|2026-10-24: + artifact_url (z.string().url().max(2048), необязательно) в createBody и в ответе; отчёт может нести ссылку на PR/коммит.
 |A.1.09.01|API|REST|TypeScript|src/api/otc/controller.ts|C.0.09.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|III.2, II.4.3|
 |Описание: Контроллер OTC. **7 эндпоинтов**: queue, decide, crisis-decision, appeal, decisions/:id/appeals, appeals/:id, stats. Отсутствуют `GET /otc/decisions/:id` (карточка решения) и весь блок `acceptance-criteria` (3 эндпоинта) — roadmap (нет сервисных функций `getDecision`, `listCriteria`, `createCriteria`, `updateCriteria` в C.0.09.02). **`requireRight('otc','V')` на 4 GET** (queue, stats, decisions/:id/appeals, appeals/:id) — было: только `authMiddleware` (любой авторизованный видел PII: `comment`/`mediaUrl`/`geolocation`/`authorName`). **Побочка**: F.4.99.18 `Sidebar` — добавить `requiresRole:['OTC','FIRST_ARCHITECT']`. **`writeLimit` на 3 мутациях** (decisions, crisis-decision, appeal). **`crisisBody.comment: min(1).max(5000)`** (согласовано с `decideBody.comment`). `uuidIdParams` из L.0.01.03 (было локальная `decisionParams` — 10-й дубль). `appeal` — self-service (без `requireRight`, проверка `authorId === requester` в сервисе). |
 |Публичный API:
@@ -2103,6 +2104,8 @@
 
 |2026-10-24: + GET /admin/registration-requests (очередь, superRefine на статусы) и POST /admin/registration-requests/:request_id/accept (requireArchitect; создаёт участника через C.0.02.02, welcome-задачу через C.0.02.03, возвращает temporary_password и welcome_task; повторный приём → 409).
 
+|2026-10-24: + GET /admin/registration-requests (очередь, superRefine на статусы) и POST /admin/registration-requests/:request_id/accept (requireArchitect; создаёт участника через C.0.02.02, welcome-задачу через C.0.02.03, возвращает temporary_password и welcome_task; повторный приём → 409).
+|2026-10-24 (роль): в accept добавлено необязательное поле role — после создания участника вызывается assignRole (S.0.01.03) для направления заявки; при отсутствии роли в направлении или конфликте приём не отменяется, в ответе role: null и предупреждение в лог. Ответ дополнен полем role.
 |A.1.36.01|API|REST|TypeScript|src/api/chat/controller.ts|C.0.36.02, L.0.01.03, A.1.99.01, A.1.99.06|v.0.0.02|Draft|—|
 |Описание: Контроллер Chat. **17 маршрутов**. `requireRight` **не используется осознанно** — `rights_matrix` не покрывает чат-ресурс; доступ через `canAccessChannel` внутри C.0.36.02. Внутренний комментарий шапки говорит `A.1.99.09 (неявный)` — ошибка нумерации; канонический ID A.1.36.01. **P1–P4** (v0.0.02): `GET /channels/:id`, `GET /channels/:id/members`, `GET /messages/:id` — access-check через `canAccessChannel` → **403** при отсутствии; `POST /channels/:id/join` — access-check для не-direct (direct → 409 от сервиса). **Используются rich-формы**: `listMyChannelsRich` (GET /channels), `getChannelHistoryRich` (GET /channels/:id/messages), `listChannelMembersRich` (GET /channels/:id/members). **`POST /channels/:id/messages` возвращает сырой `ChatMessage`** (без `senderName`/`replyTo`); rich — только через GET-историю. Порядок регистрации: специфичные роуты (`/direct`, `/direction/:id`, `/cell/:id`, `/council/:id`, `/project/:id`) ДО `/channels/:id`; `by-string` — в конце (4 сегмента пути, не конфликтует с `/channels/:id`).
 |Публичный API:
@@ -3610,6 +3613,7 @@
 
 |2026-10-24: createFromRequest возвращает { participant, temporaryPassword } (пароль показывается один раз); добавлены listRegistrationRequests() — очередь заявок с маской телефона — и nextWaveNumber(wave) для приёма без ручного номера.
 
+|2026-10-24: createFromRequest возвращает { participant, temporaryPassword } (пароль показывается один раз); добавлены listRegistrationRequests() — очередь заявок с маской телефона — и nextWaveNumber(wave) для приёма без ручного номера.
 |C.0.02.03|Core|Common|TypeScript|src/core/onboarding/service.ts|C.0.07.01, C.0.07.02|v.0.0.01|Draft|—|
 |Описание: Онбординг. Создаёт welcome-задачу «Первый день» и сразу назначает её новому участнику. Отдельной сущности «онбординг» нет: используется обычный домен задач (C.0.07), поэтому задача видна в /tasks, по ней работает отчёт и ОТК.
 |Публичный API:
@@ -4264,6 +4268,7 @@
 
 |2026-10-24: + artifactUrl в Report/CreateReportInput; createReport тримит значение и нормализует пустое в null.
 
+|2026-10-24: + artifactUrl в Report/CreateReportInput; createReport тримит значение и нормализует пустое в null.
 |C.0.08.02|Core|Domain|TypeScript|src/core/reports/service.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.08.01, C.0.07.02, L.0.01.01, L.0.01.05, L.0.01.09, W.2.03.01|v.0.0.02|Draft|II.5, II.7|
 |Описание: Сервис отчётов. **4 функции**: `createReportService`, `getById`, `listByTask`, `listByParticipant`. Отчёт **immutable** после создания (конвенция; БД не enforced — нет trigger'а). **B-фиксы** (v0.0.01 → v0.0.02): **B1** — явная валидация `type↔comment/media_url` до INSERT (было: 500 из DB CHECK); **B2** — `task.assignedTo !== requesterId` → **`ForbiddenError`** (было `ConflictError`); **B3** — `emitReportSubmitted` в try/catch (best-effort, не блокирует ответ). `ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography` для `geolocation`; `ST_AsGeoJSON` при чтении. |
 |Публичный API (4 функции):
@@ -4343,6 +4348,7 @@
 
 |2026-10-24: + artifact_url в INSERT и всех SELECT (getById, listByTask, listByParticipant). Исправлен баг: гео-координаты были захардкожены как $11/$12 при 6–8 параметрах — теперь плейсхолдеры считаются от фактического массива.
 
+|2026-10-24: + artifact_url в INSERT и всех SELECT (getById, listByTask, listByParticipant). Исправлен баг: гео-координаты были захардкожены как $11/$12 при 6–8 параметрах — теперь плейсхолдеры считаются от фактического массива.
 |C.0.09.01|Core|Domain|TypeScript|src/core/otc/entity.ts|C.0.01.02, C.0.01.04|v.0.0.01|Draft|III.2, II.4.3|
 |Описание: Доменная сущность ОТК-решение. Минимальная: createDecision, createCrisisDecision, createAppeal, canBeAppealed, isCrisisProtocol. Отсутствует validateCriteria.
 |Публичный API:
@@ -4472,6 +4478,7 @@
 
 |2026-10-24: getQueue отдаёт artifactUrl (r.artifact_url) — ревьюер видит ссылку на PR в очереди ОТК.
 
+|2026-10-24: getQueue отдаёт artifactUrl (r.artifact_url) — ревьюер видит ссылку на PR в очереди ОТК.
 |C.0.10.01|Core|Domain|TypeScript|src/core/signals/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.1|
 |Описание: Доменная сущность Сигнал. 8 из 11 заявленных функций. Отсутствуют respond, setLeadDirection, escalateToArbitration. Добавлены canTransition, changeStatus.
 |Публичный API:
@@ -8910,6 +8917,7 @@
 
 |2026-10-24: миграция 033_report_artifact.sql добавляет reports.artifact_url и частичный индекс idx_reports_artifact (см. D.2.01.33).
 
+|2026-10-24: миграция 033_report_artifact.sql добавляет reports.artifact_url и частичный индекс idx_reports_artifact (см. D.2.01.33).
 |D.2.01.04|DB|Migration|SQL|db/migrations/004_views.sql|D.2.01.03|v.0.0.01|Draft|D.2.01.05|
 |Описание: 14 read-only VIEW. Идемпотентна (CREATE OR REPLACE). Не материализованы, не партиционированы. Используются сервисами C.0.*, контроллерами A.1.* и ручными тестами I.9.04.*. Заменяет удалённые блоки D.3.01.01–D.3.01.14 (db/views/*.sql) — по одному файлу на view. Все 14 view в одном файле, потому что все зависят от D.2.01.03.
 |Публичный API (view с ID и связью с контроллерами):
@@ -16471,6 +16479,7 @@
 
 |2026-10-24: под postgres получил sidecar pg-backup — ежедневный pg_dump по 127.0.0.1 в /backups/db-backups на томе data, 7 последних файлов. Причина: default-deny-all режет отдельные Job-поды к postgres-svc, а sidecar не выходит из пода.
 
+|2026-10-24: под postgres получил sidecar pg-backup — ежедневный pg_dump по 127.0.0.1 в /backups/db-backups на томе data, 7 последних файлов. Причина: default-deny-all режет отдельные Job-поды к postgres-svc, а sidecar не выходит из пода.
 |I.3.06.02|Infra|K8s|YAML|k8s/base/postgres/service.yml|I.3.06.05|v.0.0.01|Done|—|
 |Описание: Два Service для Postgres. headless `postgres` (clusterIP: None) — для StatefulSet (стабильный DNS postgres-0.postgres.xartia-data.svc). ClusterIP `postgres-svc` — для приложения (api/worker) и backup-cronjob.
 |Публичный API (ресурсы):
@@ -16543,6 +16552,7 @@ Status Draft: файл есть, но работоспособность не п
 
 |2026-10-24: Deprecated — CronJob заменён sidecar'ом pg-backup в I.3.06.01 (файл оставлен как история, в kustomization не входит; suspend: true).
 
+|2026-10-24: Deprecated — CronJob заменён sidecar'ом pg-backup в I.3.06.01 (файл оставлен как история, в kustomization не входит; suspend: true).
 |I.3.06.05|Infra|K8s|YAML|k8s/base/postgres/kustomization.yml|I.3.01.05|v.0.0.01|Done|—|
 |Описание: Kustomization Postgres-подпапки. Собирает StatefulSet + Service + ConfigMap + backup CronJob. Лейбл xartia.io/tier=data.
 |Публичный API (ресурсы):
@@ -19068,6 +19078,7 @@ Status Draft: файл есть, но работоспособность не п
 
 |2026-10-24: файл стал справочным ConfigMap (postgres-backup-info); фактический бэкап в кластере — sidecar I.3.06.01, локальная проверка восстановления — scripts/backup.ps1 (I.8.01.04).
 
+|2026-10-24: файл стал справочным ConfigMap (postgres-backup-info); фактический бэкап в кластере — sidecar I.3.06.01, локальная проверка восстановления — scripts/backup.ps1 (I.8.01.04).
 |I.8.01.03|Infra|Backup|YAML|infra/backup/restore-runbook.md|I.8.01.01, I.8.01.02|v.0.0.01|Draft|—|
 |Описание: Runbook восстановления. Пошаговая инструкция при disaster. RTO / RPO. Контакты.
 |Публичный API (разделы):
@@ -24031,6 +24042,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |↙ ПОТРЕБЛЯЕТ: A.1.38.01.
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: public» в I.1.01.16 и I.9.02.18.
 
+|I.9.04.53|Infra|Test|TypeScript|scripts/test-onboarding-role.ts|A.1.35.01, S.0.01.03|v.0.0.01|Draft|—|
+|Описание: Smoke-тест приёма с ролью: регистрация → Архитектор берёт роли направления → принимает заявку с role → новый участник входит и видит роль в /me/passport.
+|Публичный API: pnpm tsx scripts/test-onboarding-role.ts <architect_phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: A.1.01.01, A.1.03.01 (/roles), A.1.35.01 (accept с role), S.0.01.03 (assignRole).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «smoke: onboarding-role» в I.1.01.16 и I.9.02.18.
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:
