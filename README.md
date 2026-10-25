@@ -108,6 +108,12 @@ static (typecheck, build) + smoke (postgis, redis, миграции, API, тес
 Код и Хартия живут отдельно: документ публикуется как сайт, приложение — как
 исходники.
 
+## Инфраструктура и runbook'и
+
+- `infra/` — манифесты и runbook'и: бэкап Postgres, WAF, DDoS-щит, Vault.
+- `infra/longhorn/windows-wsl2.md` — гайд по Longhorn на Windows через WSL2
+  (справочный: текущий dev-кластер использует `local-path`).
+
 ## Лицензия
 
 **AGPL-3.0** — см. [LICENSE](LICENSE). Сильный копилефт: производные работы и

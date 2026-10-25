@@ -206,7 +206,7 @@ def main():
         'id_2.md.bak', 'id_2.md.manual_backup', 'spf_list.txt',
         'spf_analysis.txt', 'check_files.md',
         # Пустые/черновые реестры и артефакты склейки, которые ведёт автор
-        'id_3.md', 'клей.md', 'клей_id.md', 'клей_файл.md', 'test-longhorn.yaml',
+        'id_3.md', 'клей.md', 'клей_id.md', 'клей_файл.md',
         # Корневые meta-документы проекта (не спека — инфраструктура)
         'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md',
         'CODE_OF_CONDUCT.md', 'SECURITY.md', 'LICENSE.md', 'LICENSE',

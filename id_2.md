@@ -19337,6 +19337,16 @@ Status Draft: файл есть, но работоспособность не п
 - Обновляется при изменении инфраструктуры.
   |Примечания: RTO < 1h. RPO < 5min. Тренировка раз в квартал.
 
+|I.8.01.06|Infra|Doc|Markdown|infra/longhorn/windows-wsl2.md|I.8.01.03|v.0.0.01|Draft|—|
+|Описание: Гайд по Longhorn на Windows через WSL2 с кастомным ядром (iscsi_tcp, xt_recent): архитектура, сборка ядра, iscsid, k3s, StorageClass, восстановление. Объясняет, зачем в проекте отдельный том под Postgres.
+|Публичный API: —
+|↙ ПОТРЕБЛЯЕТ: I.8.01.05 (тестовый манифест).
+|↘ ПРЕДОСТАВЛЯЕТ: воспроизводимость dev-окружения с Longhorn.
+|I.8.01.07|Infra|K8s|YAML|infra/longhorn/test-pod.yaml|—|v.0.0.01|Draft|—|
+|Описание: Тестовый PVC + Pod для проверки Longhorn: запись в том, монтирование, чтение после перезапуска. Используется в infra/longhorn/windows-wsl2.md.
+|Публичный API: kubectl apply -f infra/longhorn/test-pod.yaml
+|↙ ПОТРЕБЛЯЕТ: StorageClass longhorn.
+|↘ ПРЕДОСТАВЛЯЕТ: проверку хранилища (I.8.01.06).
 |I.8.01.04|Infra|Backup|PowerShell|scripts/backup.ps1|—|v.0.0.01|Draft|—|
 |Описание: Локальный бэкап Postgres с проверкой восстановления: pg_dump --format=custom в backups/, опционально -Verify восстанавливает дамп в <db>_restore и сравнивает число таблиц и участников, затем ротация (Keep, по умолчанию 7).
 |Публичный API: pwsh scripts/backup.ps1 [-Verify] [-Keep 7] [-Container charter-postgres] [-Db charter] [-OutDir backups].
