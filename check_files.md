@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   734
-  Файлов в проекте:        731
+  Блоков в спецификации:   735
+  Файлов в проекте:        732
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 541
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 542
 ========================================================================
   A.1.00.01        src/server.ts [15910 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -90,7 +90,7 @@
   A.1.37.01        src/api/collective/controller.ts [1305 б]
   A.1.38.01        src/api/public/controller.ts [646 б]
   A.1.39.01        src/api/dev/controller.ts [4253 б]
-  A.1.46.01        src/api/council/controller.ts [3597 б]
+  A.1.46.01        src/api/council/controller.ts [4332 б]
   A.1.90.01        src/api/system/health.ts [2024 б]
   A.1.90.02        src/api/system/metrics.ts [3450 б]
   A.1.90.03        src/api/system/version.ts [1187 б]
@@ -209,7 +209,7 @@
   C.0.42.01        src/core/collective/service.ts [6320 б]
   C.0.43.01        src/core/public/service.ts [1636 б]
   C.0.45.01        src/core/mentors/service.ts [6821 б]
-  C.0.46.01        src/core/council/service.ts [12504 б]
+  C.0.46.01        src/core/council/service.ts [14162 б]
   D.2.01.01        db/migrations/001_extensions.sql [1330 б]
   D.2.01.02        db/migrations/002_enums.sql [22159 б]
   D.2.01.03        db/migrations/003_tables.sql [102487 б]
@@ -250,6 +250,7 @@
   D.2.01.38        db/migrations/038_signal_subject.sql [1367 б]
   D.2.01.39        db/migrations/039_council.sql [1851 б]
   D.2.01.40        db/migrations/040_cell_plan_delegation.sql [968 б]
+  D.2.01.41        db/migrations/041_council_term_180.sql [1180 б]
   F.4.01.01        src/web/App.tsx [14558 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -361,7 +362,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264349 б]
+  I.10.05.04       tsconfig.tsbuildinfo [264354 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [130556 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -515,7 +516,7 @@
   I.9.04.57        scripts/test-plan-deviation.ts [7903 б]
   I.9.04.58        scripts/test-branches-otc.ts [10106 б]
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
-  I.9.04.60        scripts/test-council.ts [7229 б]
+  I.9.04.60        scripts/test-council.ts [9248 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
@@ -590,7 +591,7 @@
   X.0.01.08        docs/roadmap.md [29308 б]
   X.0.01.11        docs/product-v0.1.md [28734 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
-  X.0.01.13        docs/journey.md [17984 б]
+  X.0.01.13        docs/journey.md [18463 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -758,5 +759,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  541
+  Файлов с содержимым:  542
   Пустых файлов:        157

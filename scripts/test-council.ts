@@ -93,8 +93,15 @@ async function main(): Promise<void> {
   // Избран может быть не наш новый участник: в направлении уже есть люди
   // с принятыми работами. Дальше работаем с фактически избранным.
   const electedId = elect.data.member?.participantId ?? '';
-  if (elect.data.termEndsAt) { ok('срок мандата установлен'); }
-  else { fail('срок мандата не установлен'); }
+  if (elect.data.termEndsAt) {
+    const days = Math.round(
+      (new Date(elect.data.termEndsAt).getTime() - Date.now()) / (24 * 3600 * 1000),
+    );
+    if (days >= 178 && days <= 181) { ok(`срок мандата 180 дней (${days})`); }
+    else { fail(`срок мандата ${days} дней, ожидали 180`); }
+  } else {
+    fail('срок мандата не установлен');
+  }
 
   const history = await call<{
     elections: Array<{ participantId: string; score: number }>;
@@ -110,8 +117,42 @@ async function main(): Promise<void> {
   if (state.data.member?.participantId === electedId) { ok('состояние Совета читается'); }
   else { fail('состояние Совета не совпадает'); }
 
+  // Авто-ротация: мандат истёк → система переизбирает без ручного действия.
+  // Делаем это до дисквалификации, пока роль избранного ещё активна.
+  await query(
+    `UPDATE participant_roles pr
+        SET valid_to = now() - interval '1 day'
+       FROM roles r
+      WHERE pr.role_id = r.id AND r.name = 'COUNCIL_MEMBER'
+        AND pr.direction_id = $1 AND pr.status = 'active'`,
+    [dir.id],
+  );
+  const beforeRotate = await call<{ elections: unknown[] }>(
+    'GET', `/council/${dir.id}/history`, undefined, token,
+  );
+  const rotate = await call<{ rotated: Array<{ directionId: string }>; checked: number }>(
+    'POST', '/council/rotate-expired', {}, token,
+  );
+  if (rotate.status === 200 && rotate.data.checked >= 1) {
+    ok(`авто-ротация сработала (проверено ${rotate.data.checked})`);
+  } else {
+    fail(`rotate-expired → ${rotate.status}: ${JSON.stringify(rotate.data)}`);
+  }
+  const afterRotate = await call<{
+    elections: Array<{ participantId: string; electedAt: string }>;
+  }>('GET', `/council/${dir.id}/history`, undefined, token);
+  if (afterRotate.data.elections.length > beforeRotate.data.elections.length) {
+    ok('ротация записана в историю');
+  } else {
+    fail('ротация не попала в историю');
+  }
+
+  // После ротации роль у нового советника; берём его для дисквалификации.
+  const stateAfter = await call<CouncilState>('GET', `/council/${dir.id}`, undefined, token);
+  const currentId = stateAfter.data.member?.participantId ?? electedId;
+
   const disq = await call<CouncilState>(
-    'POST', `/council/${dir.id}/disqualify/${electedId}`,
+    'POST', `/council/${dir.id}/disqualify/${currentId}`,
     { reason: 'Тест: дисквалификация' },
     token,
   );
@@ -124,7 +165,7 @@ async function main(): Promise<void> {
     disqualifications: Array<{ participantId: string; reason: string }>;
   }>('GET', `/council/${dir.id}/history`, undefined, token);
   if (history2.data.disqualifications.some(
-    (d) => d.participantId === electedId && d.reason.includes('Тест'),
+    (d) => d.participantId === currentId && d.reason.includes('Тест'),
   )) {
     ok('дисквалификация попала в историю');
   } else {
@@ -132,7 +173,7 @@ async function main(): Promise<void> {
   }
 
   const reElect = await call<CouncilState>('POST', `/council/${dir.id}/elect`, {}, token);
-  if (reElect.status === 200 && reElect.data.member?.participantId !== electedId) {
+  if (reElect.status === 200 && reElect.data.member?.participantId !== currentId) {
     if (reElect.data.member) {
       ok(`переизбран другой участник: ${reElect.data.member.name}`);
     } else {

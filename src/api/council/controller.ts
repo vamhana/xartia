@@ -13,6 +13,7 @@ import {
   getCouncilHistory,
   getCouncilState,
   listCouncils,
+  rotateExpiredCouncils,
 } from '../../core/council/service.js';
 import { uuidIdParams, uuidSchema } from '../../lib/validators.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
@@ -25,9 +26,26 @@ const disqualifyParams = uuidIdParams.extend({ participant_id: uuidSchema });
 export async function registerCouncilRoutes(app: FastifyInstance): Promise<void> {
   // GET /council — состояние советов по всем направлениям.
   app.get('/council', { preHandler: [authMiddleware] }, async (req, reply) => {
+    // Ленивая авто-ротация: если у кого-то истёк мандат, переизбираем до
+    // выдачи списка. Ошибки ротации не мешают чтению.
+    try {
+      await rotateExpiredCouncils();
+    } catch {
+      /* best-effort */
+    }
     const data = await listCouncils();
     reply.send({ data, audit_id: req.auditId });
   });
+
+  // POST /council/rotate-expired — принудительная ротация истёкших мандатов.
+  app.post(
+    '/council/rotate-expired',
+    { preHandler: [authMiddleware, requireRight('direction', 'E')] },
+    async (req, reply) => {
+      const result = await rotateExpiredCouncils();
+      reply.send({ ...result, audit_id: req.auditId });
+    },
+  );
 
   // GET /council/:id — совет конкретного направления.
   app.get(

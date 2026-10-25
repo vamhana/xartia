@@ -202,7 +202,7 @@ export async function electCouncil(
   if (!role) {
     throw new ConflictError('В направлении нет роли COUNCIL_MEMBER — сначала seed ролей');
   }
-  const termDays = role.max_term_days ?? 730;
+  const termDays = role.max_term_days ?? 180;
   const validTo = new Date(Date.now() + termDays * 24 * 3600 * 1000).toISOString();
 
   if (!current.includes(best.participantId)) {
@@ -346,4 +346,46 @@ export async function getCouncilHistory(directionId: UUID): Promise<CouncilHisto
       createdAt: d.created_at.toISOString(),
     })),
   };
+}
+
+
+export interface RotationResult {
+  rotated: Array<{ directionId: UUID; participantId: UUID | null; score: number }>;
+  checked: number;
+}
+
+/**
+ * Авто-ротация: направления, где мандат Советника истёк, переизбираются.
+ * Вызывается лениво при чтении списка советов (крона в приложении нет) и
+ * отдельным маршрутом — так срок мандата соблюдается без ручных действий.
+ */
+export async function rotateExpiredCouncils(): Promise<RotationResult> {
+  const expired = await query<{ direction_id: string }>(
+    `SELECT DISTINCT pr.direction_id
+       FROM participant_roles pr
+       JOIN roles r ON r.id = pr.role_id
+      WHERE r.name = 'COUNCIL_MEMBER'
+        AND pr.status = 'active'
+        AND pr.valid_to IS NOT NULL
+        AND pr.valid_to <= now()
+        AND pr.direction_id IS NOT NULL`,
+  );
+
+  const architect = await getArchitect();
+  const rotated: RotationResult['rotated'] = [];
+  for (const row of expired) {
+    if (!architect) {break;}
+    try {
+      const state = await electCouncil(row.direction_id as UUID, architect.participantId);
+      rotated.push({
+        directionId: row.direction_id as UUID,
+        participantId: state.member?.participantId ?? null,
+        score: state.member?.score ?? 0,
+      });
+    } catch (e) {
+      // Ротация одного направления не должна ломать остальные.
+      continue;
+    }
+  }
+  return { rotated, checked: expired.length };
 }

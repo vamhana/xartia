@@ -544,7 +544,7 @@ async function seedRoles(): Promise<number> {
     SELECT d.id, r.name, r.type::role_type_enum, r.max_term_days, r.max_terms, r.cooldown_days, r.conflicts_with::jsonb
     FROM directions d
     CROSS JOIN (VALUES
-      ('COUNCIL_MEMBER', 'temporary', 730,  2,    730,  '["LIAISON","OPERATOR","GATEWAY_COUNCIL"]'),
+      ('COUNCIL_MEMBER', 'temporary', 180,  2,    180,  '["LIAISON","OPERATOR","GATEWAY_COUNCIL"]'),
       ('OTC',            'temporary', 180,  1,    180,  '["COUNCIL_MEMBER","OPERATOR"]'),
       ('LIAISON',        'temporary', 365,  2,    365,  '["COUNCIL_MEMBER","OTC","OPERATOR"]'),
       ('VERIFIER',       'temporary', 365,  2,    365,  '[]'),
