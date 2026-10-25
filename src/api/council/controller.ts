@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   disqualifyCouncilMember,
   electCouncil,
+  getCouncilHistory,
   getCouncilState,
   listCouncils,
 } from '../../core/council/service.js';
@@ -36,6 +37,17 @@ export async function registerCouncilRoutes(app: FastifyInstance): Promise<void>
       const p = req.params as z.infer<typeof uuidIdParams>;
       const state = await getCouncilState(p.id);
       reply.send({ ...state, audit_id: req.auditId });
+    },
+  );
+
+  // GET /council/:id/history — история выборов и дисквалификаций.
+  app.get(
+    '/council/:id/history',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const history = await getCouncilHistory(p.id);
+      reply.send({ ...history, audit_id: req.auditId });
     },
   );
 

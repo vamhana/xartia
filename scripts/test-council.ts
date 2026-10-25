@@ -96,6 +96,16 @@ async function main(): Promise<void> {
   if (elect.data.termEndsAt) { ok('срок мандата установлен'); }
   else { fail('срок мандата не установлен'); }
 
+  const history = await call<{
+    elections: Array<{ participantId: string; score: number }>;
+    disqualifications: Array<{ participantId: string; reason: string }>;
+  }>('GET', `/council/${dir.id}/history`, undefined, token);
+  if (history.status === 200 && history.data.elections.some((e) => e.participantId === electedId)) {
+    ok('история выборов пишется');
+  } else {
+    fail(`history → ${history.status}: ${JSON.stringify(history.data)}`);
+  }
+
   const state = await call<CouncilState>('GET', `/council/${dir.id}`, undefined, token);
   if (state.data.member?.participantId === electedId) { ok('состояние Совета читается'); }
   else { fail('состояние Совета не совпадает'); }
@@ -109,6 +119,17 @@ async function main(): Promise<void> {
   else { fail(`disqualify → ${disq.status}: ${JSON.stringify(disq.data)}`); }
   if (disq.data.fallback?.participantId) { ok(`функция у Архитектора: ${disq.data.fallback.name}`); }
   else { fail('фолбэк на Архитектора не вернулся'); }
+
+  const history2 = await call<{
+    disqualifications: Array<{ participantId: string; reason: string }>;
+  }>('GET', `/council/${dir.id}/history`, undefined, token);
+  if (history2.data.disqualifications.some(
+    (d) => d.participantId === electedId && d.reason.includes('Тест'),
+  )) {
+    ok('дисквалификация попала в историю');
+  } else {
+    fail('дисквалификация не отражена в истории');
+  }
 
   const reElect = await call<CouncilState>('POST', `/council/${dir.id}/elect`, {}, token);
   if (reElect.status === 200 && reElect.data.member?.participantId !== electedId) {

@@ -276,3 +276,74 @@ export async function disqualifyCouncilMember(input: {
 
   return getCouncilState(input.directionId);
 }
+
+
+export interface CouncilHistory {
+  elections: Array<{
+    participantId: UUID;
+    name: string;
+    score: number;
+    electedAt: string;
+    termEndsAt: string | null;
+    reason: string | null;
+  }>;
+  disqualifications: Array<{
+    participantId: UUID;
+    name: string;
+    reason: string;
+    createdAt: string;
+  }>;
+}
+
+/** История выборов и дисквалификаций — для вкладки «Советы». */
+export async function getCouncilHistory(directionId: UUID): Promise<CouncilHistory> {
+  const elections = await query<{
+    participant_id: string;
+    name: string;
+    score: number;
+    elected_at: Date;
+    term_ends_at: Date | null;
+    reason: string | null;
+  }>(
+    `SELECT e.participant_id, p.name, e.score, e.elected_at, e.term_ends_at, e.reason
+       FROM council_elections e
+       JOIN participants p ON p.id = e.participant_id
+      WHERE e.direction_id = $1
+      ORDER BY e.elected_at DESC
+      LIMIT 50`,
+    [directionId],
+  );
+
+  const disq = await query<{
+    participant_id: string;
+    name: string;
+    reason: string;
+    created_at: Date;
+    active: boolean;
+  }>(
+    `SELECT d.participant_id, p.name, d.reason, d.created_at, d.active
+       FROM council_disqualifications d
+       JOIN participants p ON p.id = d.participant_id
+      WHERE d.direction_id = $1
+      ORDER BY d.created_at DESC
+      LIMIT 50`,
+    [directionId],
+  );
+
+  return {
+    elections: elections.map((e) => ({
+      participantId: e.participant_id as UUID,
+      name: e.name,
+      score: e.score,
+      electedAt: e.elected_at.toISOString(),
+      termEndsAt: e.term_ends_at ? e.term_ends_at.toISOString() : null,
+      reason: e.reason,
+    })),
+    disqualifications: disq.map((d) => ({
+      participantId: d.participant_id as UUID,
+      name: d.name,
+      reason: d.reason,
+      createdAt: d.created_at.toISOString(),
+    })),
+  };
+}
