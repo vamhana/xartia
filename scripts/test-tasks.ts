@@ -115,7 +115,7 @@ async function main(): Promise<void> {
     const reg = await req<{ request_id: string }>('POST', '/auth/register', {
       phone: `+7996${suffix}`,
       messengers: { telegram: `@exec_${suffix}` },
-      password: `Exec${suffix}`,
+      password: `Executor${suffix}`,
       consent_video: true,
       consent_data: true,
     });
