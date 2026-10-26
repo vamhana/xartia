@@ -1,0 +1,68 @@
+name: Предложение изменить ядро
+description: Изменение правила, функции, Хартии или самого обсуждения
+title: "[proposal] "
+labels: ["charter"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Это **предложение изменения ядра**, а не баг и не задача.
+        Перед созданием прочитайте `docs/governance.md`.
+        После создания перенесите суть в систему: `POST /proposals`
+        (или попросите мейнтейнера), чтобы решение и возражения
+        фиксировались в ядре, а не только в issue.
+  - type: dropdown
+    id: type
+    attributes:
+      label: Тип изменения
+      options:
+        - module (поведение функции)
+        - rule (правило системы)
+        - charter (статья Хартии)
+        - meta (сам процесс обсуждения)
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Проблема
+      description: Что не так сейчас и почему это важно. Минимум 20 символов.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Предложение
+      description: Что именно изменить и как это должно работать.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы
+      description: Какие ещё варианты рассматривали и почему они хуже.
+    validations:
+      required: false
+  - type: input
+    id: invariants
+    attributes:
+      label: Затронутые инварианты
+      description: ID из `GET /invariants` через запятую (например, flow_not_money, treasury_threshold).
+    validations:
+      required: true
+  - type: input
+    id: discussion
+    attributes:
+      label: Ссылка на обсуждение
+      description: GitHub Discussion или Telegram.
+    validations:
+      required: false
+  - type: checkboxes
+    id: breaking
+    attributes:
+      label: Совместимость
+      options:
+        - label: Это breaking change (ломает формулы/API/исторические данные)
+          required: false
+        - label: Я готов описать план миграции
+          required: false

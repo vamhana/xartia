@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   785
-  Файлов в проекте:        780
+  Блоков в спецификации:   790
+  Файлов в проекте:        785
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 32
@@ -47,9 +47,9 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 593
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 598
 ========================================================================
-  A.1.00.01        src/server.ts [16363 б]
+  A.1.00.01        src/server.ts [16474 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
   A.1.02.01        src/api/participants/controller.ts [6800 б]
   A.1.03.01        src/api/directions/controller.ts [2240 б]
@@ -63,6 +63,7 @@
   A.1.08.01        src/api/reports/controller.ts [4195 б]
   A.1.09.01        src/api/otc/controller.ts [7780 б]
   A.1.10.01        src/api/signals/controller.ts [9128 б]
+  A.1.10.10        src/api/proposals/controller.ts [7017 б]
   A.1.11.01        src/api/connections/controller.ts [7408 б]
   A.1.12.01        src/api/arbitrations/controller.ts [7169 б]
   A.1.13.01        src/api/universal-runs/controller.ts [5938 б]
@@ -151,6 +152,7 @@
   C.0.09.02        src/core/otc/service.ts [22257 б]
   C.0.10.01        src/core/signals/entity.ts [5423 б]
   C.0.10.02        src/core/signals/service.ts [18648 б]
+  C.0.10.10        src/core/proposals/service.ts [18166 б]
   C.0.11.01        src/core/connections/entity.ts [4943 б]
   C.0.11.02        src/core/connections/service.ts [12478 б]
   C.0.12.01        src/core/arbitrations/entity.ts [3394 б]
@@ -277,6 +279,7 @@
   D.2.01.54        db/migrations/054_reassignment_signals.sql [1341 б]
   D.2.01.55        db/migrations/055_mentor_questions.sql [1539 б]
   D.2.01.56        db/migrations/056_plan_versions.sql [977 б]
+  D.2.01.57        db/migrations/057_proposals_invariants.sql [6176 б]
   F.4.01.01        src/web/App.tsx [14914 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -378,7 +381,7 @@
   I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [13808 б]
+  I.1.01.16        .github/workflows/ci.yml [14027 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -393,7 +396,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [265505 б]
+  I.10.05.04       tsconfig.tsbuildinfo [265873 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [125182 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -485,7 +488,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [7073 б]
+  I.9.02.18        scripts/ci-local.ps1 [7163 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -561,6 +564,7 @@
   I.9.04.69        scripts/test-questions.ts [6204 б]
   I.9.04.70        scripts/test-plan-versions.ts [4693 б]
   I.9.04.71        scripts/test-cards.ts [5859 б]
+  I.9.04.72        scripts/test-proposals.ts [10178 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -642,6 +646,7 @@
   X.0.01.17        CONTRIBUTING.md [8695 б]
   X.0.01.18        docs/community/launch-kit.md [8688 б]
   X.0.01.19        docs/collective-development-audit.md [18070 б]
+  X.0.01.20        docs/governance.md [6487 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -809,5 +814,5 @@
 ========================================================================
   Блоков без файлов:    32
   Файлов без блоков:    0
-  Файлов с содержимым:  593
+  Файлов с содержимым:  598
   Пустых файлов:        157

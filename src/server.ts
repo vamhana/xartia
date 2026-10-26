@@ -34,6 +34,7 @@ import { registerAuthRoutes } from './api/auth/controller.js';
 import { registerParticipantsRoutes } from './api/participants/controller.js';
 import { registerDirectionsRoutes } from './api/directions/controller.js';
 import { registerCapacityRoutes } from './api/capacity/controller.js';
+import { registerProposalRoutes } from './api/proposals/controller.js';
 import { registerQuestionRoutes } from './api/questions/controller.js';
 import { registerReassignmentRoutes } from './api/reassignment/controller.js';
 import { registerCellsRoutes } from './api/cells/controller.js';
@@ -240,6 +241,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await registerCapacityRoutes(app);
   await registerReassignmentRoutes(app);
   await registerQuestionRoutes(app);
+  await registerProposalRoutes(app);
   await registerMandatesRoutes(app);
   await registerPlansRoutes(app);
   await registerTasksRoutes(app);
