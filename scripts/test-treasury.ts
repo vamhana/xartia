@@ -178,6 +178,52 @@ async function main(): Promise<void> {
     fail('инвариант пола нарушен');
   }
 
+  // Подписанты: 5 мест, вакантные замещает Архитектор.
+  const signatories = await call<{ data: Array<{ seat: string; holder: unknown | null; fallbackToArchitect: boolean }> }>(
+    'GET', '/treasury/signatories', undefined, token,
+  );
+  if (signatories.status === 200 && signatories.data.data.length === 5) {
+    ok('5 мест подписантов, вакантные — фолбэк на Архитектора');
+  } else {
+    fail(`signatories → ${signatories.status}: ${JSON.stringify(signatories.data)}`);
+  }
+
+  // Привязка к Шлюзу: завершённая сделка автоматически попадает в казну.
+  const tx = await call<{ id: string }>(
+    'POST', '/gateway/transactions',
+    { type: 'sale', description: 'Тест: продажа через Шлюз', amount_external: 500 },
+    token,
+  );
+  if (tx.status !== 201) { fail(`gateway create → ${tx.status}: ${JSON.stringify(tx.data)}`); return; }
+  await call('POST', `/gateway/transactions/${tx.data.id}/approve`, {}, token);
+  const audited = await call('POST', `/gateway/transactions/${tx.data.id}/audit`, {}, token);
+  if (audited.status !== 200) { fail(`gateway audit → ${audited.status}`); }
+
+  const afterGateway = await call<State>('GET', '/treasury/state', undefined, token);
+  if (Math.abs(afterGateway.data.t1Usdc - (after.data.t1Usdc + 300)) < 0.01) {
+    ok('сделка Шлюза 500: +300 в T1 автоматически (60%)');
+  } else {
+    fail(`T1 после Шлюза: ${afterGateway.data.t1Usdc} (ожидали ${after.data.t1Usdc + 300})`);
+  }
+
+  const ops = await call<{ data: Array<{ gatewayTransactionId: string | null }> }>(
+    'GET', '/treasury/operations', undefined, token,
+  );
+  if (ops.data.data.some((o) => o.gatewayTransactionId === tx.data.id)) {
+    ok('операция казны привязана к сделке Шлюза');
+  } else {
+    fail('операция казны не привязана к сделке');
+  }
+
+  // Повторный аудит не должен задвоить выручку.
+  await call('POST', `/gateway/transactions/${tx.data.id}/audit`, {}, token);
+  const afterRetry = await call<State>('GET', '/treasury/state', undefined, token);
+  if (Math.abs(afterRetry.data.t1Usdc - afterGateway.data.t1Usdc) < 0.01) {
+    ok('повторный аудит не задваивает выручку');
+  } else {
+    fail('выручка задвоилась при повторном аудите');
+  }
+
   console.log('\n✅ done');
 }
 

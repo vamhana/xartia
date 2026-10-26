@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   742
-  Файлов в проекте:        738
+  Блоков в спецификации:   743
+  Файлов в проекте:        739
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 549
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 550
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -91,7 +91,7 @@
   A.1.38.01        src/api/public/controller.ts [646 б]
   A.1.39.01        src/api/dev/controller.ts [4253 б]
   A.1.46.01        src/api/council/controller.ts [4332 б]
-  A.1.47.01        src/api/treasury/controller.ts [4189 б]
+  A.1.47.01        src/api/treasury/controller.ts [4537 б]
   A.1.90.01        src/api/system/health.ts [2024 б]
   A.1.90.02        src/api/system/metrics.ts [3450 б]
   A.1.90.03        src/api/system/version.ts [1187 б]
@@ -170,7 +170,7 @@
   C.0.23.01        src/core/psy/entity.ts [8081 б]
   C.0.23.02        src/core/psy/service.ts [39636 б]
   C.0.24.01        src/core/gateway/entity.ts [7140 б]
-  C.0.24.02        src/core/gateway/service.ts [21342 б]
+  C.0.24.02        src/core/gateway/service.ts [22258 б]
   C.0.25.01        src/core/quanta/entity.ts [10318 б]
   C.0.25.02        src/core/quanta/service.ts [27115 б]
   C.0.26.01        src/core/constructor/entity.ts [8509 б]
@@ -211,7 +211,7 @@
   C.0.43.01        src/core/public/service.ts [1636 б]
   C.0.45.01        src/core/mentors/service.ts [6821 б]
   C.0.46.01        src/core/council/service.ts [14162 б]
-  C.0.47.01        src/core/treasury/service.ts [13082 б]
+  C.0.47.01        src/core/treasury/service.ts [18469 б]
   D.2.01.01        db/migrations/001_extensions.sql [1330 б]
   D.2.01.02        db/migrations/002_enums.sql [22159 б]
   D.2.01.03        db/migrations/003_tables.sql [102487 б]
@@ -254,6 +254,7 @@
   D.2.01.40        db/migrations/040_cell_plan_delegation.sql [968 б]
   D.2.01.41        db/migrations/041_council_term_180.sql [1180 б]
   D.2.01.42        db/migrations/042_treasury.sql [2507 б]
+  D.2.01.43        db/migrations/043_treasury_gateway_unique.sql [461 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -293,7 +294,7 @@
   F.4.02.31        src/web/pages/PlanTree.tsx [8904 б]
   F.4.02.32        src/web/pages/Naryad.tsx [13984 б]
   F.4.02.33        src/web/pages/Councils.tsx [12642 б]
-  F.4.02.34        src/web/pages/Treasury.tsx [10126 б]
+  F.4.02.34        src/web/pages/Treasury.tsx [11371 б]
   F.4.02.98        src/web/pages/Otc.tsx [13221 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
@@ -351,7 +352,7 @@
   I.0.01.04        docker/docker-compose.yml [4734 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [11116 б]
+  I.1.01.16        .github/workflows/ci.yml [11321 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -366,7 +367,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264933 б]
+  I.10.05.04       tsconfig.tsbuildinfo [264900 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [130763 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -458,7 +459,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [5502 б]
+  I.9.02.18        scripts/ci-local.ps1 [5590 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -524,7 +525,7 @@
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
   I.9.04.60        scripts/test-council.ts [9248 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
-  I.9.04.62        scripts/test-treasury.ts [7765 б]
+  I.9.04.62        scripts/test-treasury.ts [10977 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -596,7 +597,7 @@
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [7334 б]
   X.0.01.08        docs/roadmap.md [29308 б]
-  X.0.01.11        docs/product-v0.1.md [28734 б]
+  X.0.01.11        docs/product-v0.1.md [29901 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
 
@@ -766,5 +767,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  549
+  Файлов с содержимым:  550
   Пустых файлов:        157

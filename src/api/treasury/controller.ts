@@ -9,6 +9,7 @@ import {
   approveSpend,
   getSpendRequest,
   getTreasuryState,
+  getSignatories,
   listOperations,
   listSpendRequests,
   recordRevenue,
@@ -40,6 +41,11 @@ export async function registerTreasuryRoutes(app: FastifyInstance): Promise<void
   app.get('/treasury/state', { preHandler: [authMiddleware] }, async (req, reply) => {
     const state = await getTreasuryState();
     reply.send({ ...state, audit_id: req.auditId });
+  });
+
+  app.get('/treasury/signatories', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const data = await getSignatories();
+    reply.send({ data, audit_id: req.auditId });
   });
 
   app.get('/treasury/operations', { preHandler: [authMiddleware] }, async (req, reply) => {

@@ -373,6 +373,26 @@ export async function auditTransaction(
     entityType: 'external_transaction',
     entityId: transactionId,
   });
+
+  // Привязка к казне: завершённая сделка с суммой = выручка Шлюза.
+  // Идемпотентно: повторный аудит не задваивает учёт.
+  const amount = row.amount_external ? parseFloat(row.amount_external) : 0;
+  if (amount > 0) {
+    try {
+      const { recordGatewayRevenue } = await import('../treasury/service.js');
+      await recordGatewayRevenue({
+        transactionId,
+        amountUsdc: amount,
+        actorId: requesterId,
+        note: `Сделка Шлюза: ${row.description}`,
+      });
+    } catch (e) {
+      // Казна не должна блокировать аудит сделки — фиксируем и идём дальше.
+      const { logger } = await import('../../lib/logger.js');
+      logger.warn({ err: e, transactionId }, 'gateway→treasury revenue failed');
+    }
+  }
+
   return rowToTx(row);
 }
 

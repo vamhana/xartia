@@ -11,6 +11,7 @@ import { logAction } from '../audit.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors.js';
 import { Role } from '../roles.js';
 import { getRoles } from '../../security/rbac.js';
+import { send, sendToRole } from '../../lib/notifications.js';
 import type { UUID } from '../types.js';
 
 export const FLOOR = 1.0;
@@ -230,6 +231,12 @@ export async function requestSpend(input: {
      VALUES ($1,$2,$3,$4)`,
     [id, input.amountUsdc, input.purpose.trim(), input.actorId],
   );
+  void notifyTreasury(
+    'treasury.spend_request',
+    'Запрос траты из казны',
+    `${input.amountUsdc.toFixed(2)} USDC: ${input.purpose}`,
+  );
+
   await logAction({
     actorId: input.actorId,
     actorType: 'participant',
@@ -377,3 +384,134 @@ export async function listOperations(limit = 50): Promise<TreasuryOperation[]> {
     createdAt: r.created_at.toISOString(),
   }));
 }
+
+// ─── Подписанты казны (5 мест) ───────────────────────────────────────
+
+export interface SignatorySeat {
+  seat: string;
+  role: string;
+  holder: { participantId: UUID; name: string; externalId: string } | null;
+  /** Место вакантно — функцию исполняет Архитектор (дух Хартии). */
+  fallbackToArchitect: boolean;
+}
+
+interface SeatDef {
+  seat: string;
+  role: string;
+  directionNumber: number | null;
+}
+
+const SEATS: SeatDef[] = [
+  { seat: 'Архитектор', role: 'FIRST_ARCHITECT', directionNumber: null },
+  { seat: 'Верификация', role: 'COUNCIL_MEMBER', directionNumber: 13 },
+  { seat: 'Шлюз', role: 'COUNCIL_MEMBER', directionNumber: 15 },
+  { seat: 'Внешний аудитор', role: 'KEEPER', directionNumber: null },
+  { seat: 'Выборный делегат', role: 'COUNCIL_MEMBER', directionNumber: 9 },
+];
+
+async function architect(): Promise<{ participantId: UUID; name: string; externalId: string } | null> {
+  const row = await queryOne<{ id: string; name: string; external_id: string }>(
+    `SELECT id, name, external_id FROM participants
+      WHERE is_first_architect = true AND deleted_at IS NULL
+      ORDER BY created_at LIMIT 1`,
+  );
+  return row ? { participantId: row.id as UUID, name: row.name, externalId: row.external_id } : null;
+}
+
+/** Пять мест подписантов; вакантные замещает Архитектор, но подпись всё равно одна. */
+export async function getSignatories(): Promise<SignatorySeat[]> {
+  const arch = await architect();
+  const result: SignatorySeat[] = [];
+  for (const def of SEATS) {
+    const params: unknown[] = [];
+    let where = `r.name = $1 AND pr.status = 'active' AND (pr.valid_to IS NULL OR pr.valid_to > now())`;
+    params.push(def.role);
+    if (def.directionNumber !== null) {
+      where += ` AND d.number = $2`;
+      params.push(def.directionNumber);
+    }
+    const row = await queryOne<{ id: string; name: string; external_id: string }>(
+      `SELECT p.id, p.name, p.external_id
+         FROM participant_roles pr
+         JOIN roles r ON r.id = pr.role_id
+         JOIN participants p ON p.id = pr.participant_id
+         LEFT JOIN directions d ON d.id = pr.direction_id
+        WHERE ${where}
+        ORDER BY pr.valid_from DESC
+        LIMIT 1`,
+      params,
+    );
+    const holder = row
+      ? { participantId: row.id as UUID, name: row.name, externalId: row.external_id }
+      : null;
+    result.push({
+      seat: def.seat,
+      role: def.role,
+      holder,
+      fallbackToArchitect: holder === null && arch !== null,
+    });
+  }
+  return result;
+}
+
+// ─── Выручка Шлюза ───────────────────────────────────────────────────
+
+/**
+ * Учесть выручку завершённой сделки Шлюза. Идемпотентно: одна сделка —
+ * одна операция казны (частичный уникальный индекс + проверка).
+ */
+export async function recordGatewayRevenue(input: {
+  transactionId: UUID;
+  amountUsdc: number;
+  actorId: UUID | null;
+  note?: string | null;
+}): Promise<TreasuryState> {
+  const exists = await queryOne<{ id: string }>(
+    `SELECT id FROM treasury_operations WHERE gateway_transaction_id = $1 LIMIT 1`,
+    [input.transactionId],
+  );
+  if (exists) {return getTreasuryState();}
+
+  const state = await recordRevenue({
+    amountUsdc: input.amountUsdc,
+    actorId: input.actorId,
+    gatewayTransactionId: input.transactionId,
+    note: input.note ?? 'Выручка Шлюза',
+  });
+
+  void notifyTreasury(
+    'treasury.gateway_revenue',
+    'Выручка Шлюза зачислена в казну',
+    `Сделка ${input.transactionId}: ${input.amountUsdc.toFixed(2)} USDC → резерв/операции/буфер`,
+  );
+
+  return state;
+}
+
+async function notifyTreasury(type: string, title: string, body: string): Promise<void> {
+  try {
+    const res = await sendToRole(Role.COUNCIL_MEMBER, {
+      type,
+      priority: 'standard',
+      title,
+      body,
+      data: {},
+    });
+    if (res.delivered === 0) {
+      const arch = await architect();
+      if (arch) {
+        await send({
+          recipientId: arch.participantId,
+          type,
+          priority: 'standard',
+          title,
+          body,
+          data: {},
+        });
+      }
+    }
+  } catch {
+    /* best-effort */
+  }
+}
+

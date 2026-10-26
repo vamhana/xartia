@@ -32,6 +32,13 @@ interface SpendRequest {
   createdAt: string;
 }
 
+interface SignatorySeat {
+  seat: string;
+  role: string;
+  holder: { participantId: string; name: string; externalId: string } | null;
+  fallbackToArchitect: boolean;
+}
+
 interface Operation {
   id: string;
   kind: string;
@@ -55,6 +62,10 @@ export function TreasuryPage(): ReactElement {
   const opsQ = useApiQuery<{ data: Operation[] }>(
     ['treasury', 'operations'],
     '/treasury/operations',
+  );
+  const signatoriesQ = useApiQuery<{ data: SignatorySeat[] }>(
+    ['treasury', 'signatories'],
+    '/treasury/signatories',
   );
 
   const [amount, setAmount] = useState('');
@@ -140,6 +151,20 @@ export function TreasuryPage(): ReactElement {
               ${money(st.bufferUsdc)}
             </p>
           </>
+        )}
+      </Card>
+
+      <Card title="Подписанты казны" subtitle="5 мест; вакантные замещает Архитектор">
+        {signatoriesQ.isLoading ? (
+          <Spinner />
+        ) : (
+          (signatoriesQ.data?.data ?? []).map((seat) => (
+            <div key={seat.seat} style={styles.opRow}>
+              <span style={styles.opKind}>{seat.seat}</span>
+              <span>{seat.holder ? seat.holder.name : '— вакантно'}</span>
+              {seat.fallbackToArchitect && <Badge tone="info">замещает Архитектор</Badge>}
+            </div>
+          ))
         )}
       </Card>
 
