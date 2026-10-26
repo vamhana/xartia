@@ -139,10 +139,17 @@ export async function getQueue(directionId?: UUID): Promise<OtcQueueItem[]> {
   });
 }
 
+export interface CriteriaResult {
+  id: string;
+  passed: boolean;
+  comment?: string;
+}
+
 export interface DecideRequest {
   reportId: UUID;
   verdict: OtcVerdict;
   comment?: string;
+  criteria?: CriteriaResult[];
 }
 
 
@@ -201,6 +208,74 @@ export async function getSla(directionId?: UUID): Promise<{
   };
 }
 
+
+/** Обязательные критерии должны быть подтверждены. */
+function assertCriteria(
+  active: OtcCriteria | null,
+  results: CriteriaResult[] | undefined,
+): void {
+  if (!active || active.items.length === 0) {return;}
+  const passed = new Map((results ?? []).map((r) => [r.id, r.passed]));
+  const missing = active.items
+    .filter((item) => item.required !== false)
+    .filter((item) => passed.get(item.id) !== true)
+    .map((item) => item.title);
+  if (missing.length > 0) {
+    throw new ConflictError(
+      `Не подтверждены обязательные критерии: ${missing.join('; ')}`,
+      { missing },
+    );
+  }
+}
+
+/**
+ * Эскалация просроченных проверок: уведомляет Совет направления и
+ * фиксирует факт в otc_escalations (ровно один раз на задачу).
+ */
+export async function escalateOverdue(
+  directionId?: UUID,
+): Promise<{ escalated: number }> {
+  const params: unknown[] = [OTC_SLA_HOURS];
+  const whereDir = directionId
+    ? (params.push(directionId), `AND t.direction_id = $${params.length}`)
+    : '';
+  const rows = await query<{ task_id: string; direction_id: string; external_id: string }>(
+    `SELECT t.id AS task_id, t.direction_id, t.external_id
+       FROM reports r
+       JOIN tasks t ON t.id = r.task_id
+      WHERE t.status = 'submitted'
+        AND r.created_at < now() - ($1::int * interval '1 hour')
+        ${whereDir}
+        AND NOT EXISTS (SELECT 1 FROM otc_escalations e WHERE e.task_id = t.id)
+      LIMIT 100`,
+    params,
+  );
+  for (const row of rows) {
+    await query(
+      `INSERT INTO otc_escalations (task_id, direction_id, reason)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (task_id) DO NOTHING`,
+      [row.task_id, row.direction_id, `Проверка просрочена (>${OTC_SLA_HOURS} ч)`],
+    );
+    try {
+      await sendToRole(
+        Role.COUNCIL_MEMBER as never,
+        {
+          type: 'otc.sla_overdue',
+          priority: 'high',
+          title: 'Проверка ОТК просрочена',
+          body: `${row.external_id}: ожидает проверки дольше ${OTC_SLA_HOURS} ч`,
+          data: { taskId: row.task_id, link: '/otc' },
+        },
+        row.direction_id,
+      );
+    } catch {
+      // уведомление best-effort
+    }
+  }
+  return { escalated: rows.length };
+}
+
 export async function decide(
   input: DecideRequest,
   otcId: UUID,
@@ -221,6 +296,7 @@ export async function decide(
   await assertDirectionScope(otcId, task.directionId);
 
   const criteria = await getActiveCriteria(task.directionId);
+  assertCriteria(criteria, input.criteria);
   const entity = createDecision(
     input.reportId,
     otcId,
@@ -238,7 +314,7 @@ export async function decide(
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [entity.id, entity.reportId, entity.otcId, entity.verdict,
      entity.comment, criteria?.version ?? entity.criteriaVersion, entity.crisisProtocol,
-     criteria ? JSON.stringify(criteria) : null],
+     criteria ? JSON.stringify({ ...criteria, results: input.criteria ?? [] }) : null],
   );
 
   if (input.verdict === 'accepted' || input.verdict === 'crisis_protocol') {

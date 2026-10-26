@@ -154,7 +154,11 @@ async function main(): Promise<void> {
     `SELECT COUNT(*)::text AS c FROM flow_transactions WHERE participant_id = $1`,
     [archId],
   );
-  const accept = await call('POST', `/tasks/${work}/accept`, {}, otcToken);
+  const crit = await call<{ data: { items: Array<{ id: string }> } }>(
+    'GET', '/otc/criteria', undefined, otcToken,
+  );
+  const critResults = (crit.data.data?.items ?? []).map((i) => ({ id: i.id, passed: true }));
+  const accept = await call('POST', `/tasks/${work}/accept`, { criteria: critResults }, otcToken);
   if (accept.status === 200) { ok('ОТК принял задачу'); }
   else { fail(`accept → ${accept.status}: ${JSON.stringify(accept.data)}`); }
   const after = await queryOne<{ c: string }>(

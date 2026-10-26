@@ -123,6 +123,13 @@ async function main(): Promise<void> {
   } else {
     fail(`GET /otc/sla → ${sla.status}: ${JSON.stringify(sla.data)}`);
   }
+
+  const escalate = await req<{ escalated: number }>('POST', '/otc/escalate', {});
+  if (escalate.status === 200 && typeof escalate.data.escalated === 'number') {
+    ok(`Эскалация просроченных: ${escalate.data.escalated}`);
+  } else {
+    fail(`POST /otc/escalate → ${escalate.status}: ${JSON.stringify(escalate.data)}`);
+  }
   const inQueue = queue.data.data?.some((i) => i.reportId === reportId);
   if (inQueue) {ok('Отчёт в очереди ОТК');}
   else {fail('Отчёт НЕ в очереди ОТК');}

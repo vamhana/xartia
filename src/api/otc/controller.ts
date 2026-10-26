@@ -19,7 +19,7 @@ import { z } from 'zod';
 
 import {
   getQueue, decide, crisisDecide, getStats,
-  getActiveCriteria, getSla,
+  getActiveCriteria, getSla, escalateOverdue,
   appeal, getAppeal, listAppealsByDecision,
 } from '../../core/otc/service.js';
 import { uuidIdParams, uuidSchema } from '../../lib/validators.js';
@@ -35,6 +35,11 @@ const decideBody = z.object({
   report_id: uuidSchema,
   verdict: z.enum(['accepted', 'returned']),
   comment: z.string().min(1).max(5000).optional(),
+  criteria: z.array(z.object({
+    id: z.string().min(1),
+    passed: z.boolean(),
+    comment: z.string().max(2000).optional(),
+  })).optional(),
 });
 
 const crisisBody = z.object({
@@ -75,6 +80,17 @@ export async function registerOtcRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // POST /otc/escalate — уведомить Совет о просроченных проверках.
+  app.post(
+    '/otc/escalate',
+    { preHandler: [authMiddleware, writeLimit, requireRight('otc', 'C'), validateQuery(queueQuery)] },
+    async (req, reply) => {
+      const q = req.query as z.infer<typeof queueQuery>;
+      const result = await escalateOverdue(q.direction_id);
+      reply.send({ ...result, audit_id: req.auditId });
+    },
+  );
+
   // GET /otc/sla — очередь, просрочка и среднее ожидание.
   app.get(
     '/otc/sla',
@@ -97,6 +113,7 @@ export async function registerOtcRoutes(app: FastifyInstance): Promise<void> {
         reportId: b.report_id,
         verdict: b.verdict,
         ...(b.comment ? { comment: b.comment } : {}),
+        ...(b.criteria ? { criteria: b.criteria } : {}),
       }, auth.participantId);
       reply.status(201).send({ ...decision, audit_id: req.auditId });
     },

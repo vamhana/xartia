@@ -178,8 +178,16 @@ async function main(): Promise<void> {
   log(`POST /tasks/${taskId}/submit`, submitted.status, submitted.data);
   if (submitted.data.status === 'submitted') {ok('Задача сдана');}
 
-  // 12. Принять
-  const accepted = await req<{ status: string }>('POST', `/tasks/${taskId}/accept`);
+  // 12. Принять: критерии ОТК обязательны.
+  const crit = await req<{ data: { items: Array<{ id: string }> } }>('GET', '/otc/criteria');
+  const critResults = (crit.data.data?.items ?? []).map((i) => ({ id: i.id, passed: true }));
+  const noCrit = await req<{ code?: string }>('POST', `/tasks/${taskId}/accept`, {});
+  if (noCrit.status === 409) {ok('Без подтверждения критериев приёмка отклонена');}
+  else {console.error(`   ✗ accept без критериев → ${noCrit.status}`); process.exitCode = 1;}
+
+  const accepted = await req<{ status: string }>(
+    'POST', `/tasks/${taskId}/accept`, { criteria: critResults },
+  );
   log(`POST /tasks/${taskId}/accept`, accepted.status, accepted.data);
   if (accepted.data.status === 'accepted') {ok('Задача принята');}
 
@@ -199,7 +207,9 @@ async function main(): Promise<void> {
     process.exitCode = 1;
   }
 
-  const again = await req<{ code?: string }>('POST', `/tasks/${taskId}/accept`);
+  const again = await req<{ code?: string }>(
+    'POST', `/tasks/${taskId}/accept`, { criteria: critResults },
+  );
   if (again.status === 409) {ok('Повторная приёмка отклонена');}
   else {console.error(`   ✗ повторная приёмка → ${again.status}`); process.exitCode = 1;}
 
@@ -233,7 +243,9 @@ async function main(): Promise<void> {
   const resubmit = await asToken(execToken, () =>
     req<{ status: string }>('POST', `/tasks/${taskId}/submit`),
   );
-  const reaccept = await req<{ status: string }>('POST', `/tasks/${taskId}/accept`);
+  const reaccept = await req<{ status: string }>(
+    'POST', `/tasks/${taskId}/accept`, { criteria: critResults },
+  );
   const finalAwards = await query<{ c: string }>(
     `SELECT COUNT(*)::text AS c FROM task_flow_awards WHERE task_id = $1`,
     [taskId],

@@ -57,6 +57,14 @@ const createBody = z.object({
 
 const assignBody = z.object({ participant_id: uuidSchema });
 const reopenBody = z.object({ reason: z.string().min(3).max(1000) });
+const acceptBody = z.object({
+  comment: z.string().max(5000).optional(),
+  criteria: z.array(z.object({
+    id: z.string().min(1),
+    passed: z.boolean(),
+    comment: z.string().max(2000).optional(),
+  })).optional(),
+});
 const returnBody = z.object({ reason: z.string().min(1).max(500) });
 
 const writeLimit = rateLimit({ config: mustGetLimit('api.write') });
@@ -225,11 +233,23 @@ export async function registerTasksRoutes(app: FastifyInstance): Promise<void> {
   // POST /tasks/:id/accept (право: otc:C; I.2.12 проверяется в сервисе — B2-fix)
   app.post(
     '/tasks/:id/accept',
-    { preHandler: [authMiddleware, writeLimit, requireRight('otc', 'C'), validateParams(uuidIdParams)] },
+    {
+      preHandler: [
+        authMiddleware,
+        writeLimit,
+        requireRight('otc', 'C'),
+        validateParams(uuidIdParams),
+        validateBody(acceptBody),
+      ],
+    },
     async (req, reply) => {
       const auth = getAuthContext(req);
       const p = req.params as z.infer<typeof uuidIdParams>;
-      const task = await acceptTaskService(p.id, auth.participantId);
+      const b = req.body as z.infer<typeof acceptBody>;
+      const task = await acceptTaskService(p.id, auth.participantId, {
+        comment: b.comment ?? null,
+        ...(b.criteria ? { criteria: b.criteria } : {}),
+      });
       reply.send({ ...task, audit_id: req.auditId });
     },
   );

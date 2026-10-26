@@ -516,6 +516,7 @@ export async function submitTaskService(taskId: UUID, requesterId: UUID): Promis
 
 export interface AcceptOptions {
   comment?: string | null;
+  criteria?: Array<{ id: string; passed: boolean; comment?: string }>;
 }
 
 /**
@@ -556,8 +557,29 @@ export async function acceptTaskService(
       LIMIT 1`,
     [task.directionId],
   );
+  if (criteria) {
+    const items = Array.isArray(criteria.items)
+      ? criteria.items as Array<{ id: string; title: string; required?: boolean }>
+      : [];
+    const passed = new Map((options.criteria ?? []).map((r) => [r.id, r.passed]));
+    const missing = items
+      .filter((item) => item.required !== false)
+      .filter((item) => passed.get(item.id) !== true)
+      .map((item) => item.title);
+    if (missing.length > 0) {
+      throw new ConflictError(
+        `Не подтверждены обязательные критерии: ${missing.join('; ')}`,
+        { missing },
+      );
+    }
+  }
   const criteriaSnapshot = criteria
-    ? JSON.stringify({ version: criteria.version, title: criteria.title, items: criteria.items })
+    ? JSON.stringify({
+        version: criteria.version,
+        title: criteria.title,
+        items: criteria.items,
+        results: options.criteria ?? [],
+      })
     : null;
 
   // P0.3: решение, статус и Поток — атомарно.
