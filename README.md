@@ -76,7 +76,7 @@ pnpm dev
 
 ```powershell
 pnpm typecheck          # API
-pnpm typecheck:web      # web (сейчас 12 известных ошибок в 3 страницах)
+pnpm typecheck:web      # web (0 ошибок, проверяется в CI)
 pnpm exec vite build    # сборка web
 pwsh scripts/ci-local.ps1   # локальный CI: типы, сборка, миграции, 6 smoke-тестов
 pwsh scripts/backup.ps1 -Verify  # бэкап + проверка восстановления

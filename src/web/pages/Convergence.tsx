@@ -317,7 +317,7 @@ function PlansTab({
                 <Badge tone={STATUS_TONE[plan.status]}>
                   {STATUS_LABEL[plan.status]}
                 </Badge>
-                <Badge tone="info">Этап {plan.stage}/5</Badge>
+                <Badge tone="info">{`Этап ${plan.stage}/5`}</Badge>
               </div>
               <div style={styles.listItemDesc}>{plan.stateName}</div>
               <div style={styles.listItemMeta}>
@@ -424,7 +424,7 @@ export function ConvergenceStages({
             <Badge tone={STATUS_TONE[plan.status]}>
               {STATUS_LABEL[plan.status]}
             </Badge>
-            <Badge tone="info">Этап {plan.stage}/5</Badge>
+            <Badge tone="info">{`Этап ${plan.stage}/5`}</Badge>
           </div>
         }
         subtitle={`${plan.stateName} · начало ${new Date(plan.startedAt).toLocaleDateString('ru-RU')}`}
@@ -547,6 +547,7 @@ export function ConvergenceStages({
 
       {completing ? (
         <Modal onClose={() => setCompleting(false)} title="Завершить конвергенцию">
+        <>
           <p style={styles.muted}>
             Все 5 этапов пройдены. Подтвердите завершение.
           </p>
@@ -565,6 +566,7 @@ export function ConvergenceStages({
               Отмена
             </Button>
           </div>
+        </>
         </Modal>
       ) : null}
     </>
@@ -761,6 +763,7 @@ export function ConversionPanel({
                 : 'Конверсия вооружения'
           }
         >
+        <>
           {innerTab === 'debts' ? (
             <Form<z.infer<typeof debtsSchema>>
               schema={debtsSchema}
@@ -835,6 +838,7 @@ export function ConversionPanel({
               />
             </Form>
           ) : null}
+        </>
         </Modal>
       ) : null}
     </Card>

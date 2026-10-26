@@ -21,14 +21,14 @@ import type {
   Path,
   UseFormReturn,
 } from 'react-hook-form';
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
 import { colors, fontSize, radius, spacing } from '../../theme';
 
 // ─── Общие типы ──────────────────────────────────────────────────
 
 export interface FormProps<T extends FieldValues> {
-  schema: ZodSchema<T>;
+  schema: ZodType<T, any, any>;
   onSubmit: (data: T) => Promise<void>;
   defaultValues?: Partial<T>;
   children:
@@ -57,6 +57,7 @@ export interface FormInputProps {
   required?: boolean;
   description?: string;
   autoComplete?: string;
+  disabled?: boolean;
 }
 
 export interface FormSelectOption {
@@ -235,6 +236,7 @@ export function FormInput({
   required,
   description,
   autoComplete,
+  disabled = false,
 }: FormInputProps): ReactElement {
   const { register } = useFormContext();
   return (
@@ -249,6 +251,7 @@ export function FormInput({
         type={type}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        disabled={disabled}
         {...register(name, {
           valueAsNumber: type === 'number',
         })}

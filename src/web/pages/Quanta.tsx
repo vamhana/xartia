@@ -226,7 +226,7 @@ function CatalogTab(): ReactElement {
               }}
             >
               <div style={styles.listItemTop}>
-                <Badge tone="info">L{quantum.level}</Badge>
+                <Badge tone="info">{`L${quantum.level}`}</Badge>
                 <Badge tone={STATUS_TONE[quantum.status]}>
                   {STATUS_LABEL[quantum.status]}
                 </Badge>
@@ -326,7 +326,7 @@ export function QuantumDetail({
       <Card
         title={
           <div style={styles.detailHeader}>
-            <Badge tone="info">L{quantum.level}</Badge>
+            <Badge tone="info">{`L${quantum.level}`}</Badge>
             <Badge tone={STATUS_TONE[quantum.status]}>
               {STATUS_LABEL[quantum.status]}
             </Badge>
@@ -624,7 +624,7 @@ function DetectTab(): ReactElement {
       key: 'advantage',
       title: 'Преимущество',
       width: 140,
-      render: (r) => <Badge tone="success">+{r.advantage.toFixed(1)}%</Badge>,
+      render: (r) => <Badge tone="success">{`+${r.advantage.toFixed(1)}%`}</Badge>,
     },
     {
       key: 'actions',

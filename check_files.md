@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   753
-  Файлов в проекте:        749
+  Блоков в спецификации:   754
+  Файлов в проекте:        750
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 560
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 561
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -57,7 +57,7 @@
   A.1.04.01        src/api/cells/controller.ts [10599 б]
   A.1.05.01        src/api/mandates/controller.ts [10040 б]
   A.1.06.01        src/api/plans/controller.ts [14088 б]
-  A.1.07.01        src/api/tasks/controller.ts [10963 б]
+  A.1.07.01        src/api/tasks/controller.ts [11721 б]
   A.1.08.01        src/api/reports/controller.ts [4195 б]
   A.1.09.01        src/api/otc/controller.ts [6151 б]
   A.1.10.01        src/api/signals/controller.ts [9128 б]
@@ -134,7 +134,7 @@
   C.0.06.05        src/core/plans/tree.ts [3962 б]
   C.0.06.06        src/core/plans/oversight.ts [13458 б]
   C.0.07.01        src/core/tasks/entity.ts [4736 б]
-  C.0.07.02        src/core/tasks/service.ts [24448 б]
+  C.0.07.02        src/core/tasks/service.ts [27281 б]
   C.0.07.04        src/core/tasks/overdue.ts [3300 б]
   C.0.08.01        src/core/reports/entity.ts [2103 б]
   C.0.08.02        src/core/reports/service.ts [7527 б]
@@ -261,6 +261,7 @@
   D.2.01.47        db/migrations/047_unit_accounts.sql [2708 б]
   D.2.01.48        db/migrations/048_unit_accounts_unique.sql [634 б]
   D.2.01.49        db/migrations/049_flow_idempotency.sql [852 б]
+  D.2.01.50        db/migrations/050_task_reopen.sql [624 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -283,12 +284,12 @@
   F.4.02.14        src/web/pages/Jury.tsx [27323 б]
   F.4.02.15        src/web/pages/Psy.tsx [34676 б]
   F.4.02.16        src/web/pages/Gateway.tsx [53424 б]
-  F.4.02.17        src/web/pages/Quanta.tsx [30362 б]
+  F.4.02.17        src/web/pages/Quanta.tsx [30378 б]
   F.4.02.18        src/web/pages/Constructor.tsx [69959 б]
   F.4.02.19        src/web/pages/Planetary.tsx [38879 б]
-  F.4.02.20        src/web/pages/Convergence.tsx [42034 б]
+  F.4.02.20        src/web/pages/Convergence.tsx [42096 б]
   F.4.02.21        src/web/pages/Semantic.tsx [40191 б]
-  F.4.02.22        src/web/pages/Experiments.tsx [32885 б]
+  F.4.02.22        src/web/pages/Experiments.tsx [32912 б]
   F.4.02.23        src/web/pages/Learning.tsx [41119 б]
   F.4.02.24        src/web/pages/Automation.tsx [25292 б]
   F.4.02.25        src/web/pages/_ChartDemo.tsx [5645 б]
@@ -326,7 +327,7 @@
   F.4.99.01        src/web/components/ui/Widget.tsx [26914 б]
   F.4.99.02        src/web/components/ui/Table.tsx [13604 б]
   F.4.99.03        src/web/components/ui/Card.tsx [1919 б]
-  F.4.99.04        src/web/components/ui/Form.tsx [12849 б]
+  F.4.99.04        src/web/components/ui/Form.tsx [12928 б]
   F.4.99.05        src/web/theme/index.ts [1760 б]
   F.4.99.06        src/web/components/ui/Chart.tsx [14235 б]
   F.4.99.08        src/web/components/ui/VideoCall.tsx [11811 б]
@@ -359,7 +360,7 @@
   I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [11956 б]
+  I.1.01.16        .github/workflows/ci.yml [12018 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -376,7 +377,7 @@
   I.10.05.03       tsconfig.web.json [326 б]
   I.10.05.04       tsconfig.tsbuildinfo [263855 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [130809 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [124240 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -492,7 +493,7 @@
   I.9.04.19        scripts/test-semantic.ts [15642 б]
   I.9.04.20        scripts/test-signals.ts [17273 б]
   I.9.04.21        scripts/test-standards.ts [15836 б]
-  I.9.04.22        scripts/test-tasks.ts [10454 б]
+  I.9.04.22        scripts/test-tasks.ts [13793 б]
   I.9.04.23        scripts/test-universal-runs-multi.ts [17161 б]
   I.9.04.24        scripts/test-verification.ts [19150 б]
   I.9.04.25        scripts/test-regime-middleware.ts [7552 б]
@@ -532,7 +533,7 @@
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
   I.9.04.60        scripts/test-council.ts [9464 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
-  I.9.04.62        scripts/test-treasury.ts [12433 б]
+  I.9.04.62        scripts/test-treasury.ts [14444 б]
   I.9.04.63        scripts/test-panels.ts [5299 б]
   I.9.04.64        scripts/test-ws.ts [7827 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
@@ -606,7 +607,7 @@
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [7469 б]
   X.0.01.08        docs/roadmap.md [29308 б]
-  X.0.01.11        docs/product-v0.1.md [31586 б]
+  X.0.01.11        docs/product-v0.1.md [32346 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
   X.0.01.14        docs/coin-operations.md [16916 б]
@@ -777,5 +778,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  560
+  Файлов с содержимым:  561
   Пустых файлов:        157

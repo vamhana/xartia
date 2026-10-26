@@ -39,6 +39,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Typecheck API
         run: pnpm typecheck
+      - name: Typecheck Web
+        run: pnpm typecheck:web
       - name: Build API (tsc)
         run: pnpm build
       - name: Build web (vite)

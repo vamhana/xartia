@@ -664,4 +664,82 @@ export async function returnTaskService(
   return finalTask;
 }
 
+
+/**
+ * P1: пересмотр принятой задачи.
+ * Возвращает в работу, отменяет начисленный Поток обратной проводкой
+ * и снимает клейм — повторная приёмка снова начислит ровно один Поток.
+ */
+export async function reopenTaskService(
+  taskId: UUID,
+  reason: string,
+  requesterId: UUID,
+): Promise<Task> {
+  const task = await getById(taskId);
+  if (task.status !== 'accepted') {
+    throw new ConflictError('Пересмотреть можно только принятую задачу');
+  }
+  if (task.assignedTo === requesterId) {
+    throw new ForbiddenError('Нельзя пересматривать свою работу (I.2.12)');
+  }
+  await assertDirectionScope(requesterId, task.directionId);
+
+  await transaction(async (client) => {
+    const locked = await client.query<{ status: string; assigned_to: string | null }>(
+      `SELECT status, assigned_to FROM tasks WHERE id = $1 FOR UPDATE`,
+      [taskId],
+    );
+    const row = locked.rows[0];
+    if (!row || row.status !== 'accepted') {
+      throw new ConflictError('Задача изменена параллельным запросом');
+    }
+
+    await client.query(
+      `UPDATE tasks
+          SET status = 'in_progress',
+              reopened_count = reopened_count + 1,
+              last_reopen_reason = $2,
+              last_reopened_at = now(),
+              updated_at = now()
+        WHERE id = $1`,
+      [taskId, reason],
+    );
+
+    const award = await client.query<{ participant_id: string }>(
+      `DELETE FROM task_flow_awards WHERE task_id = $1 RETURNING participant_id`,
+      [taskId],
+    );
+    if ((award.rowCount ?? 0) === 1) {
+      const pid = award.rows[0]?.participant_id;
+      if (pid) {
+        await client.query(
+          `INSERT INTO flow_transactions
+             (id, participant_id, type, amount, reason, source, task_id)
+           VALUES ($1, $2, 'main', -1, $3, 'otc_reopen', $4)`,
+          [newUUID(), pid, `Пересмотр задачи ${taskId}: ${reason}`, taskId],
+        );
+      }
+    }
+  });
+
+  await logAction({
+    actorId: requesterId, actorType: 'participant',
+    action: 'tasks.reopen', entityType: 'task', entityId: taskId,
+    newValue: { reason },
+  });
+
+  const finalTask = await getById(taskId);
+  await emitTaskStatusChanged(toWsPayload(finalTask), 'accepted');
+  if (finalTask.assignedTo) {
+    await notifySafely(
+      finalTask.assignedTo,
+      'task.reopened',
+      'Задача возвращена на пересмотр',
+      `${finalTask.externalId}: ${reason.slice(0, 160)}`,
+      { taskId, link: `/tasks/${taskId}/report` },
+    );
+  }
+  return finalTask;
+}
+
 export { getDeadlineForPriority };

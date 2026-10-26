@@ -18,7 +18,7 @@ import { z } from 'zod';
 import {
   listTasks, getById, listMyTasks, createTaskService,
   assignTaskService, takeTaskService, submitTaskService,
-  acceptTaskService, returnTaskService,
+  acceptTaskService, returnTaskService, reopenTaskService,
 } from '../../core/tasks/service.js';
 import { uuidIdParams, uuidSchema, prioritySchema, taskStatusSchema } from '../../lib/validators.js';
 import { createSignalService } from '../../core/signals/service.js';
@@ -56,6 +56,7 @@ const createBody = z.object({
 });
 
 const assignBody = z.object({ participant_id: uuidSchema });
+const reopenBody = z.object({ reason: z.string().min(3).max(1000) });
 const returnBody = z.object({ reason: z.string().min(1).max(500) });
 
 const writeLimit = rateLimit({ config: mustGetLimit('api.write') });
@@ -250,6 +251,27 @@ export async function registerTasksRoutes(app: FastifyInstance): Promise<void> {
       const p = req.params as z.infer<typeof uuidIdParams>;
       const b = req.body as z.infer<typeof returnBody>;
       const task = await returnTaskService(p.id, b.reason, auth.participantId);
+      reply.send({ ...task, audit_id: req.auditId });
+    },
+  );
+
+  // POST /tasks/:id/reopen — пересмотр принятой задачи (P1).
+  app.post(
+    '/tasks/:id/reopen',
+    {
+      preHandler: [
+        authMiddleware,
+        writeLimit,
+        requireRight('otc', 'C'),
+        validateParams(uuidIdParams),
+        validateBody(reopenBody),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const b = req.body as z.infer<typeof reopenBody>;
+      const task = await reopenTaskService(p.id, b.reason, auth.participantId);
       reply.send({ ...task, audit_id: req.auditId });
     },
   );

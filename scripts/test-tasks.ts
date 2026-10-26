@@ -203,6 +203,54 @@ async function main(): Promise<void> {
   if (again.status === 409) {ok('Повторная приёмка отклонена');}
   else {console.error(`   ✗ повторная приёмка → ${again.status}`); process.exitCode = 1;}
 
+  // P1: пересмотр принятой задачи — возврат в работу и отмена Потока.
+  const reopened = await req<{ status: string }>(
+    'POST', `/tasks/${taskId}/reopen`, { reason: 'P1: пересмотр результата' },
+  );
+  if (reopened.status === 200 && reopened.data.status === 'in_progress') {
+    ok('Принятая задача возвращена на пересмотр (P1)');
+  } else {
+    console.error(`   ✗ reopen → ${reopened.status}: ${JSON.stringify(reopened.data)}`);
+    process.exitCode = 1;
+  }
+  const awardsAfter = await query<{ c: string }>(
+    `SELECT COUNT(*)::text AS c FROM task_flow_awards WHERE task_id = $1`,
+    [taskId],
+  );
+  const net = await query<{ s: string }>(
+    `SELECT COALESCE(SUM(amount), 0)::text AS s FROM flow_transactions WHERE task_id = $1`,
+    [taskId],
+  );
+  if (parseInt(awardsAfter[0]?.c ?? '0', 10) === 0
+      && Math.abs(parseFloat(net[0]?.s ?? '0')) < 1e-9) {
+    ok('Поток отменён обратной проводкой (net 0)');
+  } else {
+    console.error(`   ✗ отмена Потока: awards=${awardsAfter[0]?.c}, net=${net[0]?.s}`);
+    process.exitCode = 1;
+  }
+
+  // Повторная сдача и приёмка после пересмотра — снова ровно один Поток.
+  const resubmit = await asToken(execToken, () =>
+    req<{ status: string }>('POST', `/tasks/${taskId}/submit`),
+  );
+  const reaccept = await req<{ status: string }>('POST', `/tasks/${taskId}/accept`);
+  const finalAwards = await query<{ c: string }>(
+    `SELECT COUNT(*)::text AS c FROM task_flow_awards WHERE task_id = $1`,
+    [taskId],
+  );
+  const finalNet = await query<{ s: string }>(
+    `SELECT COALESCE(SUM(amount), 0)::text AS s FROM flow_transactions WHERE task_id = $1`,
+    [taskId],
+  );
+  if (resubmit.status === 200 && reaccept.status === 200
+      && parseInt(finalAwards[0]?.c ?? '0', 10) === 1
+      && Math.abs(parseFloat(finalNet[0]?.s ?? '0') - 1) < 1e-9) {
+    ok('Повторная приёмка: снова ровно один Поток (P1)');
+  } else {
+    console.error(`   ✗ повторная приёмка: ${resubmit.status}/${reaccept.status}, awards=${finalAwards[0]?.c}, net=${finalNet[0]?.s}`);
+    process.exitCode = 1;
+  }
+
   // P0.2: сдача без отчёта с артефактом запрещена.
   const bare = await req<{ id: string }>('POST', '/tasks', {
     direction_id: me.direction_id,

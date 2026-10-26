@@ -496,6 +496,7 @@ function ExperimentDetail({
 
       {completing ? (
         <Modal onClose={() => setCompleting(false)} title="Завершить эксперимент">
+        <>
           <p style={styles.muted}>
             Эксперимент будет помечен как завершённый. Результаты будут
             опубликованы в архив (best-effort).
@@ -516,6 +517,7 @@ function ExperimentDetail({
               Отмена
             </Button>
           </div>
+        </>
         </Modal>
       ) : null}
 
