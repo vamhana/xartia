@@ -38,24 +38,38 @@ export function OtcPage(): ReactElement {
     { refetchInterval: 20_000 },
   );
 
+  const criteriaQuery = useApiQuery<{
+    data: { items: Array<{ id: string; title: string; required?: boolean }> } | null;
+  }>(['otc', 'criteria'], '/otc/criteria');
+
   const [actionError, setActionError] = useState<string | null>(null);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [returningId, setReturningId] = useState<string | null>(null);
   const [returnReason, setReturnReason] = useState('');
 
   const decideMutation = useMutation<
     unknown,
     Error,
-    { reportId: string; verdict: 'accepted' | 'returned'; comment?: string }
+    {
+      reportId: string;
+      verdict: 'accepted' | 'returned';
+      comment?: string;
+      criteria?: Array<{ id: string; passed: boolean }>;
+    }
   >({
     mutationFn: (vars) =>
       apiPost('/otc/decisions', {
         report_id: vars.reportId,
         verdict: vars.verdict,
         ...(vars.comment ? { comment: vars.comment } : {}),
+        ...(vars.criteria ? { criteria: vars.criteria } : {}),
       }),
     onSuccess: () => {
       setReturningId(null);
       setReturnReason('');
+      setAcceptingId(null);
+      setChecks({});
       void qc.invalidateQueries({ queryKey: ['otc', 'queue'] });
       void qc.invalidateQueries({ queryKey: ['tasks'] });
     },
@@ -64,10 +78,22 @@ export function OtcPage(): ReactElement {
 
   const items = queueQuery.data?.data ?? [];
 
-  const onAccept = async (reportId: string): Promise<void> => {
+  const criteriaItems = criteriaQuery.data?.data?.items ?? [];
+
+  const onAccept = (reportId: string): void => {
     setActionError(null);
+    setAcceptingId(reportId);
+    setChecks({});
+  };
+
+  const onAcceptConfirm = async (reportId: string): Promise<void> => {
+    setActionError(null);
+    const criteria = criteriaItems.map((item) => ({
+      id: item.id,
+      passed: checks[item.id] === true,
+    }));
     try {
-      await decideMutation.mutateAsync({ reportId, verdict: 'accepted' });
+      await decideMutation.mutateAsync({ reportId, verdict: 'accepted', criteria });
     } catch {
       /* onError уже показал */
     }
@@ -224,7 +250,46 @@ export function OtcPage(): ReactElement {
                 </span>
               </div>
 
-              {returningId === it.reportId && (
+              {acceptingId === it.reportId && (
+              <div style={styles.criteriaBlock}>
+                <div style={styles.label}>Критерии приёмки *</div>
+                {criteriaItems.length === 0 && (
+                  <div style={styles.metaValue}>Критерии не заданы</div>
+                )}
+                {criteriaItems.map((item) => (
+                  <label key={item.id} style={styles.checkRow}>
+                    <input
+                      type="checkbox"
+                      checked={checks[item.id] === true}
+                      onChange={(e) => {
+                        setChecks((prev) => ({ ...prev, [item.id]: e.target.checked }));
+                      }}
+                    />
+                    <span>{item.title}{item.required === false ? ' (необязательно)' : ''}</span>
+                  </label>
+                ))}
+                <div style={styles.returnActions}>
+                  <Button variant="ghost" size="sm" onClick={() => setAcceptingId(null)}>
+                    Отмена
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={criteriaItems.some((i) => i.required !== false && checks[i.id] !== true)}
+                    loading={
+                      decideMutation.isPending &&
+                      decideMutation.variables?.reportId === it.reportId &&
+                      decideMutation.variables?.verdict === 'accepted'
+                    }
+                    onClick={() => void onAcceptConfirm(it.reportId)}
+                  >
+                    Подтвердить приёмку
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {returningId === it.reportId && (
                 <div style={styles.returnBlock}>
                   <div style={styles.label}>Причина возврата *</div>
                   <textarea
@@ -382,6 +447,21 @@ const styles = {
     borderRadius: radius.sm,
     fontSize: fontSize.xs,
   } as const,
+  criteriaBlock: {
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    border: `1px solid ${colors.borderSoft}`,
+    borderRadius: radius.sm,
+    background: colors.bgSoft,
+  },
+  checkRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    padding: '4px 0',
+    fontSize: fontSize.sm,
+    color: colors.text,
+  },
   returnBlock: { marginTop: spacing.md } as const,
   label: {
     fontSize: fontSize.xs,
