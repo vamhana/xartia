@@ -19,6 +19,7 @@ import { z } from 'zod';
 
 import {
   getQueue, decide, crisisDecide, getStats,
+  getActiveCriteria, getSla,
   appeal, getAppeal, listAppealsByDecision,
 } from '../../core/otc/service.js';
 import { uuidIdParams, uuidSchema } from '../../lib/validators.js';
@@ -60,6 +61,28 @@ export async function registerOtcRoutes(app: FastifyInstance): Promise<void> {
       const q = req.query as z.infer<typeof queueQuery>;
       const queue = await getQueue(q.direction_id);
       reply.send({ data: queue, audit_id: req.auditId });
+    },
+  );
+
+  // GET /otc/criteria — активные критерии приёмки (снимок хранится в решении).
+  app.get(
+    '/otc/criteria',
+    { preHandler: [authMiddleware, requireRight('otc', 'V'), validateQuery(queueQuery)] },
+    async (req, reply) => {
+      const q = req.query as z.infer<typeof queueQuery>;
+      const criteria = await getActiveCriteria(q.direction_id);
+      reply.send({ data: criteria, audit_id: req.auditId });
+    },
+  );
+
+  // GET /otc/sla — очередь, просрочка и среднее ожидание.
+  app.get(
+    '/otc/sla',
+    { preHandler: [authMiddleware, requireRight('otc', 'V'), validateQuery(queueQuery)] },
+    async (req, reply) => {
+      const q = req.query as z.infer<typeof queueQuery>;
+      const sla = await getSla(q.direction_id);
+      reply.send({ ...sla, audit_id: req.auditId });
     },
   );
 

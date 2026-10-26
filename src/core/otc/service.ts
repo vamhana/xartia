@@ -49,6 +49,8 @@ import {
   type OtcAppealStatus,
 } from './entity.js';
 
+const OTC_SLA_HOURS = Number(process.env['OTC_SLA_HOURS'] ?? 24);
+
 export interface OtcQueueItem {
   reportId: UUID;
   taskId: UUID;
@@ -64,6 +66,7 @@ export interface OtcQueueItem {
   geolocation: { lat: number; lon: number } | null;
   createdAt: string;
   hoursWaiting: number;
+  overdue: boolean;
 }
 
 export async function getQueue(directionId?: UUID): Promise<OtcQueueItem[]> {
@@ -131,6 +134,7 @@ export async function getQueue(directionId?: UUID): Promise<OtcQueueItem[]> {
       geolocation,
       createdAt: row.created_at.toISOString(),
       hoursWaiting: Math.round(parseFloat(row.hours_waiting)),
+      overdue: parseFloat(row.hours_waiting) > OTC_SLA_HOURS,
     };
   });
 }
@@ -139,6 +143,62 @@ export interface DecideRequest {
   reportId: UUID;
   verdict: OtcVerdict;
   comment?: string;
+}
+
+
+export interface OtcCriteria {
+  version: number;
+  title: string;
+  items: Array<{ id: string; title: string; required?: boolean }>;
+}
+
+/** Активный набор критериев: направление, иначе глобальный. */
+export async function getActiveCriteria(directionId?: UUID): Promise<OtcCriteria | null> {
+  const row = await queryOne<{ version: number; title: string; items: unknown }>(
+    `SELECT version, title, items
+       FROM otc_criteria
+      WHERE active
+        AND (direction_id = $1 OR direction_id IS NULL)
+      ORDER BY direction_id NULLS LAST
+      LIMIT 1`,
+    [directionId ?? null],
+  );
+  if (!row) {return null;}
+  return {
+    version: row.version,
+    title: row.title,
+    items: Array.isArray(row.items) ? row.items as OtcCriteria['items'] : [],
+  };
+}
+
+/** SLA проверки: очередь, просрочка, среднее ожидание. */
+export async function getSla(directionId?: UUID): Promise<{
+  slaHours: number;
+  pending: number;
+  overdue: number;
+  avgWaitingHours: number;
+}> {
+  const params: unknown[] = [];
+  const where = directionId
+    ? (params.push(directionId), `AND t.direction_id = $${params.length}`)
+    : '';
+  const row = await queryOne<{ pending: string; overdue: string; avg_wait: string | null }>(
+    `SELECT COUNT(*)::text AS pending,
+            COUNT(*) FILTER (
+              WHERE r.created_at < now() - ($1::int * interval '1 hour')
+            )::text AS overdue,
+            AVG(EXTRACT(EPOCH FROM (now() - r.created_at))/3600)::text AS avg_wait
+       FROM reports r
+       JOIN tasks t ON t.id = r.task_id
+      WHERE t.status = 'submitted' ${where}`,
+    [OTC_SLA_HOURS, ...params],
+  );
+  return {
+    slaHours: OTC_SLA_HOURS,
+    pending: parseInt(row?.pending ?? '0', 10),
+    overdue: parseInt(row?.overdue ?? '0', 10),
+    avgWaitingHours: Math.round(parseFloat(row?.avg_wait ?? '0') * 10) / 10,
+  };
 }
 
 export async function decide(
@@ -160,6 +220,7 @@ export async function decide(
   }
   await assertDirectionScope(otcId, task.directionId);
 
+  const criteria = await getActiveCriteria(task.directionId);
   const entity = createDecision(
     input.reportId,
     otcId,
@@ -172,10 +233,12 @@ export async function decide(
   // но acceptTaskService/returnTaskService работают с query напрямую.
   await query(
     `INSERT INTO otc_decisions
-       (id, report_id, otc_id, verdict, comment, criteria_version, crisis_protocol)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       (id, report_id, otc_id, verdict, comment, criteria_version, crisis_protocol,
+        criteria_snapshot)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [entity.id, entity.reportId, entity.otcId, entity.verdict,
-     entity.comment, entity.criteriaVersion, entity.crisisProtocol],
+     entity.comment, criteria?.version ?? entity.criteriaVersion, entity.crisisProtocol,
+     criteria ? JSON.stringify(criteria) : null],
   );
 
   if (input.verdict === 'accepted' || input.verdict === 'crisis_protocol') {

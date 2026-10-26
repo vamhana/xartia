@@ -338,3 +338,11 @@ ASSOCIATED; `test-gateway.ts` проходит полностью.
 
 - `pnpm typecheck:web` — **0 ошибок**.
 - Шаг `Typecheck Web` обязателен в CI и в локальном прогоне.
+
+
+## Критерии ОТК и SLA
+
+- `otc_criteria`: версионируемый набор проверок (глобальный и по направлению).
+- Решение ОТК хранит `criteria_snapshot` — можно восстановить основание вердикта.
+- `GET /otc/criteria`, `GET /otc/sla`; очередь показывает `overdue` по SLA (24 ч, `OTC_SLA_HOURS`).
+- `tasks.submitted_at` фиксируется при сдаче.

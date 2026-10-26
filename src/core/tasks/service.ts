@@ -548,6 +548,17 @@ export async function acceptTaskService(
   }
 
   const decisionId = newUUID();
+  const criteria = await queryOne<{ version: number; title: string; items: unknown }>(
+    `SELECT version, title, items
+       FROM otc_criteria
+      WHERE active AND (direction_id = $1 OR direction_id IS NULL)
+      ORDER BY direction_id NULLS LAST
+      LIMIT 1`,
+    [task.directionId],
+  );
+  const criteriaSnapshot = criteria
+    ? JSON.stringify({ version: criteria.version, title: criteria.title, items: criteria.items })
+    : null;
 
   // P0.3: решение, статус и Поток — атомарно.
   await transaction(async (client) => {
@@ -570,9 +581,10 @@ export async function acceptTaskService(
     if ((existing.rowCount ?? 0) === 0) {
       await client.query(
         `INSERT INTO otc_decisions
-           (id, report_id, otc_id, verdict, comment, criteria_version)
-         VALUES ($1, $2, $3, 'accepted', $4, 1)`,
-        [decisionId, report.id, requesterId, options.comment ?? null],
+           (id, report_id, otc_id, verdict, comment, criteria_version, criteria_snapshot)
+         VALUES ($1, $2, $3, 'accepted', $4, $5, $6)`,
+        [decisionId, report.id, requesterId, options.comment ?? null,
+         criteria?.version ?? 1, criteriaSnapshot],
       );
     }
 

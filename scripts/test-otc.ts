@@ -106,6 +106,23 @@ async function main(): Promise<void> {
     count: queue.data.data?.length,
     first: queue.data.data?.slice(0, 3),
   });
+
+  // Формальные критерии и SLA проверки (P1).
+  const criteria = await req<{ data: { version: number; title: string; items: unknown[] } | null }>(
+    'GET', '/otc/criteria',
+  );
+  if (criteria.status === 200 && criteria.data.data && criteria.data.data.items.length > 0) {
+    ok(`Критерии ОТК v${criteria.data.data.version}: ${criteria.data.data.items.length} пунктов`);
+  } else {
+    fail(`GET /otc/criteria → ${criteria.status}: ${JSON.stringify(criteria.data)}`);
+  }
+
+  const sla = await req<{ slaHours: number; pending: number; overdue: number }>('GET', '/otc/sla');
+  if (sla.status === 200 && typeof sla.data.pending === 'number' && sla.data.slaHours > 0) {
+    ok(`SLA ${sla.data.slaHours}ч: в очереди ${sla.data.pending}, просрочено ${sla.data.overdue}`);
+  } else {
+    fail(`GET /otc/sla → ${sla.status}: ${JSON.stringify(sla.data)}`);
+  }
   const inQueue = queue.data.data?.some((i) => i.reportId === reportId);
   if (inQueue) {ok('Отчёт в очереди ОТК');}
   else {fail('Отчёт НЕ в очереди ОТК');}
