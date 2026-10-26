@@ -114,11 +114,57 @@ async function main(): Promise<void> {
   const sigs = await call<{
     data: Array<{ holder: { participantId?: string } | null }>;
   }>('GET', '/treasury/signatories', undefined, token);
-  for (const seat of sigs.data.data) {
-    const pid = seat.holder?.participantId;
-    if (pid && !approvers.includes(pid) && approvers.length < 3) {
-      approvers.push(pid);
+  const holderIds = sigs.data.data
+    .map((seat) => seat.holder?.participantId)
+    .filter((pid): pid is string => typeof pid === 'string' && pid.length > 0);
+  const validHolders = holderIds.length > 0
+    ? await query<{ participant_id: string }>(
+        `SELECT DISTINCT pr.participant_id
+           FROM participant_roles pr
+           JOIN roles r ON r.id = pr.role_id
+          WHERE pr.participant_id = ANY($1::uuid[])
+            AND pr.status = 'active'
+            AND (pr.valid_to IS NULL OR pr.valid_to > now())
+            AND r.name IN ('FIRST_ARCHITECT','COUNCIL_MEMBER','KEEPER','VERIFIER','BALANCER')`,
+        [holderIds],
+      )
+    : [];
+  for (const row of validHolders) {
+    if (!approvers.includes(row.participant_id) && approvers.length < 3) {
+      approvers.push(row.participant_id);
     }
+  }
+
+  // На чистой базе местá подписантов могут быть вакантны — создаём Совет.
+  let extra = 0;
+  while (approvers.length < 3 && extra < 4) {
+    extra += 1;
+    const suffix = String(Date.now()).slice(-6) + extra;
+    const reg = await call<{ request_id: string }>('POST', '/auth/register', {
+      phone: `+7995${suffix}`,
+      messengers: { telegram: `@signer_${suffix}` },
+      password: `Signer${suffix}`,
+      consent_video: true,
+      consent_data: true,
+    });
+    if (reg.status !== 201) {break;}
+    const acc = await call<{ participant: { id: string } }>(
+      'POST', `/admin/registration-requests/${reg.data.request_id}/accept`,
+      { direction_id: directionId, name: `Советник ${suffix}`, direction_number: 9 },
+      token,
+    );
+    if (acc.status !== 201) {break;}
+    const pid = acc.data.participant.id;
+    await query(
+      `INSERT INTO participant_roles
+         (participant_id, role_id, direction_id, status, valid_from, granted_by)
+       SELECT $1, r.id, r.direction_id, 'active', now(), $2
+         FROM roles r
+        WHERE r.name = 'COUNCIL_MEMBER'
+        LIMIT 1`,
+      [pid, architectId],
+    );
+    approvers.push(pid);
   }
   ok(`подписантов подготовлено: ${approvers.length}`);
 
