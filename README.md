@@ -97,6 +97,9 @@ pwsh scripts/ci-local.ps1   # полный локальный прогон: 36 �
 Подробная карта «принцип Хартии → модуль → тест» —
 в [docs/charter-implementation-map.md](docs/charter-implementation-map.md).
 
+Как менять сами правила (а не только задачи) —
+в [аудите коллективной разработки](docs/collective-development-audit.md).
+
 ## Как присоединиться
 
 1. **Познакомиться.** [Discussions](https://github.com/vamhana/xartia/discussions) —
