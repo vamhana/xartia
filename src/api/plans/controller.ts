@@ -30,6 +30,9 @@ import {
   listDailyPlans,
   upsertDailyPlan,
   removeTaskFromDailyPlan,
+  listPlanVersions,
+  createPlanVersion,
+  restorePlanVersion,
 } from '../../core/plans/service.js';
 import { uuidIdParams, uuidSchema, planTypeSchema, planStatusSchema } from '../../lib/validators.js';
 import { mustGetLimit } from '../../security/rate-limit.js';
@@ -65,6 +68,28 @@ const createBody = z.object({
 });
 
 const stopBody = z.object({ reason: z.string().min(1).max(500) });
+
+const versionPatch = z.object({
+  title: z.string().min(1).max(255).optional(),
+  expected_result: z.string().min(1).optional(),
+  criteria: z.record(z.unknown()).optional(),
+  checkpoints: z.array(z.object({
+    at: z.string().datetime({ offset: true }),
+    description: z.string().min(1),
+  })).optional(),
+  stop_conditions: z.record(z.unknown()).optional(),
+});
+
+const versionBody = z.object({
+  reason: z.string().min(5).max(1000),
+  patch: versionPatch.optional(),
+});
+
+const versionParams = uuidIdParams.extend({ version: z.coerce.number().int().min(1) });
+
+const restoreVersionBody = z.object({
+  reason: z.string().min(5).max(1000).optional(),
+});
 
 const deviationsQuery = z.object({
   lead_direction_id: uuidSchema.optional(),
@@ -343,4 +368,71 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
       reply.status(204).send();
     },
   );
+
+  // GET /plans/:id/versions — история версий.
+  app.get(
+    '/plans/:id/versions',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const data = await listPlanVersions(p.id);
+      reply.send({ data, audit_id: req.auditId });
+    },
+  );
+
+  // POST /plans/:id/versions — новая версия (plan:A).
+  app.post(
+    '/plans/:id/versions',
+    {
+      preHandler: [
+        authMiddleware,
+        writeLimit,
+        requireRight('plan', 'A'),
+        validateParams(uuidIdParams),
+        validateBody(versionBody),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const b = req.body as z.infer<typeof versionBody>;
+      const patch = b.patch ? {
+        ...(b.patch.title ? { title: b.patch.title } : {}),
+        ...(b.patch.expected_result ? { expectedResult: b.patch.expected_result } : {}),
+        ...(b.patch.criteria ? { criteria: b.patch.criteria } : {}),
+        ...(b.patch.checkpoints ? { checkpoints: b.patch.checkpoints } : {}),
+        ...(b.patch.stop_conditions ? { stopConditions: b.patch.stop_conditions } : {}),
+      } : undefined;
+      const version = await createPlanVersion(p.id, {
+        reason: b.reason,
+        ...(patch ? { patch } : {}),
+      }, auth.participantId);
+      reply.status(201).send({ ...version, audit_id: req.auditId });
+    },
+  );
+
+  // POST /plans/:id/versions/:version/restore — восстановить как новую.
+  app.post(
+    '/plans/:id/versions/:version/restore',
+    {
+      preHandler: [
+        authMiddleware,
+        writeLimit,
+        requireRight('plan', 'A'),
+        validateParams(versionParams),
+        validateBody(restoreVersionBody),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof versionParams>;
+      const version = p.version;
+      const b = req.body as z.infer<typeof restoreVersionBody>;
+      const result = await restorePlanVersion(
+        p.id, version, b.reason ?? `Восстановление v${version}`, auth.participantId,
+      );
+      reply.status(201).send({ ...result, audit_id: req.auditId });
+    },
+  );
+
 }

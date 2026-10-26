@@ -218,6 +218,14 @@ export async function createPlanService(
     ],
       );
 
+      await query(
+        `INSERT INTO plan_versions (id, plan_id, version, snapshot, reason, created_by)
+         SELECT $1, id, version, row_to_json(p)::jsonb, 'Создание плана', $2
+           FROM plans p WHERE id = $3
+         ON CONFLICT (plan_id, version) DO NOTHING`,
+        [newUUID(), requesterId, entity.id],
+      );
+
       await logAction({
         actorId: requesterId,
         actorType: 'participant',
@@ -687,3 +695,144 @@ export async function getPlanProgress(planId: UUID): Promise<PlanProgress> {
     inWork: parseInt(row?.in_work ?? '0', 10),
   };
 }
+
+// -------- Версии плана (P1) --------
+
+export interface PlanVersion {
+  version: number;
+  snapshot: Record<string, unknown>;
+  reason: string;
+  createdAt: string;
+}
+
+export async function listPlanVersions(planId: UUID): Promise<PlanVersion[]> {
+  const rows = await query<{
+    version: number; snapshot: Record<string, unknown>; reason: string; created_at: Date;
+  }>(
+    `SELECT version, snapshot, reason, created_at
+       FROM plan_versions
+      WHERE plan_id = $1
+      ORDER BY version DESC`,
+    [planId],
+  );
+  return rows.map((r) => ({
+    version: r.version,
+    snapshot: r.snapshot,
+    reason: r.reason,
+    createdAt: r.created_at.toISOString(),
+  }));
+}
+
+async function insertPlanVersion(
+  client: { query: (text: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  planId: UUID,
+  reason: string,
+  actorId: UUID,
+): Promise<void> {
+  const res = await client.query(
+    `SELECT version, row_to_json(p)::jsonb AS snapshot FROM plans p WHERE id = $1`,
+    [planId],
+  );
+  const v = res.rows[0] as { version: number; snapshot: unknown } | undefined;
+  if (!v) {throw new NotFoundError('План', planId);}
+  await client.query(
+    `INSERT INTO plan_versions (id, plan_id, version, snapshot, reason, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (plan_id, version) DO NOTHING`,
+    [newUUID(), planId, v.version, JSON.stringify(v.snapshot), reason, actorId],
+  );
+}
+
+/**
+ * Новая версия плана: патч применяется, версия увеличивается, снимок
+ * сохраняется. Принятые задачи не отменяются.
+ */
+export async function createPlanVersion(
+  planId: UUID,
+  input: {
+    reason: string;
+    patch?: {
+      title?: string;
+      expectedResult?: string;
+      criteria?: Record<string, unknown>;
+      checkpoints?: PlanCheckpoint[];
+      stopConditions?: Record<string, unknown>;
+    };
+  },
+  actorId: UUID,
+): Promise<PlanVersion> {
+  const reason = input.reason.trim();
+  if (reason.length < 5) {throw new ValidationError('Причина версии: минимум 5 символов');}
+
+  await transaction(async (client) => {
+    const locked = await client.query<{ version: number }>(
+      `SELECT version FROM plans WHERE id = $1 FOR UPDATE`,
+      [planId],
+    );
+    if (locked.rows.length === 0) {throw new NotFoundError('План', planId);}
+
+    const p = input.patch ?? {};
+    await client.query(
+      `UPDATE plans
+          SET title = COALESCE($2, title),
+              expected_result = COALESCE($3, expected_result),
+              criteria = COALESCE($4, criteria),
+              checkpoints = COALESCE($5, checkpoints),
+              stop_conditions = COALESCE($6, stop_conditions),
+              version = version + 1
+        WHERE id = $1`,
+      [
+        planId,
+        p.title ?? null,
+        p.expectedResult ?? null,
+        p.criteria ? JSON.stringify(p.criteria) : null,
+        p.checkpoints ? JSON.stringify(p.checkpoints) : null,
+        p.stopConditions ? JSON.stringify(p.stopConditions) : null,
+      ],
+    );
+
+    await insertPlanVersion(client, planId, reason, actorId);
+  });
+
+  await logAction({
+    actorId, actorType: 'participant',
+    action: 'plans.version', entityType: 'plan', entityId: planId,
+    newValue: { reason },
+  });
+
+  const versions = await listPlanVersions(planId);
+  const first = versions[0];
+  if (!first) {throw new ConflictError('Версия не сохранилась');}
+  return first;
+}
+
+/** Восстановить версию как новую (история не переписывается). */
+export async function restorePlanVersion(
+  planId: UUID,
+  version: number,
+  reason: string,
+  actorId: UUID,
+): Promise<PlanVersion> {
+  const row = await queryOne<{ snapshot: Record<string, unknown> }>(
+    `SELECT snapshot FROM plan_versions WHERE plan_id = $1 AND version = $2`,
+    [planId, version],
+  );
+  if (!row) {throw new NotFoundError('Версия плана', `${planId} v${version}`);}
+  const snap = row.snapshot as {
+    title?: string; expected_result?: string;
+    criteria?: Record<string, unknown>; checkpoints?: PlanCheckpoint[];
+    stop_conditions?: Record<string, unknown>;
+  };
+
+  return createPlanVersion(planId, {
+    reason: reason.trim().length >= 5 ? reason : `Восстановление v${version}`,
+    patch: {
+      ...(snap.title ? { title: snap.title } : {}),
+      ...(snap.expected_result ? { expectedResult: snap.expected_result } : {}),
+      ...(snap.criteria ? { criteria: snap.criteria } : {}),
+      ...(snap.checkpoints ? { checkpoints: snap.checkpoints } : {}),
+      ...(snap.stop_conditions ? { stopConditions: snap.stop_conditions } : {}),
+    },
+  }, actorId);
+}
+

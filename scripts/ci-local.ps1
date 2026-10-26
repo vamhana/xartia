@@ -104,6 +104,7 @@ if (-not $StaticOnly) {
     }
   }
   Invoke-Step 'smoke: ws' { pnpm tsx scripts/test-ws.ts $phone $password }
+  Invoke-Step 'smoke: plan-versions' { pnpm tsx scripts/test-plan-versions.ts $phone $password }
   Invoke-Step 'smoke: questions' { pnpm tsx scripts/test-questions.ts $phone $password }
   Invoke-Step 'smoke: reassignment' { pnpm tsx scripts/test-reassignment.ts $phone $password }
   Invoke-Step 'smoke: capacity' { pnpm tsx scripts/test-capacity-cells.ts $phone $password }

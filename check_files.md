@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   773
-  Файлов в проекте:        769
+  Блоков в спецификации:   776
+  Файлов в проекте:        771
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 580
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 583
 ========================================================================
   A.1.00.01        src/server.ts [16363 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -59,7 +59,7 @@
   A.1.04.21        src/api/reassignment/controller.ts [4068 б]
   A.1.04.22        src/api/questions/controller.ts [3237 б]
   A.1.05.01        src/api/mandates/controller.ts [10040 б]
-  A.1.06.01        src/api/plans/controller.ts [14177 б]
+  A.1.06.01        src/api/plans/controller.ts [17329 б]
   A.1.07.01        src/api/tasks/controller.ts [12212 б]
   A.1.08.01        src/api/reports/controller.ts [4195 б]
   A.1.09.01        src/api/otc/controller.ts [7780 б]
@@ -136,11 +136,12 @@
   C.0.05.01        src/core/mandates/entity.ts [5671 б]
   C.0.05.02        src/core/mandates/service.ts [16464 б]
   C.0.06.01        src/core/plans/entity.ts [4103 б]
-  C.0.06.02        src/core/plans/service.ts [23676 б]
+  C.0.06.02        src/core/plans/service.ts [28948 б]
   C.0.06.03        src/core/plans/deviation.ts [6876 б]
   C.0.06.04        src/core/plans/branches.ts [4702 б]
   C.0.06.05        src/core/plans/tree.ts [3962 б]
   C.0.06.06        src/core/plans/oversight.ts [13458 б]
+  C.0.06.10        src/core/plans/service.ts [28948 б]
   C.0.07.01        src/core/tasks/entity.ts [4736 б]
   C.0.07.02        src/core/tasks/service.ts [28590 б]
   C.0.07.04        src/core/tasks/overdue.ts [3300 б]
@@ -275,6 +276,7 @@
   D.2.01.53        db/migrations/053_capacity_cells.sql [1360 б]
   D.2.01.54        db/migrations/054_reassignment_signals.sql [1341 б]
   D.2.01.55        db/migrations/055_mentor_questions.sql [1539 б]
+  D.2.01.56        db/migrations/056_plan_versions.sql [977 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -373,7 +375,7 @@
   I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [13138 б]
+  I.1.01.16        .github/workflows/ci.yml [13366 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -388,7 +390,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [266350 б]
+  I.10.05.04       tsconfig.tsbuildinfo [266259 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [124331 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -480,7 +482,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [6805 б]
+  I.9.02.18        scripts/ci-local.ps1 [6903 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -554,6 +556,7 @@
   I.9.04.67        scripts/test-capacity-cells.ts [8149 б]
   I.9.04.68        scripts/test-reassignment.ts [5956 б]
   I.9.04.69        scripts/test-questions.ts [6204 б]
+  I.9.04.70        scripts/test-plan-versions.ts [4693 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -629,7 +632,7 @@
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
   X.0.01.14        docs/coin-operations.md [16916 б]
-  X.0.01.15        docs/cells-ant-colony.md [17169 б]
+  X.0.01.15        docs/cells-ant-colony.md [17596 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -797,5 +800,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  580
+  Файлов с содержимым:  583
   Пустых файлов:        157
