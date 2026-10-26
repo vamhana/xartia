@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   748
-  Файлов в проекте:        744
+  Блоков в спецификации:   750
+  Файлов в проекте:        746
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 555
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 557
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -91,7 +91,7 @@
   A.1.38.01        src/api/public/controller.ts [646 б]
   A.1.39.01        src/api/dev/controller.ts [4253 б]
   A.1.46.01        src/api/council/controller.ts [4332 б]
-  A.1.47.01        src/api/treasury/controller.ts [4537 б]
+  A.1.47.01        src/api/treasury/controller.ts [6267 б]
   A.1.90.01        src/api/system/health.ts [2024 б]
   A.1.90.02        src/api/system/metrics.ts [3450 б]
   A.1.90.03        src/api/system/version.ts [1187 б]
@@ -211,7 +211,7 @@
   C.0.43.01        src/core/public/service.ts [1636 б]
   C.0.45.01        src/core/mentors/service.ts [6821 б]
   C.0.46.01        src/core/council/service.ts [14162 б]
-  C.0.47.01        src/core/treasury/service.ts [18469 б]
+  C.0.47.01        src/core/treasury/service.ts [24956 б]
   D.2.01.01        db/migrations/001_extensions.sql [1330 б]
   D.2.01.02        db/migrations/002_enums.sql [22159 б]
   D.2.01.03        db/migrations/003_tables.sql [102487 б]
@@ -258,6 +258,8 @@
   D.2.01.44        db/migrations/044_panels_product.sql [7596 б]
   D.2.01.45        db/migrations/045_panels_product_fixes.sql [3866 б]
   D.2.01.46        db/migrations/046_crisis_mentor_coordinator.sql [3686 б]
+  D.2.01.47        db/migrations/047_unit_accounts.sql [2708 б]
+  D.2.01.48        db/migrations/048_unit_accounts_unique.sql [634 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -297,7 +299,7 @@
   F.4.02.31        src/web/pages/PlanTree.tsx [8904 б]
   F.4.02.32        src/web/pages/Naryad.tsx [13984 б]
   F.4.02.33        src/web/pages/Councils.tsx [12642 б]
-  F.4.02.34        src/web/pages/Treasury.tsx [11371 б]
+  F.4.02.34        src/web/pages/Treasury.tsx [13846 б]
   F.4.02.98        src/web/pages/Otc.tsx [13221 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
@@ -370,7 +372,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [263388 б]
+  I.10.05.04       tsconfig.tsbuildinfo [263660 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [130767 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -528,7 +530,7 @@
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
   I.9.04.60        scripts/test-council.ts [9248 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
-  I.9.04.62        scripts/test-treasury.ts [10977 б]
+  I.9.04.62        scripts/test-treasury.ts [12829 б]
   I.9.04.63        scripts/test-panels.ts [5299 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
@@ -604,7 +606,7 @@
   X.0.01.11        docs/product-v0.1.md [31586 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
-  X.0.01.14        docs/coin-operations.md [13541 б]
+  X.0.01.14        docs/coin-operations.md [16916 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -772,5 +774,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  555
+  Файлов с содержимым:  557
   Пустых файлов:        157

@@ -7,6 +7,9 @@ import { z } from 'zod';
 
 import {
   approveSpend,
+  buyUnits,
+  donateToTreasury,
+  getAccount,
   getSpendRequest,
   getTreasuryState,
   getSignatories,
@@ -42,6 +45,56 @@ export async function registerTreasuryRoutes(app: FastifyInstance): Promise<void
     const state = await getTreasuryState();
     reply.send({ ...state, audit_id: req.auditId });
   });
+
+  app.get('/treasury/account', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const auth = getAuthContext(req);
+    const account = await getAccount(auth.participantId);
+    reply.send({ ...account, audit_id: req.auditId });
+  });
+
+  // Покупка монеты внешним/внутренним держателем (USDC → монеты по курсу).
+  app.post(
+    '/treasury/buy',
+    {
+      preHandler: [
+        authMiddleware,
+        validateBody(z.object({ amount_usdc: z.number().positive().max(1_000_000_000) })),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const body = req.body as { amount_usdc: number };
+      const result = await buyUnits({
+        participantId: auth.participantId,
+        amountUsdc: body.amount_usdc,
+      });
+      reply.status(201).send({ ...result, audit_id: req.auditId });
+    },
+  );
+
+  // Дар казне: монеты → общий операционный фонд (общие блага).
+  app.post(
+    '/treasury/donate',
+    {
+      preHandler: [
+        authMiddleware,
+        validateBody(z.object({
+          units: z.number().positive().max(1e18),
+          note: z.string().max(500).optional(),
+        })),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const body = req.body as { units: number; note?: string };
+      const result = await donateToTreasury({
+        participantId: auth.participantId,
+        units: body.units,
+        note: body.note ?? null,
+      });
+      reply.status(201).send({ ...result, audit_id: req.auditId });
+    },
+  );
 
   app.get('/treasury/signatories', { preHandler: [authMiddleware] }, async (req, reply) => {
     const data = await getSignatories();

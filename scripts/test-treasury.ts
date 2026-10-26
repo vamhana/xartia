@@ -68,6 +68,12 @@ async function main(): Promise<void> {
 
   // Смоук должен быть идемпотентным: чистим казну перед сценарием.
   await query('DELETE FROM treasury_approvals');
+  await query(
+    `DELETE FROM unit_transfers
+      WHERE account_id IN (SELECT id FROM unit_accounts WHERE participant_id = $1)`,
+    [architectId],
+  );
+  await query('UPDATE unit_accounts SET balance = 0 WHERE participant_id = $1', [architectId]);
   await query('DELETE FROM treasury_spend_requests');
   await query('DELETE FROM treasury_operations');
   await query(
@@ -222,6 +228,39 @@ async function main(): Promise<void> {
     ok('повторный аудит не задваивает выручку');
   } else {
     fail('выручка задвоилась при повторном аудите');
+  }
+
+  // Покупка монеты внешним держателем: цена не меняется (R и S растут вместе).
+  const beforeBuy = await call<State>('GET', '/treasury/state', undefined, token);
+  const price = beforeBuy.data.price;
+  const buy = await call<{ account: { balance: number }; state: State }>(
+    'POST', '/treasury/buy', { amount_usdc: 100 }, token,
+  );
+  if (buy.status === 201
+      && Math.abs(buy.data.account.balance - 100 / price) < 0.01
+      && Math.abs(buy.data.state.price - price) < 0.01) {
+    ok(`покупка 100 USDC: +${(100 / price).toFixed(2)} монет, курс не изменился`);
+  } else {
+    fail(`buy → ${buy.status}: ${JSON.stringify(buy.data)}`);
+  }
+
+  // Дар казне: монеты сжигаются, USDC уходит в операционный фонд (общие блага).
+  const donateUnits = buy.data.account.balance / 2;
+  const beforeDonate = await call<State>('GET', '/treasury/state', undefined, token);
+  const donate = await call<{ account: { balance: number }; state: State }>(
+    'POST', '/treasury/donate', { units: donateUnits, note: 'Тест: общие блага' }, token,
+  );
+  if (donate.status === 201
+      && donate.data.account.balance < buy.data.account.balance - 1e-6
+      && Math.abs(donate.data.state.operatingUsdc - (beforeDonate.data.operatingUsdc + donateUnits * price)) < 0.05) {
+    ok('дар казне: монеты сожжены, эквивалент ушёл в операционный фонд');
+  } else {
+    fail(`donate → ${donate.status}: ${JSON.stringify(donate.data)}`);
+  }
+  if (donate.data.state.t1Usdc + 1e-6 >= donate.data.state.supply) {
+    ok('после дара пол держится');
+  } else {
+    fail('после дара пол пробит');
   }
 
   console.log('\n✅ done');

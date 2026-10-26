@@ -171,7 +171,7 @@ export async function recordRevenue(input: {
     actorType: 'participant',
     action: 'treasury.revenue',
     entityType: 'treasury',
-    entityId: '1',
+    entityId: '00000000-0000-0000-0000-000000000000',
     newValue: { amount_usdc: amount, gateway_transaction_id: input.gatewayTransactionId ?? null },
   });
 
@@ -513,5 +513,157 @@ async function notifyTreasury(type: string, title: string, body: string): Promis
   } catch {
     /* best-effort */
   }
+}
+
+// ─── Лицевые счета держателей (D.2.01.47) ────────────────────────────
+//
+// Из казны нет переводов людям: счета нужны, чтобы внешний человек мог
+// купить монету, хранить её и перевести казне как оплату услуг.
+
+export interface UnitAccount {
+  accountId: string;
+  balance: number;
+}
+
+async function ensureAccount(participantId: UUID): Promise<string> {
+  const existing = await queryOne<{ id: string }>(
+    `SELECT id FROM unit_accounts WHERE participant_id = $1`,
+    [participantId],
+  );
+  if (existing) {return existing.id;}
+  const id = newUUID();
+  await query(
+    `INSERT INTO unit_accounts (id, participant_id) VALUES ($1, $2)
+     ON CONFLICT (participant_id) DO NOTHING`,
+    [id, participantId],
+  );
+  const row = await queryOne<{ id: string }>(
+    `SELECT id FROM unit_accounts WHERE participant_id = $1`,
+    [participantId],
+  );
+  return row?.id ?? id;
+}
+
+export async function getAccount(participantId: UUID): Promise<UnitAccount> {
+  const id = await ensureAccount(participantId);
+  const row = await queryOne<{ balance: string }>(
+    `SELECT balance FROM unit_accounts WHERE id = $1`,
+    [id],
+  );
+  return { accountId: id, balance: n(row?.balance ?? '0') };
+}
+
+/**
+ * Покупка монеты у протокола: USDC → T1, выпуск по текущему курсу.
+ * Покупка не двигает курс (R и S растут пропорционально) — это не прибыль,
+ * а вход капитала. Прибылью становится только дар казне.
+ */
+export async function buyUnits(input: {
+  participantId: UUID;
+  amountUsdc: number;
+}): Promise<{ account: UnitAccount; state: TreasuryState }> {
+  if (!(input.amountUsdc > 0)) {throw new ValidationError('Сумма должна быть > 0');}
+
+  await transaction(async (client) => {
+    const cur = await client.query(`SELECT * FROM treasury_state WHERE id = 1 FOR UPDATE`);
+    const row = cur.rows[0];
+    const t1 = n(row.t1_usdc);
+    const supply = n(row.supply);
+    const price = supply > 0 ? Math.max(FLOOR, (t1 + T2_HAIRCUT * n(row.t2_usdc)) / supply) : FLOOR;
+    const units = input.amountUsdc / price;
+
+    const accountId = await ensureAccount(input.participantId);
+    const newSupply = supply + units;
+    const newT1 = t1 + input.amountUsdc;
+    assertFloor(newT1, newSupply);
+
+    await client.query(
+      `UPDATE treasury_state SET t1_usdc = $1, supply = $2, updated_at = now() WHERE id = 1`,
+      [newT1, newSupply],
+    );
+    await client.query(
+      `UPDATE unit_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2`,
+      [units, accountId],
+    );
+    await client.query(
+      `INSERT INTO unit_transfers (id, account_id, kind, units, usdc, price, actor_id)
+       VALUES ($1,$2,'buy',$3,$4,$5,$6)`,
+      [newUUID(), accountId, units, input.amountUsdc, price, input.participantId],
+    );
+    await client.query(
+      `INSERT INTO treasury_operations
+         (id, kind, amount_usdc, amount_units, price, actor_id, note)
+       VALUES ($1,'buy',$2,$3,$4,$5,$6)`,
+      [newUUID(), input.amountUsdc, units, price, input.participantId, 'Покупка монеты'],
+    );
+  });
+
+  return { account: await getAccount(input.participantId), state: await getTreasuryState() };
+}
+
+/**
+ * Дар казне: держатель переводит монеты сообществу. Монеты сжигаются,
+ * эквивалент в USDC переходит из T1 в операционный счёт (общие блага).
+ * Пол не может быть пробит: проверяется T1 − payout ≥ (S − units) × 1.00.
+ */
+export async function donateToTreasury(input: {
+  participantId: UUID;
+  units: number;
+  note?: string | null;
+}): Promise<{ account: UnitAccount; state: TreasuryState }> {
+  if (!(input.units > 0)) {throw new ValidationError('Количество монет должно быть > 0');}
+
+  await transaction(async (client) => {
+    const accountId = await ensureAccount(input.participantId);
+    const acc = await client.query(
+      `SELECT balance FROM unit_accounts WHERE id = $1 FOR UPDATE`,
+      [accountId],
+    );
+    const balance = n(acc.rows[0]?.balance ?? '0');
+    if (input.units > balance + 1e-9) {throw new ConflictError('На счёте недостаточно монеты');}
+
+    const cur = await client.query(`SELECT * FROM treasury_state WHERE id = 1 FOR UPDATE`);
+    const row = cur.rows[0];
+    const supply = n(row.supply);
+    const t1 = n(row.t1_usdc);
+    const price = Math.max(FLOOR, (t1 + T2_HAIRCUT * n(row.t2_usdc)) / supply);
+    const payout = input.units * price;
+    if (payout > t1 + 1e-9) {throw new ConflictError('В T1 недостаточно средств');}
+    const newT1 = t1 - payout;
+    const newSupply = supply - input.units;
+    assertFloor(newT1, newSupply);
+
+    await client.query(
+      `UPDATE unit_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2`,
+      [input.units, accountId],
+    );
+    await client.query(
+      `UPDATE treasury_state
+          SET t1_usdc = $1, operating_usdc = operating_usdc + $2,
+              supply = $3, updated_at = now()
+        WHERE id = 1`,
+      [newT1, payout, newSupply],
+    );
+    await client.query(
+      `INSERT INTO unit_transfers (id, account_id, kind, units, usdc, price, actor_id)
+       VALUES ($1,$2,'donate',$3,$4,$5,$6)`,
+      [newUUID(), accountId, input.units, payout, price, input.participantId],
+    );
+    await client.query(
+      `INSERT INTO treasury_operations
+         (id, kind, amount_usdc, amount_units, price, actor_id, note)
+       VALUES ($1,'donate',$2,$3,$4,$5,$6)`,
+      [newUUID(), payout, input.units, price, input.participantId,
+        input.note ?? 'Дар казне (оплата услуг сообщества)'],
+    );
+  });
+
+  void notifyTreasury(
+    'treasury.donation',
+    'Пополнение казны',
+    `${input.units.toFixed(2)} монет переведено казне`,
+  );
+
+  return { account: await getAccount(input.participantId), state: await getTreasuryState() };
 }
 

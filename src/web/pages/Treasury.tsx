@@ -67,8 +67,11 @@ export function TreasuryPage(): ReactElement {
     ['treasury', 'signatories'],
     '/treasury/signatories',
   );
+  const accountQ = useApiQuery<{ balance: number }>(['treasury', 'account'], '/treasury/account');
 
   const [amount, setAmount] = useState('');
+  const [buyAmount, setBuyAmount] = useState('');
+  const [donateUnits, setDonateUnits] = useState('');
   const [spendAmount, setSpendAmount] = useState('');
   const [purpose, setPurpose] = useState('');
   const [busy, setBusy] = useState(false);
@@ -89,6 +92,32 @@ export function TreasuryPage(): ReactElement {
       setAmount('');
       setMessage('Выручка записана: 60% в резерв, 30% операционный, 10% буфер');
       refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка');
+    } finally { setBusy(false); }
+  };
+
+  const buy = async (): Promise<void> => {
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      await apiPost('/treasury/buy', { amount_usdc: Number(buyAmount) });
+      setBuyAmount('');
+      setMessage('Монета куплена: курс не изменился (вход капитала, не прибыль)');
+      refresh();
+      void accountQ.refetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка');
+    } finally { setBusy(false); }
+  };
+
+  const donate = async (): Promise<void> => {
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      await apiPost('/treasury/donate', { units: Number(donateUnits), note: 'Общие блага' });
+      setDonateUnits('');
+      setMessage('Монеты переведены казне: эквивалент ушёл в общий фонд');
+      refresh();
+      void accountQ.refetch();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка');
     } finally { setBusy(false); }
@@ -152,6 +181,35 @@ export function TreasuryPage(): ReactElement {
             </p>
           </>
         )}
+      </Card>
+
+      <Card title="Моя монета" subtitle="Купить у протокола или перевести казне на общие блага">
+        <p style={styles.muted}>
+          Баланс: <b>{accountQ.data ? accountQ.data.balance.toFixed(2) : '…'}</b> монет
+          (пол 1.00 — выкуп по курсу из T1)
+        </p>
+        <div style={styles.row}>
+          <input
+            style={styles.input}
+            placeholder="Купить на USDC"
+            value={buyAmount}
+            onChange={(e) => setBuyAmount(e.target.value)}
+            disabled={busy}
+          />
+          <Button variant="secondary" loading={busy} onClick={() => void buy()}>
+            Купить
+          </Button>
+          <input
+            style={styles.input}
+            placeholder="Перевести казне, монет"
+            value={donateUnits}
+            onChange={(e) => setDonateUnits(e.target.value)}
+            disabled={busy}
+          />
+          <Button variant="secondary" loading={busy} onClick={() => void donate()}>
+            Перевести казне
+          </Button>
+        </div>
       </Card>
 
       <Card title="Подписанты казны" subtitle="5 мест; вакантные замещает Архитектор">
