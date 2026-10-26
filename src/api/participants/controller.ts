@@ -21,6 +21,8 @@
 //     сервисных функций в C.0.02.02 нет, реализация = новая разработка.
 
 import type { FastifyInstance } from 'fastify';
+
+import { getPersonCard } from '../../core/cards/service.js';
 import { z } from 'zod';
 
 import {
@@ -120,6 +122,17 @@ export async function registerParticipantsRoutes(app: FastifyInstance): Promise<
         meta: { page: q.page, per_page: q.per_page, total: result.total },
         audit_id: request.auditId,
       });
+    },
+  );
+
+
+  // GET /participants/:id/card — карточка человека для карты ячеек.
+  app.get(
+    '/participants/:id/card',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (request, reply) => {
+      const p = request.params as z.infer<typeof uuidIdParams>;
+      reply.send({ ...(await getPersonCard(p.id)), audit_id: request.auditId });
     },
   );
 

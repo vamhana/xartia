@@ -5,6 +5,7 @@
 // ответа наставника.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import type { ReactElement } from 'react';
 
 import { apiGet, apiPost } from '../api/client';
@@ -57,6 +58,28 @@ interface QuestionRow {
   mentorId: string | null;
 }
 
+interface CellCardData {
+  cell: { id: string; number: string; level: number; profile: string | null; status: string };
+  members: Array<{ participantId: string; name: string; roleInCell: string; status: string }>;
+  plans: Array<{ id: string; title: string; status: string; version: number }>;
+  dailyPlan: {
+    status: string;
+    tasks: Array<{ external_id: string; description: string; status: string; assigned_name?: string | null }>;
+  };
+}
+
+interface PersonCardData {
+  participant: { id: string; name: string; status: string; cellNumber: string | null };
+  tasks: Array<{
+    id: string; externalId: string; description: string; status: string;
+    priority: string; deadline: string | null;
+    assignedBy: { id: string; name: string } | null;
+  }>;
+  mentor: { id: string; name: string } | null;
+  mentees: Array<{ id: string; name: string }>;
+  dailyPlan: Array<{ id: string; externalId: string; description: string; status: string }>;
+}
+
 const LEVEL_LABEL: Record<number, string> = {
   0: 'ячейка',
   1: 'группа',
@@ -67,6 +90,20 @@ export function CellsMapPage(): ReactElement {
   const user = useUser();
   const qc = useQueryClient();
   const directionId = user?.participant.directionId ?? '';
+  const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+
+  const cellCardQ = useQuery({
+    queryKey: ['cell-card', selectedCellId],
+    queryFn: () => apiGet<CellCardData>(`/cells/${selectedCellId}/card`),
+    enabled: Boolean(selectedCellId),
+  });
+
+  const personCardQ = useQuery({
+    queryKey: ['person-card', selectedPersonId],
+    queryFn: () => apiGet<PersonCardData>(`/participants/${selectedPersonId}/card`),
+    enabled: Boolean(selectedPersonId),
+  });
 
   const capacityQ = useApiQuery<{ rows: CapacityRow[]; totals: { needed: number; available: number; gap: number } }>(
     ['capacity', directionId],
@@ -170,7 +207,13 @@ export function CellsMapPage(): ReactElement {
         {cells.map((cell) => {
           const r = readinessQ.data?.[cell.id];
           return (
-            <div key={cell.id} style={styles.cellRow}>
+            <div
+              key={cell.id}
+              style={styles.cellRow}
+              onClick={() => setSelectedCellId(cell.id)}
+              role="button"
+              tabIndex={0}
+            >
               <div style={styles.cellMain}>
                 <b>{cell.number}</b>
                 <Badge tone={r?.ready ? 'success' : 'warning'}>
@@ -193,7 +236,7 @@ export function CellsMapPage(): ReactElement {
                     variant="ghost"
                     size="sm"
                     loading={raiseMutation.isPending}
-                    onClick={() => raiseMutation.mutate(cell)}
+                    onClick={(e) => { e.stopPropagation(); raiseMutation.mutate(cell); }}
                   >
                     Сигнал L0
                   </Button>
@@ -211,10 +254,10 @@ export function CellsMapPage(): ReactElement {
             <div key={s.id} style={styles.listItem}>
               <Badge tone={s.level >= 2 ? 'danger' : 'warning'}>{`L${s.level}`}</Badge>
               <span style={styles.listText}>{s.reason}</span>
-              <Button variant="ghost" size="sm" onClick={() => escalateMutation.mutate(s.id)}>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); escalateMutation.mutate(s.id); }}>
                 Выше
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => resolveMutation.mutate(s.id)}>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); resolveMutation.mutate(s.id); }}>
                 Решено
               </Button>
             </div>
@@ -232,6 +275,104 @@ export function CellsMapPage(): ReactElement {
           <a href="/chat" style={styles.link}>Перейти в чат →</a>
         </Card>
       </div>
+
+      {selectedCellId && (
+        <div style={styles.overlay} onClick={() => setSelectedCellId(null)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHead}>
+              <b>Ячейка</b>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedCellId(null)}>×</Button>
+            </div>
+            {cellCardQ.isLoading && <div style={styles.muted}>Загрузка…</div>}
+            {cellCardQ.data && (
+              <>
+                <div style={styles.muted}>
+                  {cellCardQ.data.cell.number} · {LEVEL_LABEL[cellCardQ.data.cell.level] ?? 'уровень'}
+                  {cellCardQ.data.cell.profile ? ` · ${cellCardQ.data.cell.profile}` : ''}
+                  {' · '}состав {cellCardQ.data.members.length}
+                </div>
+                <div style={styles.sectionTitle}>Общий план ячейки</div>
+                {cellCardQ.data.plans.length === 0 && <div style={styles.muted}>Плана нет</div>}
+                {cellCardQ.data.plans.map((pl) => (
+                  <div key={pl.id} style={styles.listItem}>
+                    <span style={styles.listText}>{pl.title}</span>
+                    <Badge tone={pl.status === 'in_progress' ? 'success' : 'info'}>{`${pl.status} v${pl.version}`}</Badge>
+                  </div>
+                ))}
+                <div style={styles.sectionTitle}>Люди</div>
+                {cellCardQ.data.members.map((m) => (
+                  <div
+                    key={m.participantId}
+                    style={styles.listItem}
+                    onClick={() => setSelectedPersonId(m.participantId)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <span style={styles.listText}>{m.name}</span>
+                    <Badge tone="info">{m.roleInCell}</Badge>
+                  </div>
+                ))}
+                <div style={styles.sectionTitle}>Дневной план ячейки</div>
+                {cellCardQ.data.dailyPlan.tasks.length === 0 && <div style={styles.muted}>На сегодня задач нет</div>}
+                {cellCardQ.data.dailyPlan.tasks.map((t) => (
+                  <div key={t.external_id} style={styles.listItem}>
+                    <span style={styles.listText}>{t.external_id}: {t.description}</span>
+                    <span style={styles.muted}>{t.status}</span>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectedPersonId && (
+        <div style={styles.overlay} onClick={() => setSelectedPersonId(null)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHead}>
+              <b>{personCardQ.data?.participant.name ?? 'Человек'}</b>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedPersonId(null)}>×</Button>
+            </div>
+            {personCardQ.isLoading && <div style={styles.muted}>Загрузка…</div>}
+            {personCardQ.data && (
+              <>
+                <div style={styles.muted}>
+                  {personCardQ.data.participant.status}
+                  {personCardQ.data.participant.cellNumber ? ` · ячейка ${personCardQ.data.participant.cellNumber}` : ''}
+                </div>
+                <div style={styles.sectionTitle}>Текущие задачи</div>
+                {personCardQ.data.tasks.length === 0 && <div style={styles.muted}>Задач нет</div>}
+                {personCardQ.data.tasks.map((t) => (
+                  <div key={t.id} style={styles.listItem}>
+                    <span style={styles.listText}>
+                      {t.externalId}: {t.description}
+                      <span style={styles.muted}> · назначил: {t.assignedBy?.name ?? '—'}</span>
+                    </span>
+                    <span style={styles.muted}>{t.status}</span>
+                  </div>
+                ))}
+                <div style={styles.sectionTitle}>Наставник и ученики</div>
+                <div style={styles.muted}>
+                  Наставник: {personCardQ.data.mentor?.name ?? '—'}
+                </div>
+                <div style={styles.muted}>
+                  Ученики: {personCardQ.data.mentees.length > 0
+                    ? personCardQ.data.mentees.map((m) => m.name).join(', ')
+                    : '—'}
+                </div>
+                <div style={styles.sectionTitle}>Дневной план на сегодня</div>
+                {personCardQ.data.dailyPlan.length === 0 && <div style={styles.muted}>Задач на день нет</div>}
+                {personCardQ.data.dailyPlan.map((t) => (
+                  <div key={t.id} style={styles.listItem}>
+                    <span style={styles.listText}>{t.externalId}: {t.description}</span>
+                    <span style={styles.muted}>{t.status}</span>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -276,4 +417,38 @@ const styles = {
   listText: { flex: 1, color: colors.text },
   link: { color: colors.primary, fontSize: fontSize.sm, marginTop: spacing.sm, display: 'inline-block' },
   card: { borderRadius: radius.md },
+  overlay: {
+    position: 'fixed' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.5)',
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  modal: {
+    width: 'min(760px, 94vw)',
+    maxHeight: '86vh',
+    overflow: 'auto' as const,
+    background: colors.bgSoft,
+    border: `1px solid ${colors.border}`,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
+  modalHead: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    marginTop: spacing.sm,
+    fontSize: fontSize.sm,
+    fontWeight: 600,
+    color: colors.text,
+  },
 };

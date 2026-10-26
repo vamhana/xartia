@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   777
-  Файлов в проекте:        772
+  Блоков в спецификации:   779
+  Файлов в проекте:        774
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,13 +48,13 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 584
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 586
 ========================================================================
   A.1.00.01        src/server.ts [16363 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
-  A.1.02.01        src/api/participants/controller.ts [6325 б]
+  A.1.02.01        src/api/participants/controller.ts [6800 б]
   A.1.03.01        src/api/directions/controller.ts [2240 б]
-  A.1.04.01        src/api/cells/controller.ts [11105 б]
+  A.1.04.01        src/api/cells/controller.ts [11586 б]
   A.1.04.20        src/api/capacity/controller.ts [3567 б]
   A.1.04.21        src/api/reassignment/controller.ts [4068 б]
   A.1.04.22        src/api/questions/controller.ts [3237 б]
@@ -133,6 +133,7 @@
   C.0.04.12        src/core/cells/readiness.ts [3094 б]
   C.0.04.13        src/core/cells/reassignment.ts [8042 б]
   C.0.04.14        src/core/questions/service.ts [7275 б]
+  C.0.04.15        src/core/cards/service.ts [6617 б]
   C.0.05.01        src/core/mandates/entity.ts [5671 б]
   C.0.05.02        src/core/mandates/service.ts [16464 б]
   C.0.06.01        src/core/plans/entity.ts [4103 б]
@@ -317,7 +318,7 @@
   F.4.02.32        src/web/pages/Naryad.tsx [13984 б]
   F.4.02.33        src/web/pages/Councils.tsx [12642 б]
   F.4.02.34        src/web/pages/Treasury.tsx [13846 б]
-  F.4.02.35        src/web/pages/CellsMap.tsx [10580 б]
+  F.4.02.35        src/web/pages/CellsMap.tsx [18464 б]
   F.4.02.98        src/web/pages/Otc.tsx [16266 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
@@ -376,7 +377,7 @@
   I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [13366 б]
+  I.1.01.16        .github/workflows/ci.yml [13571 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -391,7 +392,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [266259 б]
+  I.10.05.04       tsconfig.tsbuildinfo [266597 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [124670 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -483,7 +484,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [6903 б]
+  I.9.02.18        scripts/ci-local.ps1 [6985 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -558,6 +559,7 @@
   I.9.04.68        scripts/test-reassignment.ts [5956 б]
   I.9.04.69        scripts/test-questions.ts [6204 б]
   I.9.04.70        scripts/test-plan-versions.ts [4693 б]
+  I.9.04.71        scripts/test-cards.ts [5859 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -633,7 +635,7 @@
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
   X.0.01.14        docs/coin-operations.md [16916 б]
-  X.0.01.15        docs/cells-ant-colony.md [18121 б]
+  X.0.01.15        docs/cells-ant-colony.md [18488 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -801,5 +803,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  584
+  Файлов с содержимым:  586
   Пустых файлов:        157

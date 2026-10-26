@@ -25,6 +25,7 @@ import {
   removeMemberService,
 } from '../../core/cells/service.js';
 import { getCellReadiness } from '../../core/cells/readiness.js';
+import { getCellCard } from '../../core/cards/service.js';
 import { uuidIdParams, uuidSchema } from '../../lib/validators.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import { requireRight } from '../middleware/rights.js';
@@ -82,6 +83,16 @@ export async function registerCellsRoutes(app: FastifyInstance): Promise<void> {
       const params = request.params as z.infer<typeof uuidIdParams>;
       const cell = await getById(params.id);
       reply.send({ ...cell, audit_id: request.auditId });
+    },
+  );
+
+  // GET /cells/:id/card — карточка ячейки: состав, планы, дневной план.
+  app.get(
+    '/cells/:id/card',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (request, reply) => {
+      const params = request.params as z.infer<typeof uuidIdParams>;
+      reply.send({ ...(await getCellCard(params.id)), audit_id: request.auditId });
     },
   );
 
