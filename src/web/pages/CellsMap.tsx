@@ -203,7 +203,11 @@ export function CellsMapPage(): ReactElement {
       </Card>
 
       <Card title="Ячейки" subtitle={`${cells.length} в направлении`}>
-        {cells.length === 0 && <div style={styles.muted}>Ячеек пока нет</div>}
+        {cells.length === 0 && (
+          <div style={styles.muted}>
+            В вашем направлении пока нет ячеек. Создайте их на странице «Ячейки» — они появятся здесь.
+          </div>
+        )}
         {cells.map((cell) => {
           const r = readinessQ.data?.[cell.id];
           return (
@@ -231,6 +235,13 @@ export function CellsMapPage(): ReactElement {
                     {c.passed ? '✓' : '✗'} {c.title}
                   </span>
                 ))}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); setSelectedCellId(cell.id); }}
+                >
+                  Открыть
+                </Button>
                 {!r?.ready && (
                   <Button
                     variant="ghost"
@@ -395,6 +406,7 @@ const styles = {
     color: colors.text,
   },
   cellRow: {
+    cursor: 'pointer' as const,
     display: 'flex',
     flexDirection: 'column' as const,
     gap: 4,

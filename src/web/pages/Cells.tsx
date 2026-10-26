@@ -14,6 +14,7 @@ import { apiPost, apiDelete } from '../api/client';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { CellCardPanel } from '../components/cells/CellCardPanel';
 import {
   Form,
   FormInput,
@@ -344,6 +345,7 @@ function CellDetail({ cellId }: { cellId: string }): ReactElement {
           onClose={() => setAdding(false)}
         />
       ) : null}
+      <CellCardPanel cellId={cellId} />
     </Card>
   );
 }

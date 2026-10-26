@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   779
-  Файлов в проекте:        774
+  Блоков в спецификации:   781
+  Файлов в проекте:        776
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 586
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 588
 ========================================================================
   A.1.00.01        src/server.ts [16363 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -288,7 +288,7 @@
   F.4.02.02        src/web/pages/Flows.tsx [13857 б]
   F.4.02.03        src/web/pages/Tasks.tsx [9522 б]
   F.4.02.04        src/web/pages/Report.tsx [15676 б]
-  F.4.02.05        src/web/pages/Cells.tsx [19925 б]
+  F.4.02.05        src/web/pages/Cells.tsx [20036 б]
   F.4.02.06        src/web/pages/Signals.tsx [30144 б]
   F.4.02.07        src/web/pages/Goods.tsx [21825 б]
   F.4.02.08        src/web/pages/OTC.tsx [16266 б]
@@ -318,7 +318,9 @@
   F.4.02.32        src/web/pages/Naryad.tsx [13984 б]
   F.4.02.33        src/web/pages/Councils.tsx [12642 б]
   F.4.02.34        src/web/pages/Treasury.tsx [13846 б]
-  F.4.02.35        src/web/pages/CellsMap.tsx [18464 б]
+  F.4.02.35        src/web/pages/CellsMap.tsx [18948 б]
+  F.4.02.36        src/web/components/cells/PersonCardModal.tsx [4348 б]
+  F.4.02.37        src/web/components/cells/CellCardPanel.tsx [3926 б]
   F.4.02.98        src/web/pages/Otc.tsx [16266 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
@@ -394,7 +396,7 @@
   I.10.05.03       tsconfig.web.json [326 б]
   I.10.05.04       tsconfig.tsbuildinfo [266597 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [124670 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [125164 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -635,7 +637,7 @@
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
   X.0.01.14        docs/coin-operations.md [16916 б]
-  X.0.01.15        docs/cells-ant-colony.md [18488 б]
+  X.0.01.15        docs/cells-ant-colony.md [18981 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -803,5 +805,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  586
+  Файлов с содержимым:  588
   Пустых файлов:        157
