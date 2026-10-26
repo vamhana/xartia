@@ -111,6 +111,7 @@ static (typecheck, build) + smoke (postgis, redis, миграции, API, тес
 ## Инфраструктура и runbook'и
 
 - `infra/` — манифесты и runbook'и: бэкап Postgres, WAF, DDoS-щит, Vault.
+- `docs/cells-ant-colony.md` — как ячейки работают на большой задаче (ёмкость, сигналы, пересборка).
 - `docs/coin-operations.md` — как запускать и обслуживать монету (пол 1.00, казна, роли).
 - `infra/longhorn/windows-wsl2.md` — гайд по Longhorn на Windows через WSL2
   (справочный: текущий dev-кластер использует `local-path`).
