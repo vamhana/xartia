@@ -211,6 +211,10 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-panels.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-panels.log
+      - name: Smoke — инварианты
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-invariants.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-invariants.log
       - name: Smoke — казна
         run: |
           set -o pipefail

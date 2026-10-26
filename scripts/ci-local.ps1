@@ -105,6 +105,7 @@ if (-not $StaticOnly) {
   }
   Invoke-Step 'smoke: ws' { pnpm tsx scripts/test-ws.ts $phone $password }
   Invoke-Step 'smoke: panels' { pnpm tsx scripts/test-panels.ts $phone $password }
+  Invoke-Step 'smoke: invariants' { pnpm tsx scripts/test-invariants.ts $phone $password }
   Invoke-Step 'smoke: treasury' { pnpm tsx scripts/test-treasury.ts $phone $password }
   Invoke-Step 'smoke: council' { pnpm tsx scripts/test-council.ts $phone $password }
   Invoke-Step 'smoke: delegation' { pnpm tsx scripts/test-delegation.ts $phone $password }
