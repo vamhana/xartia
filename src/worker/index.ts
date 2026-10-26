@@ -22,6 +22,7 @@ import {
 } from '../lib/jobs.js';
 import { escalateOverdue } from '../core/otc/service.js';
 import { processExpired } from '../core/mandates/service.js';
+import { escalateOverdueQuestions } from '../core/questions/service.js';
 import { logger } from '../lib/logger.js';
 import { gracefulShutdown } from '../lib/shutdown.js';
 
@@ -180,7 +181,8 @@ async function runGovernance(): Promise<void> {
   try {
     const escalations = await escalateOverdue();
     const mandates = await processExpired();
-    logger.info({ escalations, mandates }, 'worker: governance done');
+    const questions = await escalateOverdueQuestions();
+    logger.info({ escalations, mandates, questions }, 'worker: governance done');
   } catch (e) {
     logger.warn({ err: e }, 'worker: governance failed');
   }
