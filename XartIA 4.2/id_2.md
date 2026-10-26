@@ -1708,7 +1708,7 @@ finalize(safe):
 - основание для C.2.01.* и R.1.01.01
 |Реализация: Math spec-файл.
 
-|E.1.01.02|Economics|Core|Math spec|e/01_core/integral_function.md|E.1.01.01|v.0.0.01|Draft|§3.2|
+|E.1.01.02|Economics|Core|Math spec|e/01_core/integral_function.md|E.1.01.01|v.0.0.01|Planned|§3.2|
 |Описание: Спецификация R_i(S) = a_i*(S−S_start) + (b_i/2)*(S−S_start)^2. Аналитическое решение.
 
 |Публичный API:
@@ -1719,7 +1719,7 @@ finalize(safe):
 - основание для C.2.01.* и R.1.01.01
 |Реализация: Math spec-файл.
 
-|E.1.01.03|Economics|Core|Table|e/01_core/levels_table.md|E.1.01.02|v.0.0.01|Draft|§3.3|
+|E.1.01.03|Economics|Core|Table|e/01_core/levels_table.md|E.1.01.02|v.0.0.01|Planned|§3.3|
 |Описание: Таблица уровней предложения. S_start, S_end, P_start, P_end, b_i, maxBalance. Иммутабельна.
 
 |Публичный API:
@@ -1730,7 +1730,7 @@ finalize(safe):
 - основание для C.2.01.* и R.1.01.01
 |Реализация: Table-файл.
 
-|E.1.01.04|Economics|Core|Math spec|e/01_core/delta_s_solver.md|E.1.01.02|v.0.0.01|Draft|§5.5|
+|E.1.01.04|Economics|Core|Math spec|e/01_core/delta_s_solver.md|E.1.01.02|v.0.0.01|Planned|§5.5|
 |Описание: Аналитическое решение R(S+ΔS) − R(S) = X относительно ΔS. Используется в buyFromCurve.
 
 |Публичный API:
@@ -1741,7 +1741,7 @@ finalize(safe):
 - основание для C.2.01.* и R.1.01.01
 |Реализация: Math spec-файл.
 
-|E.1.01.05|Economics|Core|Math spec|e/01_core/pool_price_formula.md|E.1.01.02|v.0.0.02|Draft|§5.3|
+|E.1.01.05|Economics|Core|Math spec|e/01_core/pool_price_formula.md|E.1.01.02|v.0.0.02|Planned|§5.3|
 |Описание: Формула обновления poolPrice. Симметричный коридор.
 Формулы:
 - Обновление при sellToPool:
@@ -1775,7 +1775,7 @@ finalize(safe):
 |Реализация: Markdown-документ.
 |Примечания: ИСПРАВЛЕНО 12-я ИТЕРАЦИЯ: добавлена нижняя граница (floor). Ранее описывалась только верхняя (ceiling). Симметричный коридор — критичен для ограничения арбитража в обе стороны.
 
-|E.1.01.06|Economics|Core|Proof|e/01_core/invariant_proof.md|E.1.01.02|v.0.0.02|Draft|§6|
+|E.1.01.06|Economics|Core|Proof|e/01_core/invariant_proof.md|E.1.01.02|v.0.0.02|Planned|§6|
 |Описание: Доказательство reserve ≥ R(S_curve) для всех операций: buyFromCurve, redeemFromCurve, sellToPool, buyFromPool.
 Утверждение: reserve ≥ R(S_curve) после любой операции.
 Обозначения:
@@ -1847,7 +1847,7 @@ finalize(safe):
 |Примечания: ИСПРАВЛЕНО 13-я ИТЕРАЦИЯ (ревизия 4): в разделы «Доказательство для redeemFromCurve» и «Доказательство для sellToPool» добавлены блоки про sellTeamFee. Показано, что sellTeamFee не нарушает инвариант reserve ≥ R(S_curve): уменьшение reserve в sell-функциях не зависит от sellTeamFee. Добавлен раздел «Сводка». Версия поднята с v.0.0.01 до v.0.0.02.
 РАНЕЕ: доказательство reserve ≥ R(S_curve) для всех операций.
 
-|E.1.01.07|Economics|Core|Proof|e/01_core/pool_price_proof.md|E.1.01.05|v.0.0.02|Draft|§5.3|
+|E.1.01.07|Economics|Core|Proof|e/01_core/pool_price_proof.md|E.1.01.05|v.0.0.02|Planned|§5.3|
 |Описание: Доказательство границ poolPrice.
 Утверждение 1 (ceiling): poolPrice ≤ P(S)*(1+maxGap) при любых операциях, включая уменьшение S_curve.
 - Доказательство: в redeemFromCurve и sellToPool poolPrice явно ограничивается ceiling = P(newS)*(1+maxGap). В buyFromCurve/buyFromCurveFor S_curve растёт, P(S) растёт, ceiling растёт — poolPrice не может превысить новое ceiling, если он не превышал старое.
@@ -2175,7 +2175,7 @@ finalize(safe):
 - предложения для Governance.propose()
 |Реализация: Markdown-документ.
 
-|G.2.01.02|Governance|Proposals|Markdown|governance/proposals/emergency-template.md|G.2.01.01|v.0.0.01|Draft|§10.3|
+|G.2.01.02|Governance|Proposals|Markdown|governance/proposals/emergency-template.md|G.2.01.01|v.0.0.01|Planned|§10.3|
 |Описание: Шаблон экстренного предложения. Для Circuit Breaker, приостановки операций.
 
 |Публичный API:
@@ -2186,7 +2186,7 @@ finalize(safe):
 - предложения для Governance.propose()
 |Реализация: Markdown-документ.
 
-|G.2.01.03|Governance|Proposals|Markdown|governance/proposals/upgrade-template.md|G.2.01.01|v.0.0.01|Draft|§10.3|
+|G.2.01.03|Governance|Proposals|Markdown|governance/proposals/upgrade-template.md|G.2.01.01|v.0.0.01|Planned|§10.3|
 |Описание: Шаблон предложения по апгрейду контрактов.
 
 |Публичный API:
@@ -2197,7 +2197,7 @@ finalize(safe):
 - предложения для Governance.propose()
 |Реализация: Markdown-документ.
 
-|G.2.01.04|Governance|Proposals|Markdown|governance/proposals/budget-template.md|G.2.01.01|v.0.0.01|Draft|§10.3|
+|G.2.01.04|Governance|Proposals|Markdown|governance/proposals/budget-template.md|G.2.01.01|v.0.0.01|Planned|§10.3|
 |Описание: Шаблон бюджетного предложения. Распределение Treasury, финансирование проектов.
 
 |Публичный API:
@@ -2257,7 +2257,7 @@ finalize(safe):
 - проверки и шаблоны для PR
 |Реализация: Markdown-документ.
 
-|I.1.01.05|Infra|CI/CD|Markdown|.github/PULL_REQUEST_TEMPLATE.md|—|v.0.0.01|Draft|—|
+|I.1.01.05|Infra|CI/CD|Markdown|.github/PULL_REQUEST_TEMPLATE.md|—|v.0.0.01|Planned|—|
 |Описание: Шаблон pull request. Чеклист: тесты, документация, аудит.
 
 |Публичный API:
@@ -2303,7 +2303,7 @@ finalize(safe):
 - правила участия и юридическую обвязку репозитория
 |Реализация: Текстовый файл, читается инструментами сборки.
 
-|I.2.01.02|Infra|Meta|Markdown|CONTRIBUTING.md|—|v.0.0.01|Draft|—|
+|I.2.01.02|Infra|Meta|Markdown|CONTRIBUTING.md|—|v.0.0.01|Planned|—|
 |Описание: Руководство для контрибьюторов. Стиль кода, процесс review.
 
 |Публичный API:
@@ -2314,7 +2314,7 @@ finalize(safe):
 - правила участия и юридическую обвязку репозитория
 |Реализация: Markdown-документ.
 
-|I.2.01.03|Infra|Meta|Markdown|CODE_OF_CONDUCT.md|—|v.0.0.01|Draft|—|
+|I.2.01.03|Infra|Meta|Markdown|CODE_OF_CONDUCT.md|—|v.0.0.01|Planned|—|
 |Описание: Кодекс поведения. Правила общения, процедура разрешения конфликтов.
 
 |Публичный API:
@@ -2850,7 +2850,7 @@ type ProtocolStats {
 - индексирование событий для дашбордов
 |Реализация: JSON-файл, проверяется схемой и CI.
 
-|O.3.01.01|Operations|Docs|Markdown|ops/runbook.md|—|v.0.0.01|Draft|§16.2|
+|O.3.01.01|Operations|Docs|Markdown|ops/runbook.md|—|v.0.0.01|Planned|§16.2|
 |Описание: Runbook оператора. Ежедневные, еженедельные, ежемесячные задачи.
 
 |Публичный API:
@@ -2861,7 +2861,7 @@ type ProtocolStats {
 - процедуры для оператора
 |Реализация: Markdown-документ.
 
-|O.3.01.02|Operations|Docs|Markdown|ops/incident-response.md|O.3.01.01|v.0.0.01|Draft|§16.2|
+|O.3.01.02|Operations|Docs|Markdown|ops/incident-response.md|O.3.01.01|v.0.0.01|Planned|§16.2|
 |Описание: Incident Response Plan. Классификация, эскалация, коммуникация.
 
 |Публичный API:
@@ -2872,7 +2872,7 @@ type ProtocolStats {
 - процедуры для оператора
 |Реализация: Markdown-документ.
 
-|O.3.01.03|Operations|Docs|Markdown|ops/upgrade-guide.md|O.3.01.01|v.0.0.01|Draft|§16.2|
+|O.3.01.03|Operations|Docs|Markdown|ops/upgrade-guide.md|O.3.01.01|v.0.0.01|Planned|§16.2|
 |Описание: Руководство по апгрейду. Процедура, тестирование, миграция.
 
 |Публичный API:
@@ -2883,7 +2883,7 @@ type ProtocolStats {
 - процедуры для оператора
 |Реализация: Markdown-документ.
 
-|O.3.01.04|Operations|Docs|Markdown|ops/emergency-procedures.md|O.3.01.02|v.0.0.01|Draft|§16.2|
+|O.3.01.04|Operations|Docs|Markdown|ops/emergency-procedures.md|O.3.01.02|v.0.0.01|Planned|§16.2|
 |Описание: Экстренные процедуры. Эксплойт, падение резерва, Circuit Breaker.
 
 |Публичный API:
@@ -2894,7 +2894,7 @@ type ProtocolStats {
 - процедуры для оператора
 |Реализация: Markdown-документ.
 
-|O.3.01.05|Operations|Docs|Markdown|ops/backup.md|—|v.0.0.01|Draft|§16.2|
+|O.3.01.05|Operations|Docs|Markdown|ops/backup.md|—|v.0.0.01|Planned|§16.2|
 |Описание: Процедура бэкапа. Ключи, конфиги, состояние контрактов.
 
 |Публичный API:
@@ -2905,7 +2905,7 @@ type ProtocolStats {
 - процедуры для оператора
 |Реализация: Markdown-документ.
 
-|O.4.01.01|Operations|Metrics|Markdown|ops/metrics.md|—|v.0.0.02|Draft|§16.3|
+|O.4.01.01|Operations|Metrics|Markdown|ops/metrics.md|—|v.0.0.02|Planned|§16.3|
 |Описание: Описание метрик. Формулы, нормы, пороги. Покрытие резерва, ликвидность, poolPrice, protocol revenue.
 Содержание:
 Раздел «Метрики резерва»:
@@ -2963,7 +2963,7 @@ type ProtocolStats {
 |Реализация: Markdown-документ.
 |Примечания: НОВОЕ 13-я ИТЕРАЦИЯ (ревизия 2): добавлен раздел «Метрики protocol revenue» (treasury_balance, sellTeamFee_current, sellTeamFee_30d_avg, sellTeamFee_total_collected_30d, teamTokens_minted_30d), «Метрики пользователя» (round_trip_cost, early_sell_penalty_active, effective_minimal_x6). Расширен раздел «Метрики инвариантов»: poolController_usdc_zero — новый инвариант после sweep-dust (11b).
 
-|R.1.01.01|Registry|Specification|Markdown|docs/spec/xartia_4.2.md|—|v.0.0.06|Draft|§0|
+|R.1.01.01|Registry|Specification|Markdown|docs/spec/xartia_4.2.md|—|v.0.0.06|Planned|§0|
 |Описание: Спецификация XartIA 4.2. Математика, архитектура, механика, инварианты.
 Подраздел «Семантика maxBalance»: (без изменений с 7-й итерации)
 - maxBalance_i — максимальный баланс одного пользователя в момент, когда S_curve в границах уровня i.
@@ -3046,7 +3046,7 @@ type ProtocolStats {
 НОВОЕ 13-я ИТЕРАЦИЯ: добавлены подразделы «Доход команды», «Распределение комиссий с продаж», «Round-trip cost». Обновлён подраздел «Область применения earlySellFee».
 ИСПРАВЛЕНО 13-я ИТЕРАЦИЯ (ревизия 5): в блок «ВАЖНО для индексатора» подраздела «Двойная эмиссия при каскаде» добавлен пункт про sweep-dust. Ранее блок содержал 6 пунктов, но не содержал важного для индексатора предупреждения о том, что sweep-dust не эмитит событие. В R.2.01.04 это предупреждение есть, в R.1.01.01 — отсутствовало. Индексатор, читающий только R.1.01.01, не понимал бы, почему reserve растёт без события. Версия поднята с v.0.0.05 до v.0.0.06.
 
-|R.1.01.02|Registry|Specification|Markdown|docs/spec/tz.md|R.1.01.01|v.0.0.01|Draft|§1–21|
+|R.1.01.02|Registry|Specification|Markdown|docs/spec/tz.md|R.1.01.01|v.0.0.01|Planned|§1–21|
 |Описание: Техническое задание. Требования к контрактам, тестам, деплою.
 
 |Публичный API:
@@ -3064,7 +3064,7 @@ type ProtocolStats {
 |↙ ПОТРЕБЛЯЕТ: R.1.01.01 (4.2, архив), L.1.01.01 (whitepaper).
 |↘ ПРЕДОСТАВЛЯЕТ: основание для контрактов казны и привязки к Шлюзу.
 |Реализация: Markdown; экономическая модель и политика.
-|R.2.01.01|Registry|Architecture|Markdown|docs/tech/architecture.md|R.1.01.01|v.0.0.01|Draft|§2|
+|R.2.01.01|Registry|Architecture|Markdown|docs/tech/architecture.md|R.1.01.01|v.0.0.01|Planned|§2|
 |Описание: Описание архитектуры. Схема взаимодействия контрактов, потоки данных, роли.
 
 |Публичный API:
@@ -3075,7 +3075,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.2.01.02|Registry|API|Markdown|docs/tech/api.md|C.8.01.01|v.0.0.01|Draft|§2|
+|R.2.01.02|Registry|API|Markdown|docs/tech/api.md|C.8.01.01|v.0.0.01|Planned|§2|
 |Описание: API документация. Публичные функции, события, ошибки.
 
 |Публичный API:
@@ -3086,7 +3086,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.2.01.03|Registry|Architecture|Markdown|docs/tech/contracts.md|R.2.01.01|v.0.0.01|Draft|§15.1|
+|R.2.01.03|Registry|Architecture|Markdown|docs/tech/contracts.md|R.2.01.01|v.0.0.01|Planned|§15.1|
 |Описание: Документация контрактов. Роль, функции, инварианты каждого.
 
 |Публичный API:
@@ -3097,7 +3097,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.2.01.04|Registry|Architecture|Markdown|docs/tech/events.md|C.10.01.01|v.0.0.04|Draft|§15.1|
+|R.2.01.04|Registry|Architecture|Markdown|docs/tech/events.md|C.10.01.01|v.0.0.04|Planned|§15.1|
 |Описание: Документация событий. Параметры, примеры для индексации, семантика sellTeamFee и usdcIn.
 Содержание:
 - Buy(buyer, usdcIn, tokensOut, fee, teamTokens, newScurve, newReserve, newLevel) — buyFromCurve и buyFromCurveFor.
@@ -3163,7 +3163,7 @@ type ProtocolStats {
 |Примечания: ИСПРАВЛЕНО 13-я ИТЕРАЦИЯ (ревизия 2): восстановлено полное описание раздела «Двойная эмиссия при каскаде» (7 шагов + «ВАЖНО для индексатора»). В предыдущей ревизии 13-й итерации раздел был сжат до одной строки — потеряна детализация порядка операций. Пользователь отметил потерю.
 НОВОЕ 13-я ИТЕРАЦИЯ: добавлены разделы «Семантика полей SellToPool и Redeem», «Событие SellTeamFeeUpdated», «Событие Deploy» обновлён.
 
-|R.2.01.05|Registry|Architecture|Markdown|docs/tech/deployment-guide.md|D.3.01.01|v.0.0.02|Draft|§14|
+|R.2.01.05|Registry|Architecture|Markdown|docs/tech/deployment-guide.md|D.3.01.01|v.0.0.02|Planned|§14|
 |Описание: Руководство по деплою. Пошаговая инструкция, конфигурация, верификация.
 Раздел «Калибровка p0_initial_pool_price_6dec»:
 - p0 должен быть в диапазоне [P(S_0) / (1+MAX_GAP), P(S_0) * (1+MAX_GAP)].
@@ -3197,7 +3197,7 @@ type ProtocolStats {
 |Реализация: Markdown-документ.
 |Примечания: НОВОЕ 13-я ИТЕРАЦИЯ (ревизия 3): раздел «Treasury в config» оформлен как структурированный раздел. Ранее был черновой заметкой из 2 строк после «Калибровка p0» — не имел заголовка и деталей. Добавлены: полная валидация, рекомендации по выбору treasury (Safe Multisig vs EOA), проверки перед и после деплоя.
 
-|R.2.01.06|Registry|Architecture|Markdown|docs/tech/integration-guide.md|R.2.01.01|v.0.0.02|Draft|§15.2|
+|R.2.01.06|Registry|Architecture|Markdown|docs/tech/integration-guide.md|R.2.01.01|v.0.0.02|Planned|§15.2|
 |Описание: Руководство по интеграции. dApp, кошелёк, биржа.
 Раздел «sellTeamFee при интеграции» (НОВОЕ 13-я ИТЕРАЦИЯ (ревизия 3)):
 - При интеграции с продажами (`redeemFromCurve`, `sellToPool`) учитывать, что user получает:
@@ -3229,7 +3229,7 @@ type ProtocolStats {
 |Реализация: Markdown-документ.
 |Примечания: НОВОЕ 13-я ИТЕРАЦИЯ (ревизия 3): раздел «sellTeamFee при интеграции» оформлен как структурированный раздел. Ранее был черновой заметкой из 3 строк без заголовка. Добавлены: формулы расчёта user_amount для обеих sell-функций, рекомендации по UI, событие Deploy для обнаружения treasury, семантика usdcOut для бирж.
 
-|R.2.01.07|Registry|Architecture|Markdown|docs/tech/api-reference.md|C.8.01.01|v.0.0.01|Draft|§2|
+|R.2.01.07|Registry|Architecture|Markdown|docs/tech/api-reference.md|C.8.01.01|v.0.0.01|Planned|§2|
 |Описание: API Reference. Автогенерируемая документация из NatSpec.
 
 |Публичный API:
@@ -3240,7 +3240,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.2.01.08|Registry|Architecture|Markdown|docs/tech/security-model.md|R.2.01.01|v.0.0.03|Draft|§12|
+|R.2.01.08|Registry|Architecture|Markdown|docs/tech/security-model.md|R.2.01.01|v.0.0.03|Planned|§12|
 |Описание: Модель безопасности. Угрозы, митигации, роли, доступы, инварианты. Документирует dual-authority модель PoolState (Ownable + AccessControl), treasury security, симметричный коридор poolPrice, гейт инициализации и явные принятые риски.
 Содержание (раздел «Dual-authority модель PoolState»):
 - PoolState использует ДВЕ системы прав одновременно:
@@ -3307,7 +3307,7 @@ type ProtocolStats {
 ИЗМЕНЕНО 13-я ИТЕРАЦИЯ (ревизия 2): версия поднята с v.0.0.02 до v.0.0.03 — синхронизация с добавлением разделов treasury security и sweep-dust.
 ИЗМЕНЕНО 11-я ИТЕРАЦИЯ: статус POOL_CALLER_ROLE снижен со «средний» до «низкий». Добавлены разделы «Симметричный коридор poolPrice», «Гейт инициализации», «Timelock». Ранее добавлены разделы «Dual-authority модель PoolState» и «Принятые риски» (7-я итерация).
 
-|R.2.01.09|Registry|Architecture|Markdown|docs/tech/threat-model.md|R.2.01.08|v.0.0.03|Draft|§12|
+|R.2.01.09|Registry|Architecture|Markdown|docs/tech/threat-model.md|R.2.01.08|v.0.0.03|Planned|§12|
 |Описание: Модель угроз. STRIDE-анализ, векторы атак, контрмеры, остаточные риски.
 Содержание (раздел 4.4 «Риски AccessControl»):
 - Риск: компрометация POOL_CALLER_ROLE — ПЕРЕКВАЛИФИЦИРОВАН в 11-й ИТЕРАЦИИ.
@@ -3372,7 +3372,7 @@ type ProtocolStats {
 ИЗМЕНЕНО 13-я ИТЕРАЦИЯ (ревизия 2): версия поднята с v.0.0.02 до v.0.0.03 — синхронизация с добавлением вектора компрометации treasury и раздела Sweep-dust.
 ИЗМЕНЕНО 11-я ИТЕРАЦИЯ: POOL_CALLER_ROLE переквалифицирован в низкий риск. Добавлен новый вектор «Компрометация PoolController» с митигациями (pull-модель, immutable, MAX_CURVE_FOR_PCT, мониторинг). Добавлены разделы «Риски инициализации» и «Timelock».
 
-|R.2.01.10|Registry|Architecture|Markdown|docs/tech/testing-guide.md|R.2.01.01|v.0.0.01|Draft|§13|
+|R.2.01.10|Registry|Architecture|Markdown|docs/tech/testing-guide.md|R.2.01.01|v.0.0.01|Planned|§13|
 |Описание: Руководство по тестированию. Запуск, написание, интерпретация.
 
 |Публичный API:
@@ -3383,7 +3383,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.2.01.11|Registry|Architecture|Markdown|docs/tech/audit-checklist.md|R.2.01.08|v.0.0.04|Draft|§12.3|
+|R.2.01.11|Registry|Architecture|Markdown|docs/tech/audit-checklist.md|R.2.01.08|v.0.0.04|Planned|§12.3|
 |Описание: Чеклист для аудита. Пункты проверки, критерии приёмки.
 Содержание:
 ... (существующие разделы: External-функции PoolController, Семантика maxBalance, SafeERC20, lastBuyTime и earlySellFee, Комиссии, poolPrice vs P(S) — симметричный коридор, buyFromCurveFor — pull-модель, Гейт инициализации, setPoolController)
@@ -3474,7 +3474,7 @@ type ProtocolStats {
 - Добавлен раздел «Документация» — синхронизация whitepaper, token-classification, security-model, threat-model, faq.
 НОВОЕ 13-я ИТЕРАЦИЯ: раздел «sellTeamFee и treasury». Обновлён раздел «Распределение комиссий».
 
-|R.3.01.01|Registry|Files|Markdown|docs/registry/files.md|—|v.0.0.01|Draft|—|
+|R.3.01.01|Registry|Files|Markdown|docs/registry/files.md|—|v.0.0.01|Planned|—|
 |Описание: Реестр файлов проекта. Полный список с ID, зависимостями, статусами. Единый источник истины о структуре проекта.
 
 |Публичный API:
@@ -3485,7 +3485,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.3.01.02|Registry|Glossary|Markdown|docs/registry/glossary.md|R.1.01.01|v.0.0.02|Draft|§21|
+|R.3.01.02|Registry|Glossary|Markdown|docs/registry/glossary.md|R.1.01.01|v.0.0.02|Planned|§21|
 |Описание: Глоссарий. Термины протокола XartIA — техническая, экономическая и операционная лексика.
 Содержание:
 Раздел «Bonding curve»:
@@ -3562,7 +3562,7 @@ type ProtocolStats {
 |Реализация: Markdown-документ.
 |Примечания: ИСПРАВЛЕНО 13-я ИТЕРАЦИЯ (ревизия 3): добавлены термины treasury, sellTeamFee, protocol revenue, round-trip cost, teamTokens, sweep-dust, channel separation, floor, ceiling, нормализация X_18. Расширены разделы «Комиссии и доход команды» и «Роли и governance» (POOL_CALLER_ROLE отмечен как legacy).
 
-|R.3.01.03|Registry|Files|Markdown|docs/registry/changelog.md|—|v.0.0.01|Draft|—|
+|R.3.01.03|Registry|Files|Markdown|docs/registry/changelog.md|—|v.0.0.01|Planned|—|
 |Описание: Developer changelog. Технические изменения, миграции, breaking changes.
 
 |Публичный API:
@@ -3573,7 +3573,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.3.01.04|Registry|Files|Markdown|docs/registry/contributing.md|—|v.0.0.03|Draft|—|
+|R.3.01.04|Registry|Files|Markdown|docs/registry/contributing.md|—|v.0.0.03|Planned|—|
 |Описание: Руководство для контрибьюторов. Стиль кода, процесс review. Дополнительно — соглашение о стиле псевдокода в спецификациях.
 Раздел «Стиль псевдокода»:
 - Псевдокод в спецификациях (C.*, T.*) использует snake_case для локальных переменных, отражающих экономические величины USDC:
@@ -3637,7 +3637,7 @@ type ProtocolStats {
 - Расширен раздел «Процесс review» — синхронизация зависимостей, интерфейсов, ABI, индексатора, bounds.
 ИСПРАВЛЕНО 13-я ИТЕРАЦИЯ (ревизия 5): в раздел «Обязательные проверки при добавлении immutable-поля» добавлен пункт 7 про обновление ABI-файлов. В разделе «Процесс review» это уже упоминалось, но в конкретном чеклисте — нет, что приводило к рассинхронизации между контрактом и frontend ABI. Версия поднята с v.0.0.02 до v.0.0.03.
 
-|R.3.01.05|Registry|Files|Markdown|docs/registry/security.md|R.2.01.08|v.0.0.01|Draft|§12|
+|R.3.01.05|Registry|Files|Markdown|docs/registry/security.md|R.2.01.08|v.0.0.01|Planned|§12|
 |Описание: Расширенная документация безопасности. Модель угроз, контакты для раскрытия уязвимостей.
 
 |Публичный API:
@@ -3648,7 +3648,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.3.01.06|Registry|Files|Markdown|docs/registry/faq.md|R.1.01.01|v.0.0.02|Draft|§15.2|
+|R.3.01.06|Registry|Files|Markdown|docs/registry/faq.md|R.1.01.01|v.0.0.02|Planned|§15.2|
 |Описание: FAQ. Частые вопросы пользователей XartIA — покупка, продажа, вестинг, голосование, комиссии.
 Содержание:
 Раздел «Покупка»:
@@ -3726,7 +3726,7 @@ type ProtocolStats {
 - Расширен раздел «Безопасность» — Circuit Breaker, pause/unpause.
 КРИТИЧНО для юридической позиции: FAQ должен явно указывать, что sellTeamFee НЕ распределяется между держателями и НЕ создаёт ожиданий прибыли. Это ключевой аргумент защиты против Howey/MiCA (см. L.1.01.03, раздел 4).
 
-|R.3.01.07|Registry|Files|Markdown|docs/registry/roadmap.md|R.1.01.01|v.0.0.01|Draft|—|
+|R.3.01.07|Registry|Files|Markdown|docs/registry/roadmap.md|R.1.01.01|v.0.0.01|Planned|—|
 |Описание: Дорожная карта проекта. Этапы, сроки, ключевые вехи.
 
 |Публичный API:
@@ -3737,7 +3737,7 @@ type ProtocolStats {
 - элемент проекта
 |Реализация: Markdown-документ.
 
-|R.4.01.01|Registry|Audit|Markdown|docs/audit/README.md|—|v.0.0.01|Draft|§12.3|
+|R.4.01.01|Registry|Audit|Markdown|docs/audit/README.md|—|v.0.0.01|Planned|§12.3|
 |Описание: Описание процесса аудита. Как проводится, кто участвует, как публикуются результаты.
 
 |Публичный API:
@@ -5576,7 +5576,7 @@ deployCurveControllerForReentrancy(poolController_):
 |↙ ПОТРЕБЛЯЕТ: C.3.01.01 (CurveController), C.3.01.02 (PoolController), C.4.01.01 (ReserveManager).
 |↘ ПРЕДОСТАВЛЯЕТ: T.3.01.* (invariant-проверки).
 |Реализация: Solidity; действия ограничены бизнес-правилами через try/catch.
-|W.1.01.01|Web|dApp|HTML|web/dapp/index.html|W.1.01.02, W.1.01.06|v.0.0.02|Draft|§15.2|
+|W.1.01.01|Web|dApp|HTML|web/dapp/index.html|W.1.01.02, W.1.01.06|v.0.0.02|Planned|§15.2|
 |Описание: Главная страница dApp. Подключает app.js и styles.css. Содержит DOM-контракт (id-шники для JS). Добавлены секции для отображения treasury, sellTeamFee и round-trip cost.
 |Публичный API:
 - <div id="app">
@@ -5600,7 +5600,7 @@ deployCurveControllerForReentrancy(poolController_):
 |Примечания: НОВОЕ 13-я ИТЕРАЦИЯ (ревизия 2): добавлена секция fee-display с id-шниками sell-team-fee, treasury-address, round-trip-cost. Необходима для отображения protocol revenue, treasury и расчёта потерь пользователя при round-trip. Соответствует правкам в W.1.01.02 app.js.
 ЦИКЛ УСТРАНЁН: index.html зависит от app.js и styles.css, но не наоборот. DOM-контракт — это id-шники, а не файл.
 
-|W.1.01.02|Web|dApp|JavaScript|web/dapp/app.js|W.1.01.14|v.0.0.02|Draft|§15.2|
+|W.1.01.02|Web|dApp|JavaScript|web/dapp/app.js|W.1.01.14|v.0.0.02|Planned|§15.2|
 |Описание: JavaScript логика dApp. Кошелёк, вызовы контрактов, события. Работает с DOM через id-шники. Добавлены функции для отображения protocol revenue (sellTeamFee, treasury) и round-trip cost.
 |Публичный API:
 - async function connectWallet()
@@ -5654,7 +5654,7 @@ renderFeeDisplay():
 ЦИКЛ УСТРАНЁН: app.js не зависит от файла index.html. Зависимость от DOM — контрактная, через id.
 РАНЕЕ: добавлены minOut/deadline в торговые функции.
 
-|W.1.01.03|Web|dApp|ABI|web/dapp/abi/XartIAToken.json|C.1.01.01|v.0.0.01|Draft|§15.1|
+|W.1.01.03|Web|dApp|ABI|web/dapp/abi/XartIAToken.json|C.1.01.01|v.0.0.01|Planned|§15.1|
 |Описание: ABI XartIAToken.
 
 |Публичный API:
@@ -5665,7 +5665,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: ABI-файл.
 
-|W.1.01.04|Web|dApp|ABI|web/dapp/abi/CurveController.json|C.3.01.01|v.0.0.01|Draft|§15.1|
+|W.1.01.04|Web|dApp|ABI|web/dapp/abi/CurveController.json|C.3.01.01|v.0.0.01|Planned|§15.1|
 |Описание: ABI CurveController.
 
 |Публичный API:
@@ -5676,7 +5676,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: ABI-файл.
 
-|W.1.01.05|Web|dApp|ABI|web/dapp/abi/PoolController.json|C.3.01.02|v.0.0.01|Draft|§15.1|
+|W.1.01.05|Web|dApp|ABI|web/dapp/abi/PoolController.json|C.3.01.02|v.0.0.01|Planned|§15.1|
 |Описание: ABI PoolController.
 
 |Публичный API:
@@ -5687,7 +5687,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: ABI-файл.
 
-|W.1.01.06|Web|dApp|CSS|web/dapp/styles.css|—|v.0.0.01|Draft|§15.2|
+|W.1.01.06|Web|dApp|CSS|web/dapp/styles.css|—|v.0.0.01|Planned|§15.2|
 |Описание: CSS стили dApp. Минимализм, адаптивность, тёмная тема.
 |Публичный API:
 - :root { --bg, --fg, --accent }
@@ -5701,7 +5701,7 @@ renderFeeDisplay():
 |Реализация: Vanilla CSS, без фреймворков.
 |Примечания: ИСПРАВЛЕНО 8-я ИТЕРАЦИЯ: удалена строка «- W.1.01.01 index.html» из блока ↙ ПОТРЕБЛЯЕТ. Ранее было противоречие: список зависимостей содержал index.html, а примечание утверждало, что зависимость убрана. styles.css — самостоятельный файл, index.html подключает его через <link rel>, обратной зависимости нет. ЦИКЛ УСТРАНЁН.
 
-|W.1.01.07|Web|dApp|ABI|web/dapp/abi/ReserveManager.json|C.4.01.01|v.0.0.01|Draft|§15.1|
+|W.1.01.07|Web|dApp|ABI|web/dapp/abi/ReserveManager.json|C.4.01.01|v.0.0.01|Planned|§15.1|
 |Описание: ABI ReserveManager.
 
 |Публичный API:
@@ -5712,7 +5712,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: ABI-файл.
 
-|W.1.01.08|Web|dApp|ABI|web/dapp/abi/Vesting.json|C.5.01.01|v.0.0.01|Draft|§15.1|
+|W.1.01.08|Web|dApp|ABI|web/dapp/abi/Vesting.json|C.5.01.01|v.0.0.01|Planned|§15.1|
 |Описание: ABI Vesting.
 
 |Публичный API:
@@ -5723,7 +5723,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: ABI-файл.
 
-|W.1.01.09|Web|dApp|ABI|web/dapp/abi/Governance.json|C.7.01.01|v.0.0.01|Draft|§15.1|
+|W.1.01.09|Web|dApp|ABI|web/dapp/abi/Governance.json|C.7.01.01|v.0.0.01|Planned|§15.1|
 |Описание: ABI Governance.
 
 |Публичный API:
@@ -5734,7 +5734,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: ABI-файл.
 
-|W.1.01.10|Web|dApp|ABI|web/dapp/abi/XartIAFactory.json|C.8.01.01|v.0.0.01|Draft|§15.1|
+|W.1.01.10|Web|dApp|ABI|web/dapp/abi/XartIAFactory.json|C.8.01.01|v.0.0.01|Planned|§15.1|
 |Описание: ABI XartIAFactory.
 
 |Публичный API:
@@ -5745,7 +5745,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: ABI-файл.
 
-|W.1.01.11|Web|dApp|JSON|web/dapp/package.json|—|v.0.0.01|Draft|§15.2|
+|W.1.01.11|Web|dApp|JSON|web/dapp/package.json|—|v.0.0.01|Planned|§15.2|
 |Описание: package.json dApp. Зависимости: ethers.js, wagmi, viem.
 
 |Публичный API:
@@ -5756,7 +5756,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: JSON-файл, проверяется схемой и CI.
 
-|W.1.01.12|Web|dApp|Markdown|web/dapp/README.md|W.1.01.01|v.0.0.01|Draft|§15.2|
+|W.1.01.12|Web|dApp|Markdown|web/dapp/README.md|W.1.01.01|v.0.0.01|Planned|§15.2|
 |Описание: README dApp. Запуск, деплой, интеграция.
 
 |Публичный API:
@@ -5778,7 +5778,7 @@ renderFeeDisplay():
 - элемент проекта
 |Реализация: Файл переменных окружения (пример); реальные значения не коммитятся.
 
-|W.1.01.14|Web|dApp|JavaScript|web/dapp/abis/index.js|W.1.01.03, W.1.01.04, W.1.01.05, W.1.01.07, W.1.01.08, W.1.01.09, W.1.01.10|v.0.0.02|Draft|§15.2|
+|W.1.01.14|Web|dApp|JavaScript|web/dapp/abis/index.js|W.1.01.03, W.1.01.04, W.1.01.05, W.1.01.07, W.1.01.08, W.1.01.09, W.1.01.10|v.0.0.02|Planned|§15.2|
 |Описание: 
 1	Migration-план без upgradeability	O.3.01.03 upgrade-guide.md	Draft
 2	Геофенсинг США/ЕС	L.2.01.01 terms.md, L.3.01.01	Draft
