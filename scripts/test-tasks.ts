@@ -108,11 +108,28 @@ async function main(): Promise<void> {
       LIMIT 1`,
     [me.direction_id, me.id],
   );
-  const executor = execRows[0] ? { id: execRows[0].id } : null;
-  if (!executor) {
-    console.error('   ✗ нет второго участника направления для проверки ОТК');
-    process.exit(1);
+  let executorId = execRows[0]?.id;
+  if (!executorId) {
+    // На чистой базе в направлении только Архитектор — создаём исполнителя.
+    const suffix = String(Date.now()).slice(-6);
+    const reg = await req<{ request_id: string }>('POST', '/auth/register', {
+      phone: `+7996${suffix}`,
+      messengers: { telegram: `@exec_${suffix}` },
+      password: `Exec${suffix}`,
+      consent_video: true,
+      consent_data: true,
+    });
+    const acc = await req<{ participant: { id: string } }>(
+      'POST', `/admin/registration-requests/${reg.data.request_id}/accept`,
+      { direction_id: me.direction_id, name: `Исполнитель ${suffix}` },
+    );
+    if (acc.status !== 201) {
+      console.error(`   ✗ не удалось создать исполнителя: ${acc.status}`);
+      process.exit(1);
+    }
+    executorId = acc.data.participant.id;
   }
+  const executor = { id: executorId };
   const impersonated = await req<{ access_token: string }>(
     'POST', `/dev/impersonate/${executor.id}`,
   );
