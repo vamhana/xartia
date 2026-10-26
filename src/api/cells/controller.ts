@@ -24,6 +24,7 @@ import {
   addMemberService,
   removeMemberService,
 } from '../../core/cells/service.js';
+import { getCellReadiness } from '../../core/cells/readiness.js';
 import { uuidIdParams, uuidSchema } from '../../lib/validators.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import { requireRight } from '../middleware/rights.js';
@@ -81,6 +82,17 @@ export async function registerCellsRoutes(app: FastifyInstance): Promise<void> {
       const params = request.params as z.infer<typeof uuidIdParams>;
       const cell = await getById(params.id);
       reply.send({ ...cell, audit_id: request.auditId });
+    },
+  );
+
+  // GET /cells/:id/readiness — чек-лист готовности ячейки.
+  app.get(
+    '/cells/:id/readiness',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (request, reply) => {
+      const params = request.params as z.infer<typeof uuidIdParams>;
+      const readiness = await getCellReadiness(params.id);
+      reply.send({ ...readiness, audit_id: request.auditId });
     },
   );
 

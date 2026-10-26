@@ -144,6 +144,8 @@ export interface CreatePlanRequest {
   signalId?: UUID;
   /** Куратор-человек: с него спрашивают за отклонения. */
   curatorId?: UUID;
+  /** Ячейка, которой принадлежит фрагмент плана (готовность ячейки). */
+  cellId?: UUID;
   criteria?: Record<string, unknown>;
   checkpoints?: PlanCheckpoint[];
   stopConditions?: Record<string, unknown>;
@@ -196,23 +198,24 @@ export async function createPlanService(
     try {
       await query(
         `INSERT INTO plans
-           (id, external_id, type, title, expected_result, lead_direction_id,
-            signal_id, curator_id,
-            status, criteria, checkpoints, stop_conditions)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10, $11)`,
-        [
-          entity.id,
-          entity.externalId,
-          entity.type,
-          entity.title,
-          entity.expectedResult,
-          entity.leadDirectionId,
-          entity.signalId,
-          entity.curatorId,
-          JSON.stringify(entity.criteria),
-          JSON.stringify(entity.checkpoints),
-          JSON.stringify(entity.stopConditions),
-        ],
+       (id, external_id, type, title, expected_result, lead_direction_id,
+        signal_id, curator_id, cell_id,
+        status, criteria, checkpoints, stop_conditions)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $12, 'draft', $9, $10, $11)`,
+    [
+      entity.id,
+      entity.externalId,
+      entity.type,
+      entity.title,
+      entity.expectedResult,
+      entity.leadDirectionId,
+      entity.signalId,
+      entity.curatorId,
+      JSON.stringify(entity.criteria),
+      JSON.stringify(entity.checkpoints),
+      JSON.stringify(entity.stopConditions),
+      input.cellId ?? null,
+    ],
       );
 
       await logAction({

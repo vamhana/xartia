@@ -266,6 +266,14 @@
 
 Порядок: 1 → 2 → 3 → 4, затем 5–7.
 
+### Инкремент 1 реализован (2026-10-26)
+
+- `participant_competencies` — уровни 1..5, verified.
+- `GET /capacity?direction_id&plan_id` — спрос/наличие/дефицит по компетенциям.
+- `GET /cells/:id/readiness` — чек-лист: состав, координатор, ОТК, общий план.
+- `plans.cell_id` и `cells.status` (forming/ready/frozen).
+- Тест `I.9.04.67` и шаг CI «Smoke — ёмкость и ячейки».
+
 ---
 
 ## 15. Критерий «работает как часы»

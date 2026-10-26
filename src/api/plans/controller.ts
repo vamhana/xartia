@@ -61,6 +61,7 @@ const createBody = z.object({
     description: z.string().min(1),   // ← было без min
   })).optional(),
   stop_conditions: z.record(z.unknown()).optional(),
+  cell_id: uuidSchema.optional(),
 });
 
 const stopBody = z.object({ reason: z.string().min(1).max(500) });
@@ -243,6 +244,7 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
         leadDirectionId: b.lead_direction_id,
         ...(b.signal_id ? { signalId: b.signal_id } : {}),
         ...(b.curator_id ? { curatorId: b.curator_id } : {}),
+        ...(b.cell_id ? { cellId: b.cell_id } : {}),
         ...(b.criteria ? { criteria: b.criteria } : {}),
         ...(b.checkpoints ? { checkpoints: b.checkpoints } : {}),
         ...(b.stop_conditions ? { stopConditions: b.stop_conditions } : {}),

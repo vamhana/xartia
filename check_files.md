@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   759
-  Файлов в проекте:        755
+  Блоков в спецификации:   765
+  Файлов в проекте:        761
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,15 +48,16 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 566
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 572
 ========================================================================
-  A.1.00.01        src/server.ts [16020 б]
+  A.1.00.01        src/server.ts [16130 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
   A.1.02.01        src/api/participants/controller.ts [6325 б]
   A.1.03.01        src/api/directions/controller.ts [2240 б]
-  A.1.04.01        src/api/cells/controller.ts [10599 б]
+  A.1.04.01        src/api/cells/controller.ts [11105 б]
+  A.1.04.20        src/api/capacity/controller.ts [3567 б]
   A.1.05.01        src/api/mandates/controller.ts [10040 б]
-  A.1.06.01        src/api/plans/controller.ts [14088 б]
+  A.1.06.01        src/api/plans/controller.ts [14177 б]
   A.1.07.01        src/api/tasks/controller.ts [12212 б]
   A.1.08.01        src/api/reports/controller.ts [4195 б]
   A.1.09.01        src/api/otc/controller.ts [7780 б]
@@ -125,10 +126,13 @@
   C.0.03.02        src/core/directions/service.ts [4093 б]
   C.0.04.01        src/core/cells/entity.ts [3150 б]
   C.0.04.02        src/core/cells/service.ts [13928 б]
+  C.0.04.10        src/core/capacity/service.ts [4271 б]
+  C.0.04.11        src/core/capacity/competencies.ts [3079 б]
+  C.0.04.12        src/core/cells/readiness.ts [3094 б]
   C.0.05.01        src/core/mandates/entity.ts [5671 б]
   C.0.05.02        src/core/mandates/service.ts [16464 б]
   C.0.06.01        src/core/plans/entity.ts [4103 б]
-  C.0.06.02        src/core/plans/service.ts [23556 б]
+  C.0.06.02        src/core/plans/service.ts [23676 б]
   C.0.06.03        src/core/plans/deviation.ts [6876 б]
   C.0.06.04        src/core/plans/branches.ts [4702 б]
   C.0.06.05        src/core/plans/tree.ts [3962 б]
@@ -264,6 +268,7 @@
   D.2.01.50        db/migrations/050_task_reopen.sql [624 б]
   D.2.01.51        db/migrations/051_otc_criteria_sla.sql [2512 б]
   D.2.01.52        db/migrations/052_otc_escalation.sql [638 б]
+  D.2.01.53        db/migrations/053_capacity_cells.sql [1360 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -362,7 +367,7 @@
   I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [12469 б]
+  I.1.01.16        .github/workflows/ci.yml [12700 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -377,7 +382,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264136 б]
+  I.10.05.04       tsconfig.tsbuildinfo [265333 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [124331 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -469,7 +474,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [6525 б]
+  I.9.02.18        scripts/ci-local.ps1 [6619 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -540,6 +545,7 @@
   I.9.04.64        scripts/test-ws.ts [7827 б]
   I.9.04.65        scripts/test-invariants.ts [10793 б]
   I.9.04.66        scripts/test-gateway-contour.ts [7202 б]
+  I.9.04.67        scripts/test-capacity-cells.ts [8149 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -783,5 +789,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  566
+  Файлов с содержимым:  572
   Пустых файлов:        157
