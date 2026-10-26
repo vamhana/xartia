@@ -37,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/balance',            icon: '⚖️', label: 'Балансировка' },
   { path: '/cells',              icon: '🏢', label: 'Ячейки' },
   { path: '/cells/map',          icon: '🗺️', label: 'Карта ячеек' },
+  { path: '/proposals',          icon: '📜', label: 'Предложения' },
   { path: '/naryad',             icon: '📋', label: 'Наряд' },
   { path: '/councils',           icon: '🏛', label: 'Советы' },
   { path: '/treasury',           icon: '🏦', label: 'Казна' },

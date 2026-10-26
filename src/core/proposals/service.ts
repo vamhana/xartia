@@ -480,3 +480,27 @@ export async function withdrawProposal(id: UUID, actorId: UUID): Promise<Proposa
   });
   return getProposal(id);
 }
+
+/** Пометить просроченные обсуждения (ровно один раз) и вернуть их число. */
+export async function flagOverdueProposals(): Promise<number> {
+  const rows = await query<{ id: string }>(
+    `SELECT p.id
+       FROM proposals p
+      WHERE p.status = 'discussion'
+        AND p.deadline IS NOT NULL
+        AND p.deadline < now()
+        AND NOT EXISTS (
+          SELECT 1 FROM proposal_events e
+           WHERE e.proposal_id = p.id AND e.note = 'Дедлайн истёк'
+        )
+      LIMIT 100`,
+  );
+  for (const row of rows) {
+    await query(
+      `INSERT INTO proposal_events (proposal_id, from_status, to_status, note)
+       VALUES ($1, 'discussion', 'discussion', 'Дедлайн истёк')`,
+      [row.id],
+    );
+  }
+  return rows.length;
+}

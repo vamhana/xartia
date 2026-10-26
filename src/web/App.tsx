@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { CellsMapPage } from './pages/CellsMap';
+import { ProposalsPage } from './pages/Proposals';
 import { ChatPage } from './pages/chat';
 import { Layout } from './components/layout/Layout';
 import { Map } from './components/ui/Map';
@@ -241,6 +242,7 @@ export function App(): ReactElement {
             }
           />
           <Route path="/cells/map" element={<RequireAuth><Layout><CellsMapPage /></Layout></RequireAuth>} />
+          <Route path="/proposals" element={<RequireAuth><Layout><ProposalsPage /></Layout></RequireAuth>} />
           <Route
             path="/archive"
             element={

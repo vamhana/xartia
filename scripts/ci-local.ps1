@@ -104,6 +104,7 @@ if (-not $StaticOnly) {
     }
   }
   Invoke-Step 'smoke: ws' { pnpm tsx scripts/test-ws.ts $phone $password }
+  Invoke-Step 'invariants: registry' { pnpm tsx scripts/check-invariants.ts }
   Invoke-Step 'smoke: proposals' { pnpm tsx scripts/test-proposals.ts $phone $password }
   Invoke-Step 'smoke: webhooks' { pnpm tsx scripts/test-webhooks.ts $phone $password }
   Invoke-Step 'smoke: cards' { pnpm tsx scripts/test-cards.ts $phone $password }

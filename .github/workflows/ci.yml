@@ -208,6 +208,8 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-ws.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-ws.log
+      - name: Smoke — инварианты реестра
+        run: pnpm tsx scripts/check-invariants.ts
       - name: Smoke — предложения
         run: |
           set -o pipefail

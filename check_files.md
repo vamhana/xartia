@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   790
-  Файлов в проекте:        785
+  Блоков в спецификации:   793
+  Файлов в проекте:        787
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 32
@@ -47,7 +47,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 598
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 601
 ========================================================================
   A.1.00.01        src/server.ts [16474 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -152,7 +152,8 @@
   C.0.09.02        src/core/otc/service.ts [22257 б]
   C.0.10.01        src/core/signals/entity.ts [5423 б]
   C.0.10.02        src/core/signals/service.ts [18648 б]
-  C.0.10.10        src/core/proposals/service.ts [18166 б]
+  C.0.10.10        src/core/proposals/service.ts [19008 б]
+  C.0.10.11        src/core/proposals/service.ts [19008 б]
   C.0.11.01        src/core/connections/entity.ts [4943 б]
   C.0.11.02        src/core/connections/service.ts [12478 б]
   C.0.12.01        src/core/arbitrations/entity.ts [3394 б]
@@ -280,7 +281,7 @@
   D.2.01.55        db/migrations/055_mentor_questions.sql [1539 б]
   D.2.01.56        db/migrations/056_plan_versions.sql [977 б]
   D.2.01.57        db/migrations/057_proposals_invariants.sql [6176 б]
-  F.4.01.01        src/web/App.tsx [14914 б]
+  F.4.01.01        src/web/App.tsx [15077 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
   F.4.01.04        src/web/pages/auth/WaitingRoom.tsx [9150 б]
@@ -323,6 +324,7 @@
   F.4.02.35        src/web/pages/CellsMap.tsx [18948 б]
   F.4.02.36        src/web/components/cells/PersonCardModal.tsx [4348 б]
   F.4.02.37        src/web/components/cells/CellCardPanel.tsx [3926 б]
+  F.4.02.38        src/web/pages/Proposals.tsx [23637 б]
   F.4.02.98        src/web/pages/Otc.tsx [16266 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
@@ -361,7 +363,7 @@
   F.4.99.15        src/web/components/ui/Notifications.tsx [16074 б]
   F.4.99.16        src/web/components/ui/Search.tsx [18435 б]
   F.4.99.17        src/web/components/layout/Layout.tsx [1301 б]
-  F.4.99.18        src/web/components/layout/Sidebar.tsx [6107 б]
+  F.4.99.18        src/web/components/layout/Sidebar.tsx [6190 б]
   F.4.99.19        src/web/components/layout/Header.tsx [5499 б]
   F.4.99.20        src/web/hooks/useApi.ts [1973 б]
   F.4.99.21        src/web/hooks/useWS.ts [1044 б]
@@ -381,7 +383,7 @@
   I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [14027 б]
+  I.1.01.16        .github/workflows/ci.yml [14139 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -396,9 +398,9 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [265873 б]
+  I.10.05.04       tsconfig.tsbuildinfo [265968 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [125182 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [125481 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -488,7 +490,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [7163 б]
+  I.9.02.18        scripts/ci-local.ps1 [7242 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -565,6 +567,7 @@
   I.9.04.70        scripts/test-plan-versions.ts [4693 б]
   I.9.04.71        scripts/test-cards.ts [5859 б]
   I.9.04.72        scripts/test-proposals.ts [10178 б]
+  I.9.04.73        scripts/check-invariants.ts [1867 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -584,7 +587,7 @@
   I.9.06.02        scripts/test-gateway-isolation.ts [5805 б]
   I.9.06.03        scripts/test-notifications.ts [4471 б]
   I.9.06.04        scripts/test-s3.ts [2104 б]
-  I.9.07.01        src/worker/index.ts [7260 б]
+  I.9.07.01        src/worker/index.ts [7394 б]
   I.9.07.02        src/worker/handlers/exports.ts [13538 б]
   I.9.07.03        src/worker/handlers/imports.ts [21146 б]
   I.9.07.04        src/worker/handlers/bulk.ts [13264 б]
@@ -634,7 +637,7 @@
   W.2.12.01        src/ws/chat.ts [4002 б]
   W.2.13.01        src/ws/interview.ts [5504 б]
   W.2.14.01        src/ws/psy.ts [7200 б]
-  X.0.01.05        CONTRIBUTING.md [8695 б]
+  X.0.01.05        CONTRIBUTING.md [8770 б]
   X.0.01.07        README.md [8260 б]
   X.0.01.08        docs/roadmap.md [29308 б]
   X.0.01.11        docs/product-v0.1.md [36491 б]
@@ -643,7 +646,7 @@
   X.0.01.14        docs/coin-operations.md [16916 б]
   X.0.01.15        docs/cells-ant-colony.md [18981 б]
   X.0.01.16        docs/charter-implementation-map.md [10126 б]
-  X.0.01.17        CONTRIBUTING.md [8695 б]
+  X.0.01.17        CONTRIBUTING.md [8770 б]
   X.0.01.18        docs/community/launch-kit.md [8688 б]
   X.0.01.19        docs/collective-development-audit.md [18070 б]
   X.0.01.20        docs/governance.md [6487 б]
@@ -814,5 +817,5 @@
 ========================================================================
   Блоков без файлов:    32
   Файлов без блоков:    0
-  Файлов с содержимым:  598
+  Файлов с содержимым:  601
   Пустых файлов:        157
