@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   776
-  Файлов в проекте:        771
+  Блоков в спецификации:   777
+  Файлов в проекте:        772
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 583
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 584
 ========================================================================
   A.1.00.01        src/server.ts [16363 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -277,7 +277,7 @@
   D.2.01.54        db/migrations/054_reassignment_signals.sql [1341 б]
   D.2.01.55        db/migrations/055_mentor_questions.sql [1539 б]
   D.2.01.56        db/migrations/056_plan_versions.sql [977 б]
-  F.4.01.01        src/web/App.tsx [14754 б]
+  F.4.01.01        src/web/App.tsx [14914 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
   F.4.01.04        src/web/pages/auth/WaitingRoom.tsx [9150 б]
@@ -317,6 +317,7 @@
   F.4.02.32        src/web/pages/Naryad.tsx [13984 б]
   F.4.02.33        src/web/pages/Councils.tsx [12642 б]
   F.4.02.34        src/web/pages/Treasury.tsx [13846 б]
+  F.4.02.35        src/web/pages/CellsMap.tsx [10580 б]
   F.4.02.98        src/web/pages/Otc.tsx [16266 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
@@ -355,7 +356,7 @@
   F.4.99.15        src/web/components/ui/Notifications.tsx [16074 б]
   F.4.99.16        src/web/components/ui/Search.tsx [18435 б]
   F.4.99.17        src/web/components/layout/Layout.tsx [1301 б]
-  F.4.99.18        src/web/components/layout/Sidebar.tsx [6022 б]
+  F.4.99.18        src/web/components/layout/Sidebar.tsx [6107 б]
   F.4.99.19        src/web/components/layout/Header.tsx [5499 б]
   F.4.99.20        src/web/hooks/useApi.ts [1973 б]
   F.4.99.21        src/web/hooks/useWS.ts [1044 б]
@@ -392,7 +393,7 @@
   I.10.05.03       tsconfig.web.json [326 б]
   I.10.05.04       tsconfig.tsbuildinfo [266259 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [124331 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [124670 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -632,7 +633,7 @@
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
   X.0.01.14        docs/coin-operations.md [16916 б]
-  X.0.01.15        docs/cells-ant-colony.md [17596 б]
+  X.0.01.15        docs/cells-ant-colony.md [18121 б]
 
 ========================================================================
 4. ПУСТЫЕ ФАЙЛЫ (с блоком в спецификации): 157
@@ -800,5 +801,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  583
+  Файлов с содержимым:  584
   Пустых файлов:        157

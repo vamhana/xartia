@@ -10,6 +10,7 @@ import { PsyPage } from './pages/Psy';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { CellsMapPage } from './pages/CellsMap';
 import { ChatPage } from './pages/chat';
 import { Layout } from './components/layout/Layout';
 import { Map } from './components/ui/Map';
@@ -239,6 +240,7 @@ export function App(): ReactElement {
               </RequireAuth>
             }
           />
+          <Route path="/cells/map" element={<RequireAuth><Layout><CellsMapPage /></Layout></RequireAuth>} />
           <Route
             path="/archive"
             element={
