@@ -27,6 +27,16 @@
 //   - transactions / assets: только GATEWAY_COUNCIL / GUARANTOR / FIRST_ARCHITECT.
 
 import {
+  getTreasuryState,
+  getSignatories,
+  listSpendRequests,
+} from '../treasury/service.js';
+
+import { getCouncilState } from '../council/service.js';
+import { getOversightTree } from '../plans/oversight.js';
+import { listMentorRegistry } from '../mentors/service.js';
+
+import {
   list as listRegimes,
   getActive as getActiveRegimes,
   getCurrentDeadlines,
@@ -219,7 +229,7 @@ export const DIRECTION_SCOPED: ReadonlySet<string> = new Set([
   'tasks', 'signals', 'cells', 'goods', 'plans', 'archive',
   'mandates', 'roles', 'connectivity_queue', 'otc_queue', 'otc_stats',
   'anomalies', 'balance_pulse', 'balance_metrics', 'connections',
-  'daily_plan', 'complaints',
+  'daily_plan', 'complaints', 'council', 'mentees',
 ]);
 
 // ─── Вспомогательные ─────────────────────────────────────────────
@@ -245,6 +255,46 @@ function ovrStr(inst: WidgetInstance, key: string): string | null {
 // ─── Реестр ──────────────────────────────────────────────────────
 
 export const DATA_LOADERS: Record<string, LoaderEntry> = {
+  // ─── Казна (XartIA 5.0) ─────────────────────────────────────────
+  treasury_price: {
+    cacheByEntity: true,
+    fn: async () => {
+      const st = await getTreasuryState();
+      return { value: Number(st.price.toFixed(2)), max: 3 };
+    },
+  },
+  treasury_coverage: {
+    cacheByEntity: true,
+    fn: async () => {
+      const st = await getTreasuryState();
+      const pct = st.coverage === Infinity ? 0 : Math.round(st.coverage * 100);
+      return { value: pct, max: 200 };
+    },
+  },
+  signatories: {
+    cacheByEntity: true,
+    fn: async () => getSignatories(),
+  },
+  spend_requests: {
+    cacheByEntity: true,
+    fn: async () => listSpendRequests(),
+  },
+  council: {
+    cacheByEntity: true,
+    fn: async ({ ctx }) => {
+      if (!ctx.directionId) {return null;}
+      return getCouncilState(ctx.directionId);
+    },
+  },
+  oversight: {
+    cacheByEntity: true,
+    fn: async ({ ctx }) => getOversightTree(ctx.directionId ?? undefined),
+  },
+  mentees: {
+    cacheByEntity: true,
+    fn: async ({ ctx }) => listMentorRegistry(ctx.directionId ?? undefined),
+  },
+
   // ─── participants ──────────────────────────────────────────────
   // Контейнер-виджет — собственных данных не имеет. Заглушка, чтобы не
   // попадала в missingEntities.

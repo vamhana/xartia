@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   743
-  Файлов в проекте:        739
+  Блоков в спецификации:   746
+  Файлов в проекте:        742
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 550
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 553
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -175,7 +175,7 @@
   C.0.25.02        src/core/quanta/service.ts [27115 б]
   C.0.26.01        src/core/constructor/entity.ts [8509 б]
   C.0.26.02        src/core/constructor/service.ts [37426 б]
-  C.0.26.03        src/core/constructor/data-loaders.ts [28181 б]
+  C.0.26.03        src/core/constructor/data-loaders.ts [29707 б]
   C.0.27.01        src/core/planetary/entity.ts [4523 б]
   C.0.27.02        src/core/planetary/service.ts [16963 б]
   C.0.28.01        src/core/convergence/entity.ts [11370 б]
@@ -255,6 +255,8 @@
   D.2.01.41        db/migrations/041_council_term_180.sql [1180 б]
   D.2.01.42        db/migrations/042_treasury.sql [2507 б]
   D.2.01.43        db/migrations/043_treasury_gateway_unique.sql [461 б]
+  D.2.01.44        db/migrations/044_panels_product.sql [7596 б]
+  D.2.01.45        db/migrations/045_panels_product_fixes.sql [3866 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -342,7 +344,7 @@
   F.4.99.24        src/web/components/ui/Badge.tsx [1633 б]
   F.4.99.25        src/web/components/ui/Button.tsx [1597 б]
   F.4.99.26        src/web/components/ui/Spinner.tsx [1187 б]
-  F.4.99.27        src/web/components/ui/PanelCanvas.tsx [30556 б]
+  F.4.99.27        src/web/components/ui/PanelCanvas.tsx [30955 б]
   F.4.99.28        src/web/components/ui/PanelCanvas.constants.ts [1305 б]
   F.4.99.29        src/web/components/ui/DndManager.tsx [5503 б]
   F.4.99.30        src/web/lib/dev.ts [1584 б]
@@ -367,7 +369,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264900 б]
+  I.10.05.04       tsconfig.tsbuildinfo [264968 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [130763 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -526,6 +528,7 @@
   I.9.04.60        scripts/test-council.ts [9248 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
   I.9.04.62        scripts/test-treasury.ts [10977 б]
+  I.9.04.63        scripts/test-panels.ts [5299 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -597,7 +600,7 @@
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [7334 б]
   X.0.01.08        docs/roadmap.md [29308 б]
-  X.0.01.11        docs/product-v0.1.md [29901 б]
+  X.0.01.11        docs/product-v0.1.md [30636 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
 
@@ -767,5 +770,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  550
+  Файлов с содержимым:  553
   Пустых файлов:        157

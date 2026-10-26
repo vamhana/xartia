@@ -48,6 +48,14 @@ import {
  * Отдельный оверрайд конкретной панели имеет приоритет (см. widgetTitle).
  */
 const WIDGET_TITLES: Record<string, string> = {
+  'metric/treasury_price': 'Курс казны',
+  'metric/treasury_coverage': 'Покрытие пола',
+  'list/signatories': 'Подписанты казны',
+  'table/spend_requests': 'Запросы трат',
+  'card/council': 'Совет направления',
+  'tree/oversight': 'Надзор: планы → ячейки',
+  'table/mentees': 'Наставничество',
+
   'table/tasks': 'Задачи',
   'table/my_tasks': 'Мои задачи',
   'table/otc_queue': 'Очередь на проверку',
