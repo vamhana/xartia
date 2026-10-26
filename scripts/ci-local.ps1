@@ -110,6 +110,7 @@ if (-not $StaticOnly) {
   Invoke-Step 'smoke: council' { pnpm tsx scripts/test-council.ts $phone $password }
   Invoke-Step 'smoke: delegation' { pnpm tsx scripts/test-delegation.ts $phone $password }
   Invoke-Step 'smoke: gateway' { pnpm tsx scripts/test-gateway.ts $phone $password }
+  Invoke-Step 'smoke: gateway-contour' { pnpm tsx scripts/test-gateway-contour.ts $phone $password }
   Invoke-Step 'smoke: tasks' { pnpm tsx scripts/test-tasks.ts $phone $password }
 }
 

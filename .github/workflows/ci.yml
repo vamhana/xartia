@@ -235,6 +235,10 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-notification-link.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-notification-link.log
+      - name: Smoke — контур Шлюза
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-gateway-contour.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-gateway-contour.log
       - name: Smoke — задачи
         run: |
           set -o pipefail

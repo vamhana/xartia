@@ -343,10 +343,12 @@ export async function auditTransaction(
   transactionId: UUID,
   requesterId: UUID,
 ): Promise<GatewayTransaction> {
+  // Аудит — только после одобрения. Повторный аудит завершённой сделки
+  // идемпотентен: возвращаем её без второй проводки в казну.
   const r = await query<{ id: string }>(
     `UPDATE external_transactions
-        SET audited_by = $2
-      WHERE id = $1 AND status NOT IN ('completed', 'rejected')
+        SET audited_by = $2, status = 'completed'
+      WHERE id = $1 AND status = 'approved'
       RETURNING id`,
     [transactionId, requesterId],
   );
@@ -356,6 +358,13 @@ export async function auditTransaction(
       [transactionId],
     );
     if (!current) {throw new NotFoundError('Сделка', transactionId);}
+    if (current.status === 'completed') {
+      const done = await queryOne<TxRow>(
+        `SELECT * FROM external_transactions WHERE id = $1`,
+        [transactionId],
+      );
+      if (done) {return rowToTx(done);}
+    }
     throw new ConflictError(
       `Сделку в статусе ${current.status} нельзя аудировать`,
     );

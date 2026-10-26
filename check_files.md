@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   757
-  Файлов в проекте:        753
+  Блоков в спецификации:   758
+  Файлов в проекте:        754
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 564
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 565
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -170,7 +170,7 @@
   C.0.23.01        src/core/psy/entity.ts [8081 б]
   C.0.23.02        src/core/psy/service.ts [39636 б]
   C.0.24.01        src/core/gateway/entity.ts [7140 б]
-  C.0.24.02        src/core/gateway/service.ts [22258 б]
+  C.0.24.02        src/core/gateway/service.ts [22733 б]
   C.0.25.01        src/core/quanta/entity.ts [10318 б]
   C.0.25.02        src/core/quanta/service.ts [27115 б]
   C.0.26.01        src/core/constructor/entity.ts [8509 б]
@@ -362,7 +362,7 @@
   I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [12237 б]
+  I.1.01.16        .github/workflows/ci.yml [12469 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -377,7 +377,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264169 б]
+  I.10.05.04       tsconfig.tsbuildinfo [264136 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [124331 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -469,7 +469,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [6423 б]
+  I.9.02.18        scripts/ci-local.ps1 [6525 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -539,6 +539,7 @@
   I.9.04.63        scripts/test-panels.ts [5299 б]
   I.9.04.64        scripts/test-ws.ts [7827 б]
   I.9.04.65        scripts/test-invariants.ts [10793 б]
+  I.9.04.66        scripts/test-gateway-contour.ts [7202 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -610,7 +611,7 @@
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [7442 б]
   X.0.01.08        docs/roadmap.md [29308 б]
-  X.0.01.11        docs/product-v0.1.md [34847 б]
+  X.0.01.11        docs/product-v0.1.md [35339 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
   X.0.01.14        docs/coin-operations.md [16916 б]
@@ -781,5 +782,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  564
+  Файлов с содержимым:  565
   Пустых файлов:        157
