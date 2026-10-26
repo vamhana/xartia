@@ -8,9 +8,12 @@ import { ToastContainer } from '../ui/Notifications';
 import { CommandPalette, useSearchShortcut } from '../ui/Search';
 
 import { Header } from './Header';
+import { useRealtimeInvalidation } from '../../hooks/useRealtime';
 import { Sidebar } from './Sidebar';
 
 export function Layout({ children }: { children: ReactNode }): ReactElement {
+  useRealtimeInvalidation();
+
   useSearchShortcut();
 
   return (

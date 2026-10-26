@@ -63,8 +63,13 @@ async function main(): Promise<void> {
   if ((body.totals?.people ?? 0) > 0) { ok(`в коллективе ${body.totals?.people} участников`); }
   else { fail('в коллективе нет людей'); }
 
-  if (Array.isArray(body.people) && body.people.length === body.totals?.people) {
-    ok('people совпадает с totals.people');
+  // /collective отдаёт первых 200 человек, totals.people — всех.
+  if (
+    Array.isArray(body.people) &&
+    body.people.length > 0 &&
+    body.people.length <= (body.totals?.people ?? 0)
+  ) {
+    ok(`people: ${body.people.length} из ${body.totals?.people} (список ограничен 200)`);
   } else {
     fail('people не совпадает с totals.people');
   }

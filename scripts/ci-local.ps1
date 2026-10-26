@@ -92,6 +92,18 @@ if (-not $StaticOnly) {
   Invoke-Step 'smoke: plan-deviation' { pnpm tsx scripts/test-plan-deviation.ts $phone $password }
   Invoke-Step 'smoke: branches-otc' { pnpm tsx scripts/test-branches-otc.ts $phone $password }
   Invoke-Step 'smoke: tree-naryad' { pnpm tsx scripts/test-tree-naryad.ts $phone $password }
+  Invoke-Step 'ws: build+up' {
+    docker compose -f docker/docker-compose.yml --profile ws build ws | Out-Null
+    docker compose -f docker/docker-compose.yml --profile ws up -d --no-build ws | Out-Null
+    # Ждём готовности WS по /health (порт Docker открывает раньше приложения).
+    for ($i = 0; $i -lt 90; $i++) {
+      try {
+        $r = Invoke-WebRequest -Uri 'http://127.0.0.1:3001/health' -UseBasicParsing -TimeoutSec 2
+        if ($r.StatusCode -eq 200) { break }
+      } catch { Start-Sleep -Seconds 1 }
+    }
+  }
+  Invoke-Step 'smoke: ws' { pnpm tsx scripts/test-ws.ts $phone $password }
   Invoke-Step 'smoke: panels' { pnpm tsx scripts/test-panels.ts $phone $password }
   Invoke-Step 'smoke: treasury' { pnpm tsx scripts/test-treasury.ts $phone $password }
   Invoke-Step 'smoke: council' { pnpm tsx scripts/test-council.ts $phone $password }

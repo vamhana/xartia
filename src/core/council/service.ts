@@ -206,6 +206,20 @@ export async function electCouncil(
   const validTo = new Date(Date.now() + termDays * 24 * 3600 * 1000).toISOString();
 
   if (!current.includes(best.participantId)) {
+    // У кандидата мог остаться истёкший мандат (status active, valid_to в прошлом).
+    // revokeRole фильтрует по valid_to и может не найти строку, поэтому снимаем
+    // активную запись напрямую — иначе assignRole упадёт на конфликте ролей.
+    await query(
+      `UPDATE participant_roles pr
+          SET status = 'revoked', valid_to = now()
+         FROM roles r
+        WHERE pr.role_id = r.id
+          AND pr.participant_id = $1
+          AND pr.direction_id = $2
+          AND r.name = 'COUNCIL_MEMBER'
+          AND pr.status = 'active'`,
+      [best.participantId, directionId],
+    );
     await assignRole({
       participantId: best.participantId,
       role: Role.COUNCIL_MEMBER,

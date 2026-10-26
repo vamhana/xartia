@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   750
-  Файлов в проекте:        746
+  Блоков в спецификации:   752
+  Файлов в проекте:        748
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 557
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 559
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -337,7 +337,7 @@
   F.4.99.14        src/web/components/ui/Map.tsx [8753 б]
   F.4.99.15        src/web/components/ui/Notifications.tsx [16074 б]
   F.4.99.16        src/web/components/ui/Search.tsx [18435 б]
-  F.4.99.17        src/web/components/layout/Layout.tsx [1197 б]
+  F.4.99.17        src/web/components/layout/Layout.tsx [1301 б]
   F.4.99.18        src/web/components/layout/Sidebar.tsx [6022 б]
   F.4.99.19        src/web/components/layout/Header.tsx [5499 б]
   F.4.99.20        src/web/hooks/useApi.ts [1973 б]
@@ -351,13 +351,14 @@
   F.4.99.28        src/web/components/ui/PanelCanvas.constants.ts [1305 б]
   F.4.99.29        src/web/components/ui/DndManager.tsx [5503 б]
   F.4.99.30        src/web/lib/dev.ts [1584 б]
+  F.4.99.31        src/web/hooks/useRealtime.ts [1531 б]
   I.0.01.01        docker/Dockerfile.api [1725 б]
   I.0.01.02        .dockerignore [2479 б]
   I.0.01.03        docker/Dockerfile.web [1228 б]
-  I.0.01.04        docker/docker-compose.yml [4734 б]
+  I.0.01.04        docker/docker-compose.yml [4862 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [11524 б]
+  I.1.01.16        .github/workflows/ci.yml [11956 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -372,9 +373,9 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [263660 б]
+  I.10.05.04       tsconfig.tsbuildinfo [263764 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [130767 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [131082 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -464,7 +465,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [5674 б]
+  I.9.02.18        scripts/ci-local.ps1 [5962 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -530,8 +531,9 @@
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
   I.9.04.60        scripts/test-council.ts [9248 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
-  I.9.04.62        scripts/test-treasury.ts [12829 б]
+  I.9.04.62        scripts/test-treasury.ts [13087 б]
   I.9.04.63        scripts/test-panels.ts [5299 б]
+  I.9.04.64        scripts/test-ws.ts [6392 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -585,7 +587,7 @@
   S.0.01.07        src/security/gateway-isolation.ts [21128 б]
   S.0.01.08        src/security/integrity.ts [17645 б]
   T.0.08.01        .ws-test-env.json [775 б]
-  W.0.01.01        src/ws/server.ts [25816 б]
+  W.0.01.01        src/ws/server.ts [29620 б]
   W.0.01.02        src/ws/_helpers.ts [892 б]
   W.2.01.01        src/ws/signals.ts [4376 б]
   W.2.02.01        src/ws/tasks.ts [5043 б]
@@ -774,5 +776,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  557
+  Файлов с содержимым:  559
   Пустых файлов:        157

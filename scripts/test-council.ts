@@ -127,9 +127,10 @@ async function main(): Promise<void> {
         AND pr.direction_id = $1 AND pr.status = 'active'`,
     [dir.id],
   );
-  const beforeRotate = await call<{ elections: unknown[] }>(
+  const beforeRotate = await call<{ elections: Array<{ electedAt: string }> }>(
     'GET', `/council/${dir.id}/history`, undefined, token,
   );
+  const latestBefore = beforeRotate.data.elections[0]?.electedAt ?? '';
   const rotate = await call<{ rotated: Array<{ directionId: string }>; checked: number }>(
     'POST', '/council/rotate-expired', {}, token,
   );
@@ -141,7 +142,8 @@ async function main(): Promise<void> {
   const afterRotate = await call<{
     elections: Array<{ participantId: string; electedAt: string }>;
   }>('GET', `/council/${dir.id}/history`, undefined, token);
-  if (afterRotate.data.elections.length > beforeRotate.data.elections.length) {
+  // История ограничена 50 записями, поэтому сравниваем время, а не длину.
+  if ((afterRotate.data.elections[0]?.electedAt ?? '') > latestBefore) {
     ok('ротация записана в историю');
   } else {
     fail('ротация не попала в историю');

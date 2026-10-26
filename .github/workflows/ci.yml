@@ -194,6 +194,17 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-tree-naryad.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-tree-naryad.log
+      - name: Start WS
+        run: |
+          pnpm exec tsx src/ws/server.ts > /tmp/ws.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -sf http://127.0.0.1:3001/health >/dev/null && break
+            sleep 1
+          done
+      - name: Smoke — WS
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-ws.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-ws.log
       - name: Smoke — панели
         run: |
           set -o pipefail

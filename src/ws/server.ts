@@ -33,12 +33,14 @@ import websocket, { type WebSocket } from '@fastify/websocket';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
 import { UnauthorizedError } from '../core/errors.js';
-import type { Role } from '../core/roles.js';
+import { Role } from '../core/roles.js';
 import type { UUID } from '../core/types.js';
 import { newUUID } from '../lib/id.js';
 import { logger } from '../lib/logger.js';
 import { redis, redisPub, redisSub } from '../lib/redis.js';
 import { verifyToken, isRevoked, type JwtPayload } from '../security/jwt.js';
+import { canAccessChannel, getChannelByStringId } from '../core/chat/service.js';
+import { queryOne } from '../lib/db.js';
 
 // -------- Типы --------
 
@@ -376,6 +378,7 @@ function detachConnection(connectionId: UUID): void {
       set.delete(connectionId);
       if (set.size === 0) {byChannel.delete(channel);}
     }
+    broadcastPresence(channel);
   }
   const participantSet = byParticipant.get(conn.participantId);
   if (participantSet) {
@@ -383,6 +386,89 @@ function detachConnection(connectionId: UUID): void {
     if (participantSet.size === 0) {byParticipant.delete(conn.participantId);}
   }
   connections.delete(connectionId);
+}
+
+
+// -------- Авторизация подписки на канал --------
+//
+// Без этого любой аутентифицированный клиент мог подписаться на чужой
+// chat:<channelId> или interview:<id> и слушать чужие сообщения.
+// Глобальные каналы (tasks/signals/...) доступны всем — это общие ленты.
+
+const GLOBAL_CHANNELS = new Set([
+  'balance', 'connectivity', 'crisis', 'otc', 'psy', 'pulse', 'regimes',
+  'semantic', 'signals', 'tasks', 'flows', 'notifications', 'treasury',
+  'council', 'panels',
+]);
+
+async function authorizeChannel(
+  conn: WSConnection,
+  channel: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  // Приватные каналы проверяются ДО роли: даже Архитектор не читает
+  // чужие личные чаты и собеседования.
+  if (channel.startsWith('chat:')) {
+    const channelId = channel.slice('chat:'.length);
+    try {
+      const ch = await getChannelByStringId(channelId);
+      const res = await canAccessChannel(conn.participantId, ch);
+      return res.allowed ? { ok: true } : { ok: false, reason: res.reason ?? 'FORBIDDEN' };
+    } catch {
+      return { ok: false, reason: 'NO_CHANNEL' };
+    }
+  }
+
+  if (channel.startsWith('interview:')) {
+    const interviewId = channel.slice('interview:'.length);
+    const row = await queryOne<{ participant_id: string | null }>(
+      `SELECT participant_id FROM interview_requests WHERE id = $1`,
+      [interviewId],
+    ).catch(() => null);
+    return row && row.participant_id === conn.participantId
+      ? { ok: true }
+      : { ok: false, reason: 'FORBIDDEN' };
+  }
+
+  // Глобальные ленты и служебные каналы — всем.
+  if (GLOBAL_CHANNELS.has(channel)) {return { ok: true };}
+
+  // Архитектор видит всё остальное — это его роль гаранта.
+  if (conn.role === Role.FIRST_ARCHITECT) {return { ok: true };}
+
+  if (channel.startsWith('participant:')) {
+    return { ok: channel === `participant:${conn.participantId}`, reason: 'FORBIDDEN' };
+  }
+  if (channel.startsWith('direction:')) {
+    return {
+      ok: conn.directionId !== null && channel === `direction:${conn.directionId}`,
+      reason: 'FORBIDDEN',
+    };
+  }
+  if (channel.startsWith('role:')) {
+    return { ok: channel === `role:${conn.role}`, reason: 'FORBIDDEN' };
+  }
+
+  return { ok: false, reason: 'UNKNOWN_CHANNEL' };
+}
+
+/** Присутствие: кто из подписчиков канала сейчас онлайн. */
+function broadcastPresence(channel: string): void {
+  const set = byChannel.get(channel);
+  if (!set || set.size === 0) {return;}
+  const participants = new Set<string>();
+  for (const connId of set) {
+    const conn = connections.get(connId);
+    if (conn) {participants.add(conn.participantId);}
+  }
+  const payload = {
+    channel,
+    participants: Array.from(participants),
+    count: participants.size,
+  };
+  for (const connId of set) {
+    const conn = connections.get(connId);
+    if (conn) {send(conn, 'presence', payload);}
+  }
 }
 
 // -------- Обработка сообщений от клиента --------
@@ -423,6 +509,15 @@ async function handleClientMessage(conn: WSConnection, raw: Buffer): Promise<voi
         send(conn, 'error', { code: 'TOO_MANY_CHANNELS', message: 'Limit reached' });
         return;
       }
+      const authz = await authorizeChannel(conn, msg.channel);
+      if (!authz.ok) {
+        send(conn, 'error', {
+          code: 'FORBIDDEN',
+          message: authz.reason ?? 'Нет доступа к каналу',
+          channel: msg.channel,
+        });
+        return;
+      }
       conn.channels.add(msg.channel);
       let set = byChannel.get(msg.channel);
       if (!set) {
@@ -431,6 +526,7 @@ async function handleClientMessage(conn: WSConnection, raw: Buffer): Promise<voi
       }
       set.add(conn.id);
       send(conn, 'subscribed', { channel: msg.channel, requestId: msg.requestId });
+      broadcastPresence(msg.channel);
       return;
     }
     case 'unsubscribe': {
@@ -442,6 +538,7 @@ async function handleClientMessage(conn: WSConnection, raw: Buffer): Promise<voi
         if (set.size === 0) {byChannel.delete(msg.channel);}
       }
       send(conn, 'unsubscribed', { channel: msg.channel, requestId: msg.requestId });
+      broadcastPresence(msg.channel);
       return;
     }
     case 'signal': {
@@ -696,6 +793,12 @@ export async function startWSServer(port?: number): Promise<FastifyInstance> {
   app.get('/ws/stats', async () => getStats());
 
   // WebSocket route
+  // HTTP-health для CI/деплоя: WS-процесс слушает 3001, но клиенту нужен
+  // надёжный признак готовности (Docker открывает порт раньше приложения).
+  app.get('/health', async (_req, reply) => {
+    reply.send({ status: 'ok', connections: connections.size, uptimeSec: startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0 });
+  });
+
   app.get('/ws', { websocket: true }, (socket, req) => {
     handleIncomingConnection(socket as unknown as WebSocket, req).catch((e) => {
       logger.error({ err: e }, 'ws: connection handler failed');

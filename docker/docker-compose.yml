@@ -126,6 +126,7 @@ services:
       NODE_ENV: development
       WS_PORT: 3001
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-charter}:${POSTGRES_PASSWORD:-charter}@postgres:5432/${POSTGRES_DB:-charter}
     ports:
       - "3001:3001"
     depends_on:
