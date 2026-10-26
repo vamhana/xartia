@@ -1,0 +1,95 @@
+{
+  "name": "XartIA Proposal Validation",
+  "description": "Validation rules for creating governance proposals on Snapshot. Requires min XRT balance, minimum number of proposers, and specific proposal types.",
+  "validation": {
+    "name": "basic",
+    "params": {
+      "minScore": 1000,
+      "strategies": [
+        {
+          "name": "erc20-balance-of-with-delegation",
+          "network": "137",
+          "params": {
+            "address": "0x0000000000000000000000000000000000000000",
+            "symbol": "XRT",
+            "decimals": 18
+          }
+        }
+      ]
+    }
+  },
+  "rules": {
+    "proposal_types": [
+      {
+        "type": "param_change",
+        "title_template": "[Param] {param_name} {old_value} → {new_value}",
+        "required_fields": ["param_name", "current_value", "new_value", "rationale", "affected_contract"],
+        "min_proposer_xrt": 1000,
+        "min_voting_period_days": 7,
+        "execution": "on-chain via Governance.propose → Timelock (7 days)"
+      },
+      {
+        "type": "emergency",
+        "title_template": "[Emergency] {action}",
+        "required_fields": ["action", "justification", "impact", "rollback_plan"],
+        "min_proposer_xrt": 5000,
+        "min_voting_period_days": 2,
+        "execution": "on-chain via PAUSER_ROLE (immediate) or GOVERNANCE_ROLE (timelock)",
+        "post_review": "within 7 days after execution"
+      },
+      {
+        "type": "upgrade",
+        "title_template": "[Upgrade] {contract} {version}",
+        "required_fields": ["contract", "from_version", "to_version", "audit_link", "migration_plan"],
+        "min_proposer_xrt": 50000,
+        "min_voting_period_days": 14,
+        "execution": "on-chain via Timelock + Safe Multisig",
+        "notes": "Upgradeability не поддерживается контрактами (immutable). Это предложение о миграции на новые контракты."
+      },
+      {
+        "type": "budget",
+        "title_template": "[Budget] {period} {amount} USDC",
+        "required_fields": ["period", "amount", "recipient", "milestones", "reporting_schedule"],
+        "min_proposer_xrt": 10000,
+        "min_voting_period_days": 7,
+        "execution": "on-chain via Governance.propose + Timelock (7 days)",
+        "disbursement": "Safe Multisig 3/5 в течение 7 дней после исполнения"
+      }
+    ],
+    "quorum": {
+      "default": 50000,
+      "emergency": 25000,
+      "upgrade": 200000,
+      "budget": 100000
+    },
+    "thresholds": {
+      "min_approval_pct": 60,
+      "min_participation_pct": 10,
+      "veto_roles": ["external_auditor", "verification_council"]
+    },
+    "cooldown": {
+      "after_rejected_days": 7,
+      "after_executed_days": 1
+    },
+    "blacklist_proposers": [
+      "0x0000000000000000000000000000000000000000"
+    ]
+  },
+  "metadata": {
+    "block": "G.1.01.03",
+    "depends_on": [
+      "G.1.01.01",
+      "G.1.01.02"
+    ],
+    "version": "1.0.0"
+  },
+  "notes": [
+    "minScore: 1000 XRT — минимальный баланс для создания любого предложения.",
+    "quorum.default: 50 000 XRT — минимальное количество проголосовавших (в квадратичном весе).",
+    "quorum.upgrade: 200 000 XRT — повышенный кворум для предложений о миграции.",
+    "min_approval_pct: 60% голосов 'за' от общего числа голосов 'за' + 'против'.",
+    "veto_roles: роли из R.2.01.08 security-model, которые могут наложить вето на proposal (только информационно, Snapshot не enforce-ит).",
+    "cooldown: если предложение отклонено, следующий proposal того же типа — через 7 дней.",
+    "blacklist_proposers: placeholder; заполнить адресами, которые не могут создавать предложения (например, известные спамеры)."
+  ]
+}

@@ -1,0 +1,425 @@
+{
+  "title": "XartIA — Protocol Dashboard",
+  "uid": "xartia-main",
+  "version": 1,
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "tags": ["xartia", "protocol", "invariants"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "reserve (18-dec USDC)",
+      "type": "timeseries",
+      "description": "Фактический баланс USDC в ReserveManager × 1e12. Источник: ReserveManager.reserve().",
+      "targets": [
+        {
+          "expr": "xartia_reserve_18dec",
+          "legendFormat": "reserve",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "curveBacking (18-dec USDC)",
+      "type": "timeseries",
+      "description": "R(S_curve) — минимально необходимый резерв. Источник: ReserveManager.curveBacking().",
+      "targets": [
+        {
+          "expr": "xartia_curveBacking_18dec",
+          "legendFormat": "curveBacking",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "id": 3,
+      "title": "freeReserve (18-dec USDC)",
+      "type": "timeseries",
+      "description": "reserve − curveBacking. Буфер для sellToPool. Источник: ReserveManager.freeReserve().",
+      "targets": [
+        {
+          "expr": "xartia_freeReserve_18dec",
+          "legendFormat": "freeReserve",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "id": 4,
+      "title": "Coverage ratio (reserve / curveBacking)",
+      "type": "stat",
+      "description": "Инвариант: >= 1.0. При < 1.0 — alert reserve_ge_curveBacking_violation.",
+      "targets": [
+        {
+          "expr": "xartia_reserve_18dec / xartia_curveBacking_18dec",
+          "legendFormat": "coverage",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 4,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1.0 },
+              { "color": "green", "value": 1.1 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "id": 5,
+      "title": "poolPrice (18-dec USDC/XRT)",
+      "type": "timeseries",
+      "description": "Цена XRT в пуле. Норма: в коридоре [P(S)/(1+MAX_GAP), P(S)·(1+MAX_GAP)]. Источник: PoolState.poolPrice().",
+      "targets": [
+        {
+          "expr": "xartia_poolPrice_18dec",
+          "legendFormat": "poolPrice",
+          "refId": "A"
+        },
+        {
+          "expr": "xartia_poolPrice_floor_18dec",
+          "legendFormat": "floor",
+          "refId": "B"
+        },
+        {
+          "expr": "xartia_poolPrice_ceiling_18dec",
+          "legendFormat": "ceiling",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 8,
+          "custom": { "lineWidth": 2, "fillOpacity": 0 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+    },
+    {
+      "id": 6,
+      "title": "S_curve (18-dec XRT)",
+      "type": "timeseries",
+      "description": "Текущее предложение. Источник: ReserveManager.S_curve().",
+      "targets": [
+        {
+          "expr": "xartia_Scurve_18dec",
+          "legendFormat": "S_curve",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }
+    },
+    {
+      "id": 7,
+      "title": "currentLevel",
+      "type": "stat",
+      "description": "Индекс уровня (0..MAX_LEVELS-1). Источник: Levels.getLevel(S_curve).",
+      "targets": [
+        {
+          "expr": "xartia_currentLevel",
+          "legendFormat": "level",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 0 }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 24 }
+    },
+    {
+      "id": 8,
+      "title": "CircuitBreaker.active()",
+      "type": "stat",
+      "description": "true — CB active, sellToPool заблокирован. Источник: CircuitBreaker.active().",
+      "targets": [
+        {
+          "expr": "xartia_circuitBreakerActive",
+          "legendFormat": "active",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "INACTIVE", "color": "green" } } },
+            { "type": "value", "options": { "1": { "text": "ACTIVE", "color": "red" } } }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 24 }
+    },
+    {
+      "id": 9,
+      "title": "treasuryBalance (6-dec USDC)",
+      "type": "timeseries",
+      "description": "Накопленный sellTeamFee в USDC. Норма: монотонно неубывающий. Источник: IERC20(USDC).balanceOf(treasury).",
+      "targets": [
+        {
+          "expr": "xartia_treasuryBalance_6dec",
+          "legendFormat": "treasury",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 6,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 }
+    },
+    {
+      "id": 10,
+      "title": "sellTeamFeeCurrent (bp)",
+      "type": "stat",
+      "description": "Текущая ставка sellTeamFee. Норма: [0, 50] bp. Источник: CurveController.sellTeamFee().",
+      "targets": [
+        {
+          "expr": "xartia_sellTeamFee_bp",
+          "legendFormat": "sellTeamFee",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 0 }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 32 }
+    },
+    {
+      "id": 11,
+      "title": "roundTripCost (bp)",
+      "type": "stat",
+      "description": "buyFee + redeemFee + sellTeamFee. Базово 110 bp = 1.1%. Норма для UX. Источник: CurveController.buyFee() + redeemFee() + sellTeamFee().",
+      "targets": [
+        {
+          "expr": "xartia_roundTripCost_bp",
+          "legendFormat": "roundTripCost",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none", "decimals": 0 }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 32 }
+    },
+    {
+      "id": 12,
+      "title": "Invariant: totalSupply == S_curve",
+      "type": "stat",
+      "description": "true — инвариант держится. false — критично. Источник: XartIAToken.totalSupply() vs ReserveManager.S_curve().",
+      "targets": [
+        {
+          "expr": "xartia_totalSupply_eq_Scurve",
+          "legendFormat": "invariant",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "BROKEN", "color": "red" } } },
+            { "type": "value", "options": { "1": { "text": "OK", "color": "green" } } }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 32 }
+    },
+    {
+      "id": 13,
+      "title": "Invariant: USDC custody",
+      "type": "stat",
+      "description": "true — reserve() == toWei(balanceOf(reserveManager)). false — расхождение (баг/атака).",
+      "targets": [
+        {
+          "expr": "xartia_usdcCustody",
+          "legendFormat": "custody",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "BROKEN", "color": "red" } } },
+            { "type": "value", "options": { "1": { "text": "OK", "color": "green" } } }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 32 }
+    },
+    {
+      "id": 14,
+      "title": "PoolController USDC balance (sweep-dust invariant)",
+      "type": "timeseries",
+      "description": "Должен быть 0 между транзакциями. Источник: IERC20(USDC).balanceOf(poolController).",
+      "targets": [
+        {
+          "expr": "xartia_poolControllerUsdcBalance_6dec",
+          "legendFormat": "poolControllerUsdcBalance",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 }
+    },
+    {
+      "id": 15,
+      "title": "Buy / Redeem / BuyFromPool / SellToPool (5-min rate)",
+      "type": "timeseries",
+      "description": "Частота операций. Источник: subgraph events rate (O.2.01.01).",
+      "targets": [
+        { "expr": "rate(xartia_buy_total[5m])", "legendFormat": "buy", "refId": "A" },
+        { "expr": "rate(xartia_redeem_total[5m])", "legendFormat": "redeem", "refId": "B" },
+        { "expr": "rate(xartia_buyFromPool_total[5m])", "legendFormat": "buyFromPool", "refId": "C" },
+        { "expr": "rate(xartia_sellToPool_total[5m])", "legendFormat": "sellToPool", "refId": "D" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "decimals": 4,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "network",
+        "type": "custom",
+        "query": "amoy,polygon",
+        "current": { "text": "amoy", "value": "amoy" }
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "CircuitBreakerTriggered",
+        "datasource": "Prometheus",
+        "expr": "changes(xartia_circuitBreakerActive[5m]) > 0",
+        "enable": true,
+        "iconColor": "red",
+        "title": "CircuitBreaker toggled"
+      },
+      {
+        "name": "SellTeamFeeUpdated",
+        "datasource": "Prometheus",
+        "expr": "changes(xartia_sellTeamFee_bp[5m]) > 0",
+        "enable": true,
+        "iconColor": "yellow",
+        "title": "sellTeamFee changed"
+      },
+      {
+        "name": "PoolPriceCorridorBreach",
+        "datasource": "Prometheus",
+        "expr": "(xartia_poolPrice_18dec < xartia_poolPrice_floor_18dec) or (xartia_poolPrice_18dec > xartia_poolPrice_ceiling_18dec)",
+        "enable": true,
+        "iconColor": "red",
+        "title": "PoolPrice outside corridor"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Runbook",
+      "url": "ops/runbook.md",
+      "type": "link",
+      "targetBlank": true
+    },
+    {
+      "title": "Alerts",
+      "url": "ops/monitoring/alerts.yaml",
+      "type": "link",
+      "targetBlank": true
+    }
+  ]
+}

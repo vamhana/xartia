@@ -1,0 +1,26 @@
+{
+  "name": "xartia",
+  "version": "0.0.1",
+  "description": "XartIA — bonding curve protocol with internal pool and reserve",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "engines": {
+    "node": ">=20.11.1"
+  },
+  "scripts": {
+    "lint": "solhint 'contracts/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'",
+    "format": "prettier --write 'contracts/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'",
+    "format:check": "prettier --check 'contracts/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'",
+    "build": "forge build --sizes",
+    "test": "forge test",
+    "test:fuzz": "FOUNDRY_FUZZ_RUNS=10000 forge test --match-path 'test/fuzz/*'",
+    "test:invariant": "FOUNDRY_INVARIANT_RUNS=1000 FOUNDRY_INVARIANT_DEPTH=100 forge test --match-path 'test/invariant/*'",
+    "test:gas": "forge test --match-path 'test/gas/*' -vv",
+    "coverage": "forge coverage --report lcov --report summary"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "prettier-plugin-solidity": "^1.4.1",
+    "solhint": "^5.0.3"
+  }
+}

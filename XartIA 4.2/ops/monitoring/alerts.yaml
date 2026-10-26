@@ -1,0 +1,268 @@
+# =============================================================================
+# Prometheus Alerting Rules — XartIA
+#
+# Block: O.1.01.02
+# Depends on: O.1.01.04 (prometheus.yaml — источник метрик)
+#
+# Все правила используют метрики, экспортируемые из on-chain (O.1.01.04).
+# Severity: critical / warning / info.
+# =============================================================================
+
+groups:
+  - name: xartia.invariants
+    interval: 30s
+    rules:
+      - alert: reserve_ge_curveBacking_violation
+        expr: xartia_reserve_18dec < xartia_curveBacking_18dec
+        for: 30s
+        labels:
+          severity: critical
+          component: ReserveManager
+          invariant: reserve_ge_R
+        annotations:
+          summary: "Reserve invariant broken: reserve < R(S_curve)"
+          description: |
+            reserve = {{ $value }}
+            curveBacking = {{ with printf "xartia_curveBacking_18dec" | query }}{{ . | first | value }}{{ end }}
+            Инвариант reserve ≥ R(S_curve) нарушен.
+            Действие: pause() немедленно (PAUSER_ROLE), эскалация в incident-response.
+          runbook: "ops/incident-response.md#reserve-invariant"
+
+      - alert: USDC_left_in_poolController
+        expr: xartia_poolControllerUsdcBalance_6dec > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: PoolController
+          invariant: poolController_usdc_zero
+        annotations:
+          summary: "PoolController holds USDC (sweep-dust failed)"
+          description: |
+            balanceOf(PoolController) = {{ $value }} wei-6 > 0.
+            Инвариант sweep-dust нарушен — возможен баг или атака.
+            Действие: pause(), форензика, ручная проверка шага 14b buyFromPool.
+          runbook: "ops/incident-response.md#sweep-dust"
+
+      - alert: totalSupply_eq_Scurve_violation
+        expr: xartia_totalSupply_eq_Scurve == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: XartIAToken
+          invariant: totalSupply_eq_S_curve
+        annotations:
+          summary: "Invariant broken: totalSupply != S_curve"
+          description: |
+            totalSupply ≠ S_curve. Это невозможно при корректной работе.
+            Действие: pause(), форензика, проверка minter/burner ролей.
+          runbook: "ops/incident-response.md#supply-invariant"
+
+  - name: xartia.circuitbreaker
+    interval: 30s
+    rules:
+      - alert: CircuitBreaker_triggered
+        expr: xartia_circuitBreakerActive == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: CircuitBreaker
+        annotations:
+          summary: "CircuitBreaker is active"
+          description: |
+            freeReserve / reserve < threshold. sellToPool заблокирован.
+            Причина: истощение freeReserve (fee), крупные redeem, аномалии.
+            Действие: разбор причины (runbook), ожидание восстановления через fee или покупки.
+          runbook: "ops/runbook.md#circuit-breaker"
+
+      - alert: CircuitBreaker_threshold_changed
+        expr: changes(xartia_circuitBreakerThreshold_bp[10m]) > 0
+        for: 1m
+        labels:
+          severity: info
+          component: CircuitBreaker
+        annotations:
+          summary: "CircuitBreaker threshold changed"
+          description: "Проверить, что изменение прошло через Governance + Timelock (7 дней)."
+          runbook: "ops/runbook.md#threshold-change"
+
+  - name: xartia.pool
+    interval: 30s
+    rules:
+      - alert: PoolPrice_floor_triggered
+        expr: xartia_poolPrice_18dec < xartia_poolPrice_floor_18dec
+        for: 30s
+        labels:
+          severity: warning
+          component: PoolState
+        annotations:
+          summary: "poolPrice below floor"
+          description: |
+            poolPrice = {{ $value }}
+            floor = (P(S)/1.1)
+            Возможно: манипуляция, баг в _enforcePoolPriceFloor, аномальный рост S_curve.
+            Действие: проверить последние buyFromCurve / buyFromCurveFor, Tenderly trace.
+          runbook: "ops/runbook.md#pool-price-floor"
+
+      - alert: PoolPrice_ceiling_triggered
+        expr: xartia_poolPrice_18dec > xartia_poolPrice_ceiling_18dec
+        for: 30s
+        labels:
+          severity: warning
+          component: PoolState
+        annotations:
+          summary: "poolPrice above ceiling"
+          description: |
+            poolPrice = {{ $value }}
+            ceiling = (P(S)·1.1)
+            Возможно: манипуляция, массовый выход, баг в _clampPoolPriceToCorridor.
+            Действие: проверить последние sellToPool, Tenderly trace.
+          runbook: "ops/runbook.md#pool-price-ceiling"
+
+      - alert: PoolPrice_corridor_breach_series
+        expr: count_over_time((xartia_poolPrice_18dec < xartia_poolPrice_floor_18dec)[10m:30s]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          component: PoolState
+        annotations:
+          summary: "poolPrice repeatedly outside corridor"
+          description: "Серия нарушений коридора — вероятна атака. pause() + форензика."
+          runbook: "ops/incident-response.md#pool-manipulation"
+
+  - name: xartia.init
+    interval: 30s
+    rules:
+      - alert: NotInitialized_revert
+        expr: rate(xartia_revert_notInitialized_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: CurveController|PoolController
+        annotations:
+          summary: "NotInitialized reverts detected"
+          description: |
+            Торговля до initializePoolPrice. Возможно: баг в скрипте деплоя,
+            атака на свежеразвёрнутую систему, некорректный frontend.
+            Действие: проверить S_curve, poolPrice, вызвать initializePoolPrice.
+          runbook: "ops/runbook.md#not-initialized"
+
+      - alert: setPoolController_called
+        expr: increase(xartia_setPoolController_total[10m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+          component: CurveController
+        annotations:
+          summary: "setPoolController called more than once"
+          description: |
+            setPoolController — one-time. Повторный вызов невозможен при корректной работе.
+            Любой повторный успешный вызов — атака на finalize-состояние.
+            Действие: pause(), форензика, проверить, кто вызвал.
+          runbook: "ops/incident-response.md#set-pool-controller"
+
+  - name: xartia.curve
+    interval: 30s
+    rules:
+      - alert: MaxCurveForExceeded_series
+        expr: rate(xartia_revert_maxCurveForExceeded_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: CurveController
+        annotations:
+          summary: "Series of MaxCurveForExceeded reverts"
+          description: |
+            Серия ревертов от одного адреса. Возможна попытка эксплойта pull-модели
+            (buyFromCurveFor с большим X_18). MAX_CURVE_FOR_PCT = 20% freeReserve.
+            Действие: проверить адрес, Tenderly trace, при подтверждении — pause().
+          runbook: "ops/runbook.md#max-curve-for"
+
+      - alert: Allowance_reset_failed
+        expr: xartia_allowance_poolController_to_curveController > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: PoolController
+        annotations:
+          summary: "allowance(PoolController → CurveController) != 0 after tx"
+          description: |
+            Возможен баг в PoolController.buyFromPool (forceApprove(0) не выполнился).
+            Инвариант: allowance == 0 между транзакциями.
+            Действие: проверить Tenderly trace, посмотреть шаг 14 buyFromPool.
+          runbook: "ops/runbook.md#allowance-reset"
+
+      - alert: BuyFromPool_tokensFromCurve_gt_0
+        expr: rate(xartia_buyFromPool_cascade_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: info
+          component: PoolController
+        annotations:
+          summary: "Cascade buyFromPool → buyFromCurveFor"
+          description: |
+            Каскадная покупка (tokensFromCurve > 0). Это нормально, но требует
+            проверки: newReserve должен соответствовать росту X_18.
+            Действие: Tenderly trace, проверить BuyFromPool.newReserve.
+          runbook: "ops/runbook.md#cascade-buy"
+
+  - name: xartia.revenue
+    interval: 30s
+    rules:
+      - alert: treasury_balance_anomaly
+        expr: |
+          (delta(xartia_treasuryBalance_6dec[10m]) > 1000 * 10^6)
+          and (rate(xartia_sellTeamFee_total[10m]) == 0)
+        for: 5m
+        labels:
+          severity: warning
+          component: Treasury
+        annotations:
+          summary: "Treasury balance grew without SellTeamFee events"
+          description: |
+            Резкий рост treasury balance вне ожидаемых операций.
+            Возможно: (a) внешний перевод в treasury (donation, не угроза),
+                     (b) баг в PoolController (двойное списание sellTeamFee),
+                     (c) эксплойт.
+            Действие: ручная проверка, Tenderly trace, аудит subgraph.
+          runbook: "ops/runbook.md#treasury-anomaly"
+
+      - alert: treasury_balance_decrease
+        expr: delta(xartia_treasuryBalance_6dec[5m]) < 0
+        for: 1m
+        labels:
+          severity: critical
+          component: Treasury
+        annotations:
+          summary: "Treasury balance decreased"
+          description: |
+            treasury — immutable, sellTeamFee только растёт. Уменьшение = компрометация
+            treasury или баг в контрактах.
+            Действие: НЕМЕДЛЕННЫЙ pause() через PAUSER_ROLE, эскалация в incident-response.
+          runbook: "ops/incident-response.md#treasury-decrease"
+
+      - alert: sellTeamFee_changed
+        expr: changes(xartia_sellTeamFee_bp[10m]) > 0
+        for: 1m
+        labels:
+          severity: info
+          component: CurveController
+        annotations:
+          summary: "sellTeamFee changed"
+          description: |
+            Governance-изменение sellTeamFee. Проверить, что изменение прошло через
+            Safe Multisig → Governance → Timelock (7 дней).
+          runbook: "ops/runbook.md#sellteamfee-change"
+
+      - alert: sellTeamFee_out_of_bounds
+        expr: xartia_sellTeamFee_bp > 50
+        for: 30s
+        labels:
+          severity: critical
+          component: CurveController
+        annotations:
+          summary: "sellTeamFee > 50 bp (out of bounds)"
+          description: |
+            Невозможно при корректной работе (registerParams bounds [0, 50]).
+            Defense-in-depth. Возможно: атака на governance, баг в ParameterRegistry.
+            Действие: pause(), форензика.
+          runbook: "ops/incident-response.md#sellteamfee-oob"

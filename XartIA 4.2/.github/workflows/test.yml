@@ -1,0 +1,25 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.6
+      - name: Install deps
+        run: |
+          forge install foundry-rs/forge-std@v1.9.6 --no-commit
+          forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-commit
+      - name: Format
+        run: forge fmt --check
+      - name: Build
+        run: forge build --sizes
+      - name: Test
+        run: forge test -vv

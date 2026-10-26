@@ -1,0 +1,163 @@
+# =============================================================================
+# Tenderly alerts — real-time симуляция и уведомления
+#
+# Block: O.1.01.05
+# Depends on: O.1.01.01 (dashboard.json — потребитель)
+#
+# Tenderly Alerts:
+#   - транзакции, которые revert с custom errors
+#   - нарушения инвариантов
+#   - аномалии (необычные значения)
+#
+# Интеграция: webhook в Slack / Discord / Telegram.
+# =============================================================================
+
+version: "1.0"
+
+project:
+  name: "xartia"
+  network: "amoy"  # change to polygon for mainnet
+
+alerts:
+  # ---------------------------------------------------------------------------
+  # Reverts
+  # ---------------------------------------------------------------------------
+  - id: revert-not-initialized
+    name: "NotInitialized revert"
+    description: "Транзакция ревертит с NotInitialized — торговля до initializePoolPrice"
+    trigger:
+      type: "transaction"
+      filter:
+        function: "buyFromCurve(uint256,uint256,uint256)"
+        revertReason: "NotInitialized()"
+    severity: "warning"
+    channels: ["slack-ops", "telegram-ops"]
+
+  - id: revert-max-curve-for
+    name: "MaxCurveForExceeded revert"
+    description: "buyFromCurveFor ревертит — возможно, попытка эксплойта"
+    trigger:
+      type: "transaction"
+      filter:
+        function: "buyFromCurveFor(address,uint256,uint256,uint256)"
+        revertReason: "MaxCurveForExceeded()"
+    severity: "warning"
+    channels: ["slack-ops"]
+
+  - id: revert-reserve-invariant
+    name: "ReserveInvariantViolation revert"
+    description: "updateScurve ревертит — инвариант reserve ≥ R(S) нарушен"
+    trigger:
+      type: "transaction"
+      filter:
+        function: "updateScurve(uint256)"
+        revertReason: "ReserveInvariantViolation()"
+    severity: "critical"
+    channels: ["slack-ops", "telegram-ops", "pagerduty"]
+
+  # ---------------------------------------------------------------------------
+  # Events
+  # ---------------------------------------------------------------------------
+  - id: event-circuit-breaker
+    name: "CircuitBreakerTriggered event"
+    description: "CB сработал — sellToPool заблокирован"
+    trigger:
+      type: "event"
+      filter:
+        event: "CircuitBreakerTriggered(uint256,uint256)"
+    severity: "critical"
+    channels: ["slack-ops", "telegram-ops", "pagerduty"]
+    context:
+      - "freeReserve"
+      - "reserve"
+
+  - id: event-pool-price-out-of-corridor
+    name: "PoolPriceUpdated out of corridor"
+    description: "poolPrice вне [P(S)/1.1, P(S)·1.1]"
+    trigger:
+      type: "event"
+      filter:
+        event: "PoolPriceUpdated(uint256,uint256)"
+    condition:
+      expression: "newPrice < P(S)/1.1 OR newPrice > P(S)*1.1"
+    severity: "critical"
+    channels: ["slack-ops", "pagerduty"]
+
+  - id: event-sellteamfee-changed
+    name: "SellTeamFeeUpdated event"
+    description: "Governance изменил sellTeamFee"
+    trigger:
+      type: "event"
+      filter:
+        event: "SellTeamFeeUpdated(uint256,uint256)"
+    severity: "info"
+    channels: ["slack-ops"]
+
+  - id: event-team-fee
+    name: "TeamFee event"
+    description: "teamTokens заминчены в Vesting"
+    trigger:
+      type: "event"
+      filter:
+        event: "TeamFee(address,uint256)"
+    severity: "info"
+    channels: ["slack-ops"]
+
+  # ---------------------------------------------------------------------------
+  # Anomalies (Tenderly Simulator)
+  # ---------------------------------------------------------------------------
+  - id: anomaly-whale-buy
+    name: "Whale buy (> 10% of S_curve in one tx)"
+    description: "Крупная покупка — проверить на манипуляцию"
+    trigger:
+      type: "transaction"
+      filter:
+        function: "buyFromCurve(uint256,uint256,uint256)"
+    condition:
+      expression: "X_6 * 1e12 > 0.1 * S_curve"
+    severity: "warning"
+    channels: ["slack-ops"]
+
+  - id: anomaly-whale-sell
+    name: "Whale sell (> 50% of freeReserve in one tx)"
+    description: "Крупная продажа — проверить на манипуляцию"
+    trigger:
+      type: "transaction"
+      filter:
+        function: "sellToPool(uint256,uint256,uint256)"
+    condition:
+      expression: "(amount_gross - fee) > 0.5 * freeReserve"
+    severity: "warning"
+    channels: ["slack-ops"]
+
+  - id: anomaly-treasury-decrease
+    name: "Treasury balance decreased"
+    description: "treasury только растёт — уменьшение = компрометация"
+    trigger:
+      type: "state"
+      filter:
+        contract: "treasury"
+        function: "balanceOf(address)"
+    condition:
+      expression: "newBalance < oldBalance"
+    severity: "critical"
+    channels: ["slack-ops", "pagerduty"]
+
+channels:
+  slack-ops:
+    type: "slack"
+    webhook: "https://hooks.slack.com/services/T00/B00/XXXX"
+    channel: "#xartia-ops"
+
+  telegram-ops:
+    type: "telegram"
+    bot_token: "${TELEGRAM_BOT_TOKEN}"
+    chat_id: "${TELEGRAM_CHAT_ID}"
+
+  pagerduty:
+    type: "pagerduty"
+    routing_key: "${PAGERDUTY_ROUTING_KEY}"
+    severity_map:
+      critical: "critical"
+      warning: "warning"
+      info: "info"

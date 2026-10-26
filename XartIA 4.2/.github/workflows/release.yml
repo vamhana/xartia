@@ -1,0 +1,156 @@
+# =============================================================================
+# CI/CD: Release workflow
+#
+# Triggered on tag push (v*).
+# Builds contracts, creates GitHub Release with:
+#   - ABI files (web/dapp/abi/*.json)
+#   - deployment artifacts (deployments/*.json)
+#   - CHANGELOG section for the version
+#   - full source tarball
+#
+# Block: I.1.01.07
+# Depends on: R.3.01.03 (changelog.md), D.2.01.06 (package.json)
+# =============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build:
+    name: Build contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Extract version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}, version=${VERSION}"
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with: { version: stable }
+
+      - name: Install Solidity deps
+        run: |
+          forge install foundry-rs/forge-std --no-commit || true
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit || true
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Extract ABIs
+        run: |
+          mkdir -p release/abi
+          for c in \
+            XartIAToken \
+            CurveController \
+            PoolController \
+            ReserveManager \
+            Vesting \
+            Governance \
+            XartIAFactory \
+            CircuitBreaker \
+            Timelock \
+            PoolState \
+            Levels \
+            ParameterRegistry; do
+            forge inspect "${c}" abi --json > "release/abi/${c}.json" || echo "warn: ${c} not found"
+          done
+          ls -la release/abi/
+
+      - name: Package source
+        run: |
+          mkdir -p release
+          tar --exclude='./node_modules' \
+              --exclude='./out' \
+              --exclude='./cache' \
+              --exclude='./.git' \
+              --exclude='./.venv' \
+              --exclude='./broadcast' \
+              -czf release/xartia-${{ steps.meta.outputs.version }}-src.tar.gz \
+              contracts/ script/ test/ config/ deployments/ foundry.toml remappings.txt Makefile README.md LICENSE
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ steps.meta.outputs.version }}
+          path: release/
+          retention-days: 90
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts-${{ needs.build.outputs.version }}
+          path: release/
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          # Extract section between "## [VERSION]" and next "## ["
+          awk -v ver="## \\[${VERSION}\\]" '
+            BEGIN { capture=0 }
+            $0 ~ ver { capture=1; print; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release/CHANGELOG-section.md || true
+
+          if [ ! -s release/CHANGELOG-section.md ]; then
+            echo "## v${VERSION}" > release/CHANGELOG-section.md
+            echo "" >> release/CHANGELOG-section.md
+            echo "_No changelog entry found._" >> release/CHANGELOG-section.md
+          fi
+
+          cat release/CHANGELOG-section.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: "XartIA ${{ needs.build.outputs.tag }}"
+          body_path: release/CHANGELOG-section.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release/abi/*.json
+            release/xartia-${{ needs.build.outputs.version }}-src.tar.gz
+            deployments/*.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Released ${{ needs.build.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Artifacts" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ABI files (${GITHUB_REPOSITORY}/releases/tag/${{ needs.build.outputs.tag }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source tarball" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Deployment artifacts" >> "$GITHUB_STEP_SUMMARY"

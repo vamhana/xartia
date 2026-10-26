@@ -1,0 +1,20 @@
+# Polygon PoS Mainnet
+rpc_url = "https://polygon-rpc.com"
+chain_id = 137
+
+# USDC (Polygon PoS)
+usdc = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+
+# Safe Multisig 3/5 — ЗАПОЛНИТЬ перед деплоем
+safe = "0x0000000000000000000000000000000000000000"
+
+# Treasury: получатель sellTeamFee. Если не задано — подставится safe.
+# Валидация: != address(0), != factory, code.length > 0.
+treasury = "0x0000000000000000000000000000000000000000"
+
+# CircuitBreaker threshold, bp (500..2000)
+initial_threshold = 1000
+
+# Начальная цена пула в 6 decimals. p0 = 2000 → 0.002 USDC/XRT.
+# Диапазон: [P(S0)/(1+MAX_GAP), P(S0)*(1+MAX_GAP)] — валидируется Factory.
+p0_initial_pool_price_6dec = 2000

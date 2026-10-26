@@ -1,0 +1,154 @@
+# =============================================================================
+# Dependabot configuration
+#
+# Обновляет:
+#   - GitHub Actions (workflow versions)
+#   - npm (prettier, solhint, ethers.js для dApp)
+#   - pip (python-симуляции: numpy, scipy, hypothesis, web3)
+#
+# НЕ поддерживает напрямую Solidity submodules:
+#   - OpenZeppelin/openzeppelin-contracts
+#   - foundry-rs/forge-std
+#   - (solmate — если используется)
+#
+# Для submodules — ручной review раз в квартал + slither audit (I.1.01.03).
+# См. SECURITY.md и R.2.01.09.
+#
+# Block: I.1.01.06
+# =============================================================================
+
+version: 2
+updates:
+  # ---------------------------------------------------------------------------
+  # GitHub Actions
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    reviewers:
+      - "xartia-maintainers"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # ---------------------------------------------------------------------------
+  # npm (root: prettier, solhint)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "chore(npm)"
+      include: "scope"
+    versioning-strategy: "increase"
+    groups:
+      prettier:
+        patterns:
+          - "prettier*"
+      solhint:
+        patterns:
+          - "solhint*"
+
+  # ---------------------------------------------------------------------------
+  # npm (web/dapp: ethers.js, wagmi, viem)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/web/dapp"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+      - "dapp"
+    commit-message:
+      prefix: "chore(dapp)"
+      include: "scope"
+    versioning-strategy: "increase"
+    groups:
+      wallet-libs:
+        patterns:
+          - "ethers"
+          - "viem"
+          - "wagmi"
+          - "@wagmi/*"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+
+  # ---------------------------------------------------------------------------
+  # pip (python: numpy, scipy, matplotlib, hypothesis, web3)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/e/02_simulation"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(python)"
+      include: "scope"
+    groups:
+      python-deps:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/scripts/python"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(python)"
+      include: "scope"
+
+  # ---------------------------------------------------------------------------
+  # Solidity submodules (manual review)
+  #
+  # Замечание: dependabot НЕ поддерживает Foundry submodules напрямую.
+  # OpenZeppelin / forge-std / solmate обновляются вручную:
+  #   1. forge update lib/openzeppelin-contracts
+  #   2. forge build && forge test
+  #   3. Обновить .gitmodules (коммит-хеш)
+  #   4. Открыть PR с обновлением
+  #
+  # Периодичность: раз в квартал (или при выходе critical CVE).
+  # Дополнительно: slither (I.1.01.03) проверяет известные уязвимости.
+  # См. SECURITY.md §«Известные ограничения».
+  # ---------------------------------------------------------------------------

@@ -1,0 +1,124 @@
+# =============================================================================
+# XartIA subgraph schema
+#
+# Block: O.2.01.03
+# Depends on: C.10.01.01 (Events), O.2.01.01 (subgraph.ts)
+# =============================================================================
+
+type Buy @entity(immutable: true) {
+  id: ID!                          # tx hash + log index
+  buyer: Bytes!                    # indexed
+  usdcIn: BigInt!                  # X_18 (18-dec)
+  tokensOut: BigInt!               # ΔS − teamTokens (18-dec XRT)
+  fee: BigInt!                     # buyFee (18-dec USDC)
+  teamTokens: BigInt!              # teamTokens (18-dec XRT)
+  newScurve: BigInt!               # S_curve после (18-dec XRT)
+  newReserve: BigInt!              # reserve после (18-dec USDC)
+  newLevel: BigInt!                # getLevel(newS)
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+type BuyFromPool @entity(immutable: true) {
+  id: ID!
+  buyer: Bytes!
+  usdcIn: BigInt!                  # X_18 (18-dec)
+  tokensFromPool: BigInt!          # (18-dec XRT)
+  tokensFromCurve: BigInt!         # (18-dec XRT)
+  fee: BigInt!                     # (18-dec USDC)
+  newPool: BigInt!                 # poolState.pool (18-dec XRT)
+  newPoolPrice: BigInt!            # poolPrice (18-dec USDC/XRT)
+  newScurve: BigInt!               # (18-dec XRT)
+  newReserve: BigInt!              # (18-dec USDC)
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+type Sell @entity(immutable: true) {
+  id: ID!
+  seller: Bytes!
+  tokensIn: BigInt!                # ΔP (18-dec XRT)
+  usdcOut: BigInt!                 # amount_user (18-dec USDC)
+  fee: BigInt!                     # redeemFee (18-dec USDC)
+  sellTeamFee: BigInt!             # (18-dec USDC)
+  newPool: BigInt!                 # (18-dec XRT)
+  newPoolPrice: BigInt!            # (18-dec USDC/XRT)
+  newReserve: BigInt!              # (18-dec USDC)
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+type Redeem @entity(immutable: true) {
+  id: ID!
+  seller: Bytes!
+  tokensIn: BigInt!                # ΔS (18-dec XRT)
+  usdcOut: BigInt!                 # user_amount (18-dec USDC)
+  fee: BigInt!                     # redeemFee (18-dec USDC)
+  earlyFee: BigInt!                # earlySellFee (18-dec USDC, 0 если не в period)
+  sellTeamFee: BigInt!             # (18-dec USDC)
+  newScurve: BigInt!               # (18-dec XRT)
+  newReserve: BigInt!              # (18-dec USDC)
+  newLevel: BigInt!
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+type PoolPrice @entity(immutable: true) {
+  id: ID!
+  price: BigInt!                   # 18-dec USDC/XRT
+  oldPrice: BigInt!
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+  source: String!                  # "CurveController" | "PoolController" | "init"
+}
+
+type Level @entity(immutable: true) {
+  id: ID!
+  oldLevel: BigInt!
+  newLevel: BigInt!
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+type User @entity {
+  id: ID!                          # address hex
+  buys: BigInt!                    # count
+  sells: BigInt!                   # count
+  redeems: BigInt!                 # count
+  balance: BigInt!                 # текущий баланс (18-dec XRT) — optional, требует balanceOf
+  firstSeenAt: BigInt!
+  lastSeenAt: BigInt!
+}
+
+type Treasury @entity {
+  id: ID!                          # всегда "treasury"
+  balance: BigInt!                 # текущий накопленный USDC (6-dec)
+  totalCollected: BigInt!          # всего с момента начала индексации (6-dec)
+  lastUpdatedAt: BigInt!
+  lastUpdatedBlock: BigInt!
+}
+
+type SellTeamFeeUpdate @entity(immutable: true) {
+  id: ID!
+  oldFee: BigInt!
+  newFee: BigInt!
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+type ProtocolStats @entity {
+  id: ID!                          # всегда "stats"
+  currentSellTeamFee: BigInt!      # bp
+  currentBuyFee: BigInt!           # bp
+  currentRedeemFee: BigInt!        # bp
+  roundTripCost: BigInt!           # bp (buyFee + redeemFee + sellTeamFee)
+  lastUpdatedAt: BigInt!
+  lastUpdatedBlock: BigInt!
+}

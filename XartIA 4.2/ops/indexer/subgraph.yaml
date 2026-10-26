@@ -1,0 +1,116 @@
+# =============================================================================
+# XartIA subgraph config
+#
+# Block: O.2.01.02
+# Depends on: O.2.01.01 (subgraph.ts), O.2.01.03 (schema.graphql),
+#             C.8.01.01 (адреса Factory)
+# =============================================================================
+
+specVersion: 0.0.4
+description: "XartIA protocol subgraph — Buy/Redeem/BuyFromPool/SellToPool, PoolPrice, Treasury, SellTeamFee"
+repository: "https://github.com/xartia/subgraph"
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  # ---------------------------------------------------------------------------
+  # CurveController — Buy, Redeem, SellTeamFeeUpdated, PoolPriceUpdated,
+  #                   LevelChanged, CircuitBreakerTriggered, TeamFee
+  # ---------------------------------------------------------------------------
+  - kind: ethereum/contract
+    name: CurveController
+    network: amoy
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: CurveController
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Buy
+        - Redeem
+        - User
+        - PoolPrice
+        - Level
+        - SellTeamFeeUpdate
+        - ProtocolStats
+      abis:
+        - name: CurveController
+          file: ./abis/CurveController.json
+      eventHandlers:
+        - event: Buy(indexed address,uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleBuy
+        - event: Redeem(indexed address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleRedeem
+        - event: SellTeamFeeUpdated(uint256,uint256)
+          handler: handleSellTeamFeeUpdated
+        - event: PoolPriceUpdated(uint256,uint256)
+          handler: handlePoolPriceUpdated
+        - event: LevelChanged(uint256,uint256)
+          handler: handleLevelChanged
+        - event: CircuitBreakerTriggered(uint256,uint256)
+          handler: handleCircuitBreakerTriggered
+        - event: TeamFee(indexed address,uint256)
+          handler: handleTeamFee
+      file: ./src/subgraph.ts
+
+  # ---------------------------------------------------------------------------
+  # PoolController — BuyFromPool, SellToPool, PoolPriceUpdated
+  # ---------------------------------------------------------------------------
+  - kind: ethereum/contract
+    name: PoolController
+    network: amoy
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: PoolController
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - BuyFromPool
+        - Sell
+        - User
+        - PoolPrice
+      abis:
+        - name: PoolController
+          file: ./abis/PoolController.json
+      eventHandlers:
+        - event: BuyFromPool(indexed address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleBuyFromPool
+        - event: SellToPool(indexed address,uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleSellToPool
+        - event: PoolPriceUpdated(uint256,uint256)
+          handler: handlePoolPriceUpdated
+      file: ./src/subgraph.ts
+
+  # ---------------------------------------------------------------------------
+  # PoolState — PoolPriceInitialized
+  # ---------------------------------------------------------------------------
+  - kind: ethereum/contract
+    name: PoolState
+    network: amoy
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: PoolState
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - PoolPrice
+      abis:
+        - name: PoolState
+          file: ./abis/PoolState.json
+      eventHandlers:
+        - event: PoolPriceInitialized(uint256)
+          handler: handlePoolPriceInitialized
+      file: ./src/subgraph.ts
+
+# -----------------------------------------------------------------------------
+# Networks: для mainnet — заменить network: polygon, адреса — из deployments/polygon.json
+# -----------------------------------------------------------------------------

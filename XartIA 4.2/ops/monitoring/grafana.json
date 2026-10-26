@@ -1,0 +1,198 @@
+{
+  "id": null,
+  "uid": "xartia-grafana",
+  "title": "XartIA — Operations",
+  "tags": ["xartia", "ops"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "network",
+        "type": "custom",
+        "query": "amoy,polygon",
+        "current": { "text": "amoy", "value": "amoy" }
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(xartia_reserve_18dec, instance)",
+        "multi": true,
+        "includeAll": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Reverts (5-min rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "rate(xartia_revert_notInitialized_total[5m])", "legendFormat": "NotInitialized", "refId": "A" },
+        { "expr": "rate(xartia_revert_maxCurveForExceeded_total[5m])", "legendFormat": "MaxCurveForExceeded", "refId": "B" },
+        { "expr": "rate(xartia_revert_maxBalanceExceeded_total[5m])", "legendFormat": "MaxBalanceExceeded", "refId": "C" },
+        { "expr": "rate(xartia_revert_maxPurchaseExceeded_total[5m])", "legendFormat": "MaxPurchaseExceeded", "refId": "D" },
+        { "expr": "rate(xartia_revert_maxSellPerDayExceeded_total[5m])", "legendFormat": "MaxSellPerDayExceeded", "refId": "E" },
+        { "expr": "rate(xartia_revert_circuitBreakerActive_total[5m])", "legendFormat": "CircuitBreakerActive", "refId": "F" },
+        { "expr": "rate(xartia_revert_insufficientFreeReserve_total[5m])", "legendFormat": "InsufficientFreeReserve", "refId": "G" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Gas usage (avg, 5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "avg_over_time(xartia_gas_buyFromCurve[5m])", "legendFormat": "buyFromCurve", "refId": "A" },
+        { "expr": "avg_over_time(xartia_gas_redeemFromCurve[5m])", "legendFormat": "redeemFromCurve", "refId": "B" },
+        { "expr": "avg_over_time(xartia_gas_buyFromPool[5m])", "legendFormat": "buyFromPool", "refId": "C" },
+        { "expr": "avg_over_time(xartia_gas_sellToPool[5m])", "legendFormat": "sellToPool", "refId": "D" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Treasury balance (USDC)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "xartia_treasuryBalance_6dec / 1e6", "legendFormat": "treasury", "refId": "A" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 4,
+      "title": "sellTeamFee 30d avg",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        { "expr": "avg_over_time(xartia_sellTeamFee_bp[30d])", "legendFormat": "avg", "refId": "A" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 5,
+      "title": "SellTeamFee events (30d sum)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "sum(increase(xartia_sellTeamFee_total[30d]))", "legendFormat": "events", "refId": "A" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 6,
+      "title": "TeamTokens minted (30d)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
+      "targets": [
+        { "expr": "sum(increase(xartia_teamFee_total[30d]))", "legendFormat": "teamTokens", "refId": "A" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 7,
+      "title": "Round-trip cost (bp)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 14 },
+      "targets": [
+        { "expr": "xartia_roundTripCost_bp", "legendFormat": "bp", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 800,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 200 },
+              { "color": "red", "value": 600 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Effective minimal purchase (USDC)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 14 },
+      "targets": [
+        { "expr": "xartia_effectiveMinimalX6 / 1e6", "legendFormat": "min", "refId": "A" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 9,
+      "title": "PoolController USDC balance (must be 0)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 14 },
+      "targets": [
+        { "expr": "xartia_poolControllerUsdcBalance_6dec", "legendFormat": "balance", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Allowance(PoolController → CurveController) (must be 0)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 14 },
+      "targets": [
+        { "expr": "xartia_allowance_poolController_to_curveController", "legendFormat": "allowance", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Buy / Redeem / Pool ops (24h total)",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "targets": [
+        { "expr": "sum(increase(xartia_buy_total[24h]))", "legendFormat": "Buy", "refId": "A" },
+        { "expr": "sum(increase(xartia_redeem_total[24h]))", "legendFormat": "Redeem", "refId": "B" },
+        { "expr": "sum(increase(xartia_buyFromPool_total[24h]))", "legendFormat": "BuyFromPool", "refId": "C" },
+        { "expr": "sum(increase(xartia_sellToPool_total[24h]))", "legendFormat": "SellToPool", "refId": "D" }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "RPC health (uptime 24h)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "targets": [
+        { "expr": "avg_over_time(up{job=\"xartia-rpc\"}[24h]) * 100", "legendFormat": "{{instance}}", "refId": "A" }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      { "name": "Deploys", "datasource": "Prometheus", "expr": "changes(xartia_uptime_seconds[10m]) < 0", "iconColor": "blue" },
+      { "name": "CircuitBreaker", "datasource": "Prometheus", "expr": "changes(xartia_circuitBreakerActive[5m]) > 0", "iconColor": "red" }
+    ]
+  }
+}

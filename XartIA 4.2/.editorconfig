@@ -1,0 +1,44 @@
+# XartIA — единый стиль для редакторов
+# D.2.01.11
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yaml,yml,toml}]
+indent_size = 2
+
+[*.{md,txt}]
+trim_trailing_whitespace = false
+
+[*.sol]
+indent_size = 4
+max_line_length = 100
+trim_trailing_whitespace = true
+
+[Makefile]
+indent_style = tab
+indent_size = 4
+
+[*.sh]
+indent_size = 2
+end_of_line = lf
+
+[*.py]
+indent_size = 4
+max_line_length = 100
+
+[*.{ts,js,jsx,tsx}]
+indent_size = 2
+
+[*.html]
+indent_size = 2
+
+[*.css]
+indent_size = 2

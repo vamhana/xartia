@@ -1,0 +1,18 @@
+# Polygon Amoy Testnet
+rpc_url = "https://rpc-amoy.polygon.technology"
+chain_id = 80002
+
+# Test USDC на Amoy
+usdc = "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582"
+
+# Safe Multisig — ЗАПОЛНИТЬ
+safe = "0x0000000000000000000000000000000000000000"
+
+# Treasury: по умолчанию = safe
+treasury = "0x0000000000000000000000000000000000000000"
+
+# CircuitBreaker threshold, bp (500..2000)
+initial_threshold = 1000
+
+# Начальная цена пула в 6 decimals.
+p0_initial_pool_price_6dec = 2000

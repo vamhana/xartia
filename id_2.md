@@ -2224,6 +2224,14 @@
 |↘ ПРЕДОСТАВЛЯЕТ: F.4.02.10 (блок «Совет направления»), I.9.04.60.
 |2026-10-25 (история): GET /council/:id/history — выборы (кто, счёт, срок, причина) и дисквалификации.
 |2026-10-25 (ротация): POST /council/rotate-expired и ленивая ротация в GET /council — срок мандата соблюдается без ручных действий.
+|A.1.47.01|API|REST|TypeScript|src/api/treasury/controller.ts|C.0.47.01|v.0.0.01|Draft|—|
+|Описание: Контроллер казны: состояние, журнал операций, выручка Шлюза, выкуп, запросы трат и подписи (3-из-5).
+|Публичный API:
+- GET /treasury/state, GET /treasury/operations, GET /treasury/spend-requests;
+- POST /treasury/revenue, POST /treasury/redeem, POST /treasury/spend;
+- POST /treasury/spend-requests/:id/approve, GET /treasury/spend-requests/:id.
+|↙ ПОТРЕБЛЯЕТ: C.0.47.01 (treasury service), S.0.01.05 (requireRight flow:C).
+|↘ ПРЕДОСТАВЛЯЕТ: F.4.02.34, I.9.04.62.
 |A.1.90.01|API|System|TypeScript|src/api/system/health.ts|L.0.01.08, L.0.01.09, A.1.90.03|v.0.0.01|Draft|—|
 |Описание: Health-check контроллер. Liveness и startup probe для K8s, расширенная readiness-проверка. Все эндпоинты публичные — без authMiddleware, без requireRight (K8s probe не может логиниться). Rate limit не применяется. ВАЖНО: readiness проверяет ТОЛЬКО БД (primary + replica) и Redis; S3-проверка (заявленная в старой спеке) отсутствует. Version берётся из A.1.90.03 version.ts, а не из C.0.01.03.
 |Публичный API (эндпоинты):
@@ -4191,6 +4199,12 @@
 |↙ ПОТРЕБЛЯЕТ: S.0.01.03 (assignRole/revokeRole), D.2.01.03 (tasks), D.2.01.39 (council_elections, council_disqualifications).
 |↘ ПРЕДОСТАВЛЯЕТ: A.1.46.01 (GET/POST /council), F.4.02.10 (блок «Совет направления»), I.9.04.60.
 |2026-10-25 (ротация): срок мандата 180 дней, добавлен rotateExpiredCouncils — истёкшие мандаты переизбираются автоматически. Ленивый вызов при GET /council и отдельный маршрут.
+|C.0.47.01|Core|Service|TypeScript|src/core/treasury/service.ts|D.2.01.42|v.0.0.01|Draft|—|
+|Описание: Казна XartIA 5.0: пол 1.00 в T1, NAV-цена P = max(1.00, R/S), выручка Шлюза 60/30/10, выкуп, траты через мультисиг 3-из-5 с проверкой инварианта T1 ≥ supply перед исполнением.
+|Публичный API:
+- getTreasuryState(), recordRevenue({amountUsdc, actorId, gatewayTransactionId, note}), redeemUnits({amountUnits}), requestSpend({...}), approveSpend({requestId, participantId}), getSpendRequest(id), listSpendRequests(), listOperations(limit).
+|↙ ПОТРЕБЛЯЕТ: D.2.01.42 (treasury_*), S.0.01.03 (роли/мандаты), C.0.10.02 (уведомления).
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.47.01 (REST), F.4.02.34 (панель казны), I.9.04.62 (тест).
 |C.0.07.01|Core|Domain|TypeScript|src/core/tasks/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.01|Draft|II.5|
 |Описание: Доменная сущность Задача. Таблица переходов статусов. Deadline вычисляется в createTask. Отсутствует changePriority.
 |Публичный API:
@@ -10436,6 +10450,10 @@
 |Описание: Срок мандата Совета — 180 дней вместо 730: роль COUNCIL_MEMBER получает max_term_days=180, уже выданные мандаты подрезаются до «valid_from + 180 дней», чтобы действующие советы не жили по старому сроку.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (roles, participant_roles), D.2.01.39 (council_elections).
 |↘ ПРЕДОСТАВЛЯЕТ: C.0.46.01 (termDays=180, rotateExpiredCouncils).
+|D.2.01.42|DB|Migration|SQL|db/migrations/042_treasury.sql|D.2.01.03|v.0.0.01|Draft|—|
+|Описание: Казна: treasury_state (T1/T2/operating/buffer/supply), treasury_operations (журнал), treasury_spend_requests (pending/executed/rejected), treasury_approvals (уникальная подпись на участника).
+|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (participants).
+|↘ ПРЕДОСТАВЛЯЕТ: C.0.47.01.
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -12621,6 +12639,11 @@
 |↙ ПОТРЕБЛЯЕТ: A.1.46.01 (GET /council, /council/:id, /council/:id/history, elect, disqualify), A.1.10.01 (GET /signals).
 |↘ ПРЕДОСТАВЛЯЕТ: пункт меню «Советы» (F.4.99.18).
 |2026-10-25: вкладка «Советы» — все советы, сигналы к решению, история, переизбрание и дисквалификация с причиной.
+|F.4.02.34|Frontend|Page|React|src/web/pages/Treasury.tsx|A.1.47.01|v.0.0.01|Draft|—|
+|Описание: Страница «Казна»: T1/T2/R, выпуск, курс, покрытие пола, операционный счёт и буфер; формы выручки и траты; список запросов с подписями; журнал операций.
+|Публичный API: export function TreasuryPage(): ReactElement; маршрут /treasury.
+|↙ ПОТРЕБЛЯЕТ: A.1.47.01 (treasury), F.4.99.18 (Layout).
+|↘ ПРЕДОСТАВЛЯЕТ: видимую проверяемость стабильности (пол/покрытие/курс).
 |F.4.02.98|Frontend|Page|TypeScript|src/web/pages/Otc.tsx|F.4.99.12, F.4.99.20, F.4.99.22, F.4.99.24, F.4.99.25, F.4.99.26|v.0.0.01|Draft|III.2, II.4.3|
 |Описание: Страница ОТК (вариант с lowercase-именем файла; семантически — очередь отчётов ОТК). Дублирует функционально F.4.02.08 (`OTC.tsx`). Список отчётов со `status='submitted'` с возможностью принять или вернуть с обязательной причиной. Автообновление каждые 20 сек. Отображение приоритета захардкожено на `'standard'` — техдолг: `OtcQueueItem` должен содержать `priority` из задачи.
 |Публичный API:
@@ -24353,6 +24376,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |Публичный API: pnpm tsx scripts/test-delegation.ts <phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: C.0.41.04 (delegation), C.0.41.01 (cells), C.0.41.03 (daily plan).
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — передача наряда» в I.1.01.16 и I.9.02.18.
+|I.9.04.62|Infra|Test|TypeScript|scripts/test-treasury.ts|C.0.47.01|v.0.0.01|Draft|—|
+|Описание: Тест казны: genesis-выручка 1000 → T1=600/supply=600/цена 1.00; вторая выручка → цена 2.00 без эмиссии; сплит 60/30/10; запрос траты требует 3 подписей (2 — pending); исполнение уменьшает T1; инвариант пола держится.
+|Публичный API: pnpm tsx scripts/test-treasury.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.47.01, A.1.47.01, A.1.39.01 (dev impersonation).
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — казна» в I.1.01.16 и I.9.02.18.
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:

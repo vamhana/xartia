@@ -28,6 +28,7 @@ import { WorkspacePage } from './pages/Workspace';
 import { TasksPage } from './pages/Tasks';
 import { DailyPlanPage } from './pages/DailyPlan';
 import { CouncilsPage } from './pages/Councils';
+import { TreasuryPage } from './pages/Treasury';
 import { NaryadPage } from './pages/Naryad';
 import { PlanTreePage } from './pages/PlanTree';
 import { SignalsPage } from './pages/Signals';
@@ -432,6 +433,10 @@ export function App(): ReactElement {
               </div>
             </Layout></RequireAuth>
           } />
+          <Route
+            path="/treasury"
+            element={<RequireAuth><Layout><TreasuryPage /></Layout></RequireAuth>}
+          />
           <Route
             path="/councils"
             element={<RequireAuth><Layout><CouncilsPage /></Layout></RequireAuth>}

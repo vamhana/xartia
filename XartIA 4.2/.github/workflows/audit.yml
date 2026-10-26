@@ -1,0 +1,189 @@
+# =============================================================================
+# CI: Security audit workflow
+#
+# Runs weekly (Sunday 03:00 UTC) and on-demand.
+# Slither + Mythril over contracts C.0.*–C.10.*.
+# Uploads SARIF to GitHub Security tab.
+# Fails on high severity.
+#
+# Block: I.1.01.03
+# Depends on: C.0.*–C.10.* (all contracts)
+# =============================================================================
+
+name: Security Audit
+
+on:
+  schedule:
+    # Sunday 03:00 UTC, weekly
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: audit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  FOUNDRY_PROFILE: default
+
+jobs:
+  slither:
+    name: Slither
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with: { version: stable }
+
+      - name: Install Solidity deps
+        run: |
+          forge install foundry-rs/forge-std --no-commit || true
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit || true
+
+      - name: Install Python (for crytic-compile)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Slither
+        run: pip install slither-analyzer
+
+      - name: Run Slither
+        run: |
+          slither . \
+            --config-file slither.config.json \
+            --sarif slither.sarif \
+            --json slither.json \
+            || true
+
+      - name: Check high severity
+        run: |
+          if [ ! -f slither.json ]; then
+            echo "::error::slither.json not produced"
+            exit 1
+          fi
+          HIGH=$(jq '[.results.detectors[]? | select(.impact == "High")] | length' slither.json)
+          MEDIUM=$(jq '[.results.detectors[]? | select(.impact == "Medium")] | length' slither.json)
+          echo "Slither: ${HIGH} high, ${MEDIUM} medium"
+          if [ "${HIGH}" -gt 0 ]; then
+            echo "::error::Slither found ${HIGH} high-severity findings"
+            jq -r '.results.detectors[] | select(.impact == "High") | "\(.check): \(.description)"' slither.json
+            exit 1
+          fi
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: slither.sarif
+          category: slither
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slither-report-${{ github.run_number }}
+          path: |
+            slither.sarif
+            slither.json
+          retention-days: 90
+
+  mythril:
+    name: Mythril
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: slither
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with: { version: stable }
+
+      - name: Install Solidity deps
+        run: |
+          forge install foundry-rs/forge-std --no-commit || true
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit || true
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Install Python (for mythril)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Mythril
+        run: |
+          pip install mythril
+          myth version
+
+      - name: Run Mythril
+        run: |
+          mkdir -p mythril-results
+          for target in \
+            contracts/core/ParameterRegistry.sol \
+            contracts/math/PoolState.sol \
+            contracts/math/Levels.sol \
+            contracts/token/XartIAToken.sol \
+            contracts/reserve/ReserveManager.sol \
+            contracts/vesting/Vesting.sol \
+            contracts/safety/CircuitBreaker.sol \
+            contracts/governance/Governance.sol \
+            contracts/governance/Timelock.sol \
+            contracts/controllers/CurveController.sol \
+            contracts/controllers/PoolController.sol \
+            contracts/factory/XartIAFactory.sol; do
+            echo "=== ${target} ==="
+            base=$(basename "${target}" .sol)
+            myth analyze "${target}" \
+              --execution-timeout 300 \
+              --out json \
+              --output "mythril-results/${base}.json" \
+              || echo "::warning::mythril failed on ${target}"
+          done
+
+      - name: Check high severity
+        run: |
+          HIGH_TOTAL=0
+          for f in mythril-results/*.json; do
+            [ -f "${f}" ] || continue
+            H=$(jq '[.issues[]? | select(.severity == "High")] | length' "${f}")
+            HIGH_TOTAL=$((HIGH_TOTAL + H))
+          done
+          echo "Mythril: ${HIGH_TOTAL} high-severity findings"
+          if [ "${HIGH_TOTAL}" -gt 0 ]; then
+            echo "::error::Mythril found ${HIGH_TOTAL} high-severity findings"
+            exit 1
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mythril-report-${{ github.run_number }}
+          path: mythril-results/
+          retention-days: 90
+
+  summary:
+    name: Audit summary
+    runs-on: ubuntu-latest
+    needs: [slither, mythril]
+    if: always()
+    steps:
+      - name: Print result
+        run: |
+          echo "slither: ${{ needs.slither.result }}"
+          echo "mythril: ${{ needs.mythril.result }}"
+      - name: Fail if any failed
+        if: contains(needs.*.result, 'failure')
+        run: exit 1

@@ -1,0 +1,91 @@
+{
+  "space": {
+    "id": "xartia.eth",
+    "name": "XartIA",
+    "about": "Off-chain governance space for XartIA protocol parameters. Quadratic voting over staked XRT. Results feed into Governance.propose() via Safe Multisig 3/5 after on-chain Snapshot validation.",
+    "network": "137",
+    "symbol": "XRT",
+    "domain": "xartia.example",
+    "categories": [
+      "protocol",
+      "defi",
+      "governance"
+    ],
+    "skin": "xartia",
+    "avatar": "ipfs://QmXartIAdefaultAvatarHashXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "twitter": "xartia",
+    "github": "xartia",
+    "website": "https://xartia.example",
+
+    "filters": {
+      "defaultTab": "all",
+      "minScore": 0,
+      "onlyMembers": false
+    },
+
+    "voting": {
+      "delay": 0,
+      "period": 604800,
+      "type": "quadratic",
+      "quorum": 50000,
+      "hideAbstain": true
+    },
+
+    "strategies": [
+      {
+        "name": "erc20-balance-of-with-delegation",
+        "network": "137",
+        "params": {
+          "address": "0x0000000000000000000000000000000000000000",
+          "symbol": "XRT",
+          "decimals": 18
+        }
+      }
+    ],
+
+    "validation": {
+      "name": "basic",
+      "params": {
+        "minScore": 1000,
+        "strategies": [
+          {
+            "name": "erc20-balance-of-with-delegation",
+            "network": "137",
+            "params": {
+              "address": "0x0000000000000000000000000000000000000000",
+              "symbol": "XRT",
+              "decimals": 18
+            }
+          }
+        ]
+      }
+    },
+
+    "plugins": {
+      "safeSnap": {
+        "network": "137",
+        "multisig": "0x0000000000000000000000000000000000000000",
+        "multisigType": "safe"
+      }
+    },
+
+    "admins": [
+      "0x0000000000000000000000000000000000000000"
+    ],
+
+    "members": [
+      "0x0000000000000000000000000000000000000000"
+    ],
+
+    "moderators": [
+      "0x0000000000000000000000000000000000000000"
+    ],
+
+    "treasury": {
+      "network": "137",
+      "address": "0x0000000000000000000000000000000000000000"
+    },
+
+    "terms": "By participating in this space, you agree to XartIA Terms of Use (legal/terms.md) and Code of Conduct (CODE_OF_CONDUCT.md). All votes are non-binding until executed through on-chain Governance + Timelock (7 days)."
+  }
+}

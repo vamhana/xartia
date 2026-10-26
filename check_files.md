@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   737
-  Файлов в проекте:        733
+  Блоков в спецификации:   742
+  Файлов в проекте:        738
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,9 +48,9 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 544
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 549
 ========================================================================
-  A.1.00.01        src/server.ts [15910 б]
+  A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
   A.1.02.01        src/api/participants/controller.ts [6325 б]
   A.1.03.01        src/api/directions/controller.ts [2240 б]
@@ -91,6 +91,7 @@
   A.1.38.01        src/api/public/controller.ts [646 б]
   A.1.39.01        src/api/dev/controller.ts [4253 б]
   A.1.46.01        src/api/council/controller.ts [4332 б]
+  A.1.47.01        src/api/treasury/controller.ts [4189 б]
   A.1.90.01        src/api/system/health.ts [2024 б]
   A.1.90.02        src/api/system/metrics.ts [3450 б]
   A.1.90.03        src/api/system/version.ts [1187 б]
@@ -210,6 +211,7 @@
   C.0.43.01        src/core/public/service.ts [1636 б]
   C.0.45.01        src/core/mentors/service.ts [6821 б]
   C.0.46.01        src/core/council/service.ts [14162 б]
+  C.0.47.01        src/core/treasury/service.ts [13082 б]
   D.2.01.01        db/migrations/001_extensions.sql [1330 б]
   D.2.01.02        db/migrations/002_enums.sql [22159 б]
   D.2.01.03        db/migrations/003_tables.sql [102487 б]
@@ -251,7 +253,8 @@
   D.2.01.39        db/migrations/039_council.sql [1851 б]
   D.2.01.40        db/migrations/040_cell_plan_delegation.sql [968 б]
   D.2.01.41        db/migrations/041_council_term_180.sql [1180 б]
-  F.4.01.01        src/web/App.tsx [14558 б]
+  D.2.01.42        db/migrations/042_treasury.sql [2507 б]
+  F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
   F.4.01.04        src/web/pages/auth/WaitingRoom.tsx [9150 б]
@@ -290,6 +293,7 @@
   F.4.02.31        src/web/pages/PlanTree.tsx [8904 б]
   F.4.02.32        src/web/pages/Naryad.tsx [13984 б]
   F.4.02.33        src/web/pages/Councils.tsx [12642 б]
+  F.4.02.34        src/web/pages/Treasury.tsx [10126 б]
   F.4.02.98        src/web/pages/Otc.tsx [13221 б]
   F.4.02.99        src/web/pages/DailyPlan.tsx [8659 б]
   F.4.03.03        src/web/components/tasks/TaskCard.tsx [9346 б]
@@ -328,7 +332,7 @@
   F.4.99.15        src/web/components/ui/Notifications.tsx [15802 б]
   F.4.99.16        src/web/components/ui/Search.tsx [18435 б]
   F.4.99.17        src/web/components/layout/Layout.tsx [1197 б]
-  F.4.99.18        src/web/components/layout/Sidebar.tsx [5951 б]
+  F.4.99.18        src/web/components/layout/Sidebar.tsx [6022 б]
   F.4.99.19        src/web/components/layout/Header.tsx [5499 б]
   F.4.99.20        src/web/hooks/useApi.ts [1973 б]
   F.4.99.21        src/web/hooks/useWS.ts [1044 б]
@@ -362,9 +366,9 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264310 б]
+  I.10.05.04       tsconfig.tsbuildinfo [264933 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [130556 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [130763 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -520,6 +524,7 @@
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
   I.9.04.60        scripts/test-council.ts [9248 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
+  I.9.04.62        scripts/test-treasury.ts [7765 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
   I.9.05.02        scripts/test-ws-chat.ts [6250 б]
   I.9.05.03        scripts/test-ws-pulse.ts [4729 б]
@@ -761,5 +766,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  544
+  Файлов с содержимым:  549
   Пустых файлов:        157

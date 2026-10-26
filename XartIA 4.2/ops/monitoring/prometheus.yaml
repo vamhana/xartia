@@ -1,0 +1,106 @@
+# =============================================================================
+# Prometheus — конфигурация сбора метрик XartIA
+#
+# Block: O.1.01.04
+# Depends on: O.1.01.01 (dashboard.json — потребитель метрик)
+#
+# Источники метрик:
+#   - node-exporter (система)
+#   - xartia-exporter (on-chain метрики, custom)
+#
+# Метрики из xartia-exporter:
+#   - xartia_reserve_18dec, xartia_curveBacking_18dec, xartia_freeReserve_18dec
+#   - xartia_Scurve_18dec, xartia_currentLevel
+#   - xartia_poolPrice_18dec, xartia_poolPrice_floor_18dec, xartia_poolPrice_ceiling_18dec
+#   - xartia_treasuryBalance_6dec, xartia_sellTeamFee_bp, xartia_roundTripCost_bp
+#   - xartia_circuitBreakerActive, xartia_circuitBreakerThreshold_bp
+#   - xartia_poolControllerUsdcBalance_6dec
+#   - xartia_allowance_poolController_to_curveController
+#   - xartia_totalSupply_eq_Scurve, xartia_usdcCustody
+#   - xartia_revert_*_total (counters, O.1.01.05 — если через Tenderly)
+#   - xartia_buy_total, xartia_redeem_total, xartia_buyFromPool_total, xartia_sellToPool_total
+#   - xartia_teamFee_total, xartia_sellTeamFee_total
+#   - xartia_gas_buyFromCurve, xartia_gas_redeemFromCurve, xartia_gas_buyFromPool, xartia_gas_sellToPool
+#   - xartia_effectiveMinimalX6
+#   - xartia_buyFromPool_cascade_total
+# =============================================================================
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    network: amoy
+    protocol: xartia
+
+rule_files:
+  - "ops/monitoring/alerts.yaml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  # ---------------------------------------------------------------------------
+  # XartIA on-chain exporter (custom)
+  # ---------------------------------------------------------------------------
+  - job_name: "xartia-rpc"
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - "xartia-exporter:9101"
+        labels:
+          network: amoy
+          chain_id: "80002"
+          instance: "amoy-primary"
+      - targets:
+          - "xartia-exporter:9102"
+        labels:
+          network: polygon
+          chain_id: "137"
+          instance: "polygon-primary"
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: xartia-exporter:9100
+
+  # ---------------------------------------------------------------------------
+  # XartIA revert counters (из indexer / Tenderly)
+  # ---------------------------------------------------------------------------
+  - job_name: "xartia-indexer"
+    scrape_interval: 60s
+    static_configs:
+      - targets:
+          - "xartia-indexer:9103"
+        labels:
+          network: amoy
+
+  # ---------------------------------------------------------------------------
+  # Node exporter (система)
+  # ---------------------------------------------------------------------------
+  - job_name: "node"
+    static_configs:
+      - targets:
+          - "node-exporter:9100"
+
+  # ---------------------------------------------------------------------------
+  # Prometheus self
+  # ---------------------------------------------------------------------------
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+
+  # ---------------------------------------------------------------------------
+  # Alertmanager
+  # ---------------------------------------------------------------------------
+  - job_name: "alertmanager"
+    static_configs:
+      - targets:
+          - "alertmanager:9093"

@@ -1,0 +1,233 @@
+# =============================================================================
+# CI/CD: Deploy workflow
+#
+# Triggered manually (workflow_dispatch) with network selection.
+# Mainnet (polygon) requires 2 approvals via GitHub environment protection.
+# Amoy testnet — no approval required.
+#
+# Pipeline: Deploy → Initialize → Verify → Finalize
+#
+# Block: I.1.01.02
+# Depends on: D.1.01.01 (Deploy.s.sol), D.1.01.02 (Initialize.s.sol),
+#             D.1.01.04 (Verify.s.sol), D.1.01.07 (Finalize.s.sol),
+#             D.2.01.03 (.env)
+# =============================================================================
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: "Network to deploy"
+        required: true
+        type: choice
+        options:
+          - amoy
+          - polygon
+        default: amoy
+      skip_verify:
+        description: "Skip verification (Polygonscan)"
+        required: false
+        type: boolean
+        default: false
+      skip_finalize:
+        description: "Skip finalize (ownership transfer)"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ inputs.network }}
+  cancel-in-progress: false
+
+env:
+  FOUNDRY_PROFILE: default
+
+jobs:
+  preflight:
+    name: Pre-flight checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      network: ${{ inputs.network }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Validate network
+        run: |
+          case "${{ inputs.network }}" in
+            amoy|polygon) echo "network: ${{ inputs.network }}" ;;
+            *) echo "::error::Invalid network"; exit 1 ;;
+          esac
+
+      - name: Check config exists
+        run: |
+          test -f "config/${{ inputs.network }}.toml" || { echo "::error::config missing"; exit 1; }
+          echo "config/${{ inputs.network }}.toml found"
+
+      - name: Validate required secrets
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+        run: |
+          test -n "${PRIVATE_KEY}" || { echo "::error::DEPLOYER_PRIVATE_KEY missing"; exit 1; }
+          test -n "${POLYGONSCAN_API_KEY}" || { echo "::error::POLYGONSCAN_API_KEY missing"; exit 1; }
+          echo "secrets OK"
+
+  deploy:
+    name: Deploy (${{ inputs.network }})
+    runs-on: ubuntu-latest
+    needs: preflight
+    # Mainnet requires environment approval (2 reviewers configured in GitHub)
+    environment:
+      name: ${{ inputs.network == 'polygon' && 'mainnet' || 'testnet' }}
+      url: ${{ steps.deploy.outputs.url || '' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with: { version: stable }
+
+      - name: Install Node (for verification)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.11.1"
+
+      - name: Install Solidity deps
+        run: |
+          forge install foundry-rs/forge-std --no-commit || true
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit || true
+
+      - name: Write .env
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+          NETWORK: ${{ inputs.network }}
+        run: |
+          cat > .env <<EOF
+          PRIVATE_KEY=${PRIVATE_KEY}
+          POLYGONSCAN_API_KEY=${POLYGONSCAN_API_KEY}
+          NETWORK=${NETWORK}
+          EOF
+
+      - name: "Deploy: Deploy.s.sol"
+        env:
+          NETWORK: ${{ inputs.network }}
+        run: |
+          mkdir -p deployments
+          forge script script/Deploy.s.sol \
+            --rpc-url "$(grep '^rpc_url' "config/${NETWORK}.toml" | cut -d'"' -f2)" \
+            --private-key "${{ secrets.DEPLOYER_PRIVATE_KEY }}" \
+            --broadcast
+
+      - name: "Deploy: Initialize.s.sol"
+        env:
+          NETWORK: ${{ inputs.network }}
+        run: |
+          forge script script/Initialize.s.sol \
+            --rpc-url "$(grep '^rpc_url' "config/${NETWORK}.toml" | cut -d'"' -f2)" \
+            --private-key "${{ secrets.DEPLOYER_PRIVATE_KEY }}" \
+            --broadcast
+
+      - name: "Verify: Verify.s.sol"
+        if: ${{ !inputs.skip_verify }}
+        env:
+          NETWORK: ${{ inputs.network }}
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+        run: |
+          forge script script/Verify.s.sol \
+            --rpc-url "$(grep '^rpc_url' "config/${NETWORK}.toml" | cut -d'"' -f2)" \
+            --private-key "${{ secrets.DEPLOYER_PRIVATE_KEY }}" \
+            --broadcast
+
+      - name: "Deploy: Finalize.s.sol"
+        if: ${{ !inputs.skip_finalize }}
+        env:
+          NETWORK: ${{ inputs.network }}
+        run: |
+          forge script script/Finalize.s.sol \
+            --rpc-url "$(grep '^rpc_url' "config/${NETWORK}.toml" | cut -d'"' -f2)" \
+            --private-key "${{ secrets.DEPLOYER_PRIVATE_KEY }}" \
+            --broadcast
+
+      - name: Set deployment outputs
+        id: deploy
+        env:
+          NETWORK: ${{ inputs.network }}
+        run: |
+          FACTORY=$(jq -r '.factory' "deployments/${NETWORK}.json")
+          echo "factory=${FACTORY}" >> "$GITHUB_OUTPUT"
+          case "${NETWORK}" in
+            polygon) echo "url=https://polygonscan.com/address/${FACTORY}" >> "$GITHUB_OUTPUT" ;;
+            amoy)    echo "url=https://amoy.polygonscan.com/address/${FACTORY}" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-${{ inputs.network }}-${{ github.run_number }}
+          path: deployments/${{ inputs.network }}.json
+          retention-days: 90
+
+      - name: Print summary
+        run: |
+          echo "## Deployment to ${{ inputs.network }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Factory: [${{ steps.deploy.outputs.factory }}](${{ steps.deploy.outputs.url }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Deployments JSON" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat "deployments/${{ inputs.network }}.json" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  post-deploy-check:
+    name: Post-deploy health check
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: ${{ !inputs.skip_finalize }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: foundry-rs/foundry-toolchain@v1
+        with: { version: stable }
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-${{ inputs.network }}-${{ github.run_number }}
+          path: deployments
+      - name: Verify on-chain state
+        env:
+          NETWORK: ${{ inputs.network }}
+        run: |
+          RPC=$(grep '^rpc_url' "config/${NETWORK}.toml" | cut -d'"' -f2)
+          FACTORY=$(jq -r '.factory' "deployments/${NETWORK}.json")
+          CURVE=$(jq -r '.curveController' "deployments/${NETWORK}.json")
+          RM=$(jq -r '.reserveManager' "deployments/${NETWORK}.json")
+
+          echo "=== On-chain state ==="
+          echo "factory:          ${FACTORY}"
+          echo "curveController:  ${CURVE}"
+          echo "reserveManager:   ${RM}"
+
+          # sanity checks
+          S=$(cast call "${RM}" "S_curve()(uint256)" --rpc-url "${RPC}")
+          echo "S_curve = ${S}"
+
+          PRICE=$(cast call "$(jq -r '.poolState' "deployments/${NETWORK}.json")" "poolPrice()(uint256)" --rpc-url "${RPC}")
+          echo "poolPrice = ${PRICE}"
+
+          OWNER=$(cast call "${CURVE}" "owner()(address)" --rpc-url "${RPC}")
+          echo "curveController owner = ${OWNER}"
+
+          SAFE=$(jq -r '.safe' "deployments/${NETWORK}.json")
+          if [ "$(echo ${OWNER} | tr '[:upper:]' '[:lower:]')" != "$(echo ${SAFE} | tr '[:upper:]' '[:lower:]')" ]; then
+            echo "::error::curveController owner != safe"
+            exit 1
+          fi
+          echo "ownership OK"
