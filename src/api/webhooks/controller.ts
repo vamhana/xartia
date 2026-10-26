@@ -20,6 +20,7 @@ import {
   listDeliveries,
   retryDelivery,
   processRetries,
+  rotateWebhookSecret,
   ALLOWED_EVENTS,
 } from '../../core/webhooks/service.js';
 import { uuidSchema } from '../../lib/validators.js';
@@ -233,4 +234,23 @@ export async function registerWebhooksRoutes(
       reply.send({ ...r, audit_id: req.auditId });
     },
   );
+
+  // POST /webhooks/:id/rotate-secret — новый секрет (показывается один раз).
+  app.post(
+    '/webhooks/:id/rotate-secret',
+    {
+      preHandler: [
+        authMiddleware,
+        requireRight('webhook', 'E'),
+        validateParams(idParams),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof idParams>;
+      const r = await rotateWebhookSecret(p.id, auth.participantId);
+      reply.send({ ...r, audit_id: req.auditId });
+    },
+  );
+
 }

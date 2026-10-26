@@ -249,7 +249,8 @@ export async function listWebhooks(_requesterId: UUID): Promise<Webhook[]> {
       ORDER BY created_at DESC
       LIMIT 200`,
   );
-  return rows.map(rowToWebhook);
+  // Секрет не покидает сервер: он возвращается только при создании/ротации.
+  return rows.map((row) => ({ ...rowToWebhook(row), secret: '' }));
 }
 
 export interface UpdateWebhookServiceInput {
@@ -615,3 +616,29 @@ export async function processRetries(): Promise<{
 // ─── Константы/типы для контроллера ─────────────────────────────
 
 export { ALLOWED_EVENTS, MAX_ATTEMPTS, MAX_RESPONSE_BODY_BYTES };
+
+/** Новый секрет: старый сразу перестаёт действовать. Возвращается один раз. */
+export async function rotateWebhookSecret(
+  id: UUID,
+  requesterId: UUID,
+): Promise<{ secret: string }> {
+  const row = await queryOne<WebhookRow>(
+    `SELECT id, url, events, secret, active, created_by, created_at, updated_at
+       FROM webhooks WHERE id = $1`,
+    [id],
+  );
+  if (!row) {throw new NotFoundError('Webhook', id);}
+
+  const secret = generateSecret();
+  await query(
+    `UPDATE webhooks SET secret = $2, updated_at = now() WHERE id = $1`,
+    [id, encrypt(secret, getEncryptionKey())],
+  );
+
+  await logAction({
+    actorId: requesterId, actorType: 'participant',
+    action: 'webhook.secret_rotated', entityType: 'webhook', entityId: id,
+  });
+
+  return { secret };
+}
