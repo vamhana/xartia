@@ -41,6 +41,8 @@ const state: WSState = {
 };
 
 const subscriptions = new Set<Subscription>();
+/** Последний ts события по каналу — для catch-up после разрыва. */
+const lastEventTs = new Map<string, number>();
 const statusListeners = new Set<(s: WSState) => void>();
 
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -158,24 +160,38 @@ export async function connect(): Promise<void> {
     // Переподписываемся на все каналы.
     for (const sub of subscriptions) {
       try {
-        socket.send(JSON.stringify({ action: 'subscribe', channel: sub.channel }));
+        socket.send(JSON.stringify({
+          action: 'subscribe',
+          channel: sub.channel,
+          since: lastEventTs.get(sub.channel) ?? 0,
+        }));
       } catch { /* ignore */ }
     }
   });
 
   socket.addEventListener('message', (ev: MessageEvent<string>) => {
     try {
-      const msg = JSON.parse(ev.data) as { event: string; payload: unknown };
-      const { event, payload } = msg;
+      const msg = JSON.parse(ev.data) as {
+        event: string;
+        payload: unknown;
+        channel?: string;
+        ts?: number;
+      };
+      const { event, payload, channel } = msg;
       if (event === 'pong') {
         if (state.lastPingAt) {
           state.latencyMs = Date.now() - state.lastPingAt;
         }
         return;
       }
-      // Рассылаем подписчикам по каналу; канал лежит в payload.channelId
-      // или мы шлём всем — каждый handler сам фильтрует.
+      if (channel && typeof msg.ts === 'number') {
+        const prev = lastEventTs.get(channel) ?? 0;
+        if (msg.ts > prev) {lastEventTs.set(channel, msg.ts);}
+      }
+      // Если сервер указал канал — доставляем только его подписчикам.
+      // Без channel (participant/direction/role) — всем, как раньше.
       for (const sub of subscriptions) {
+        if (channel && sub.channel !== channel) {continue;}
         try { sub.handler(event, payload); } catch { /* ignore */ }
       }
     } catch { /* ignore */ }
@@ -221,7 +237,11 @@ export function subscribe(channel: string, handler: MessageHandler): () => void 
   // Если уже подключены — сразу подписываемся.
   if (state.socket?.readyState === WebSocket.OPEN) {
     try {
-      state.socket.send(JSON.stringify({ action: 'subscribe', channel }));
+      state.socket.send(JSON.stringify({
+          action: 'subscribe',
+          channel,
+          since: lastEventTs.get(channel) ?? 0,
+        }));
     } catch { /* ignore */ }
   }
 

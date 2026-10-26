@@ -130,6 +130,7 @@ export function ChannelView({ channel, onChannelRemoved, onBack }: Props): React
   const myName = user?.participant.name ?? null;
 
   const [messages, setMessages] = useState<ChatMessageRich[]>([]);
+  const [online, setOnline] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -190,6 +191,11 @@ export function ChannelView({ channel, onChannelRemoved, onBack }: Props): React
 
   // WS — на комнату канала.
   useWSSubscription(`chat:${channel.channelId}`, (event, payload) => {
+    if (event === 'presence') {
+      const presence = payload as { participants?: string[] };
+      setOnline(presence.participants ?? []);
+      return;
+    }
     const p = payload as {
       channelId?: string;
       message?: ChatMessageRich;
@@ -369,6 +375,12 @@ export function ChannelView({ channel, onChannelRemoved, onBack }: Props): React
         )}
         <div style={styles.headerMain}>
           <h2 style={styles.h2}>{channel.displayName}</h2>
+          {online.length > 0 && (
+            <span style={styles.presence}>
+              <span style={styles.presenceDot} />
+              {online.length} онлайн
+            </span>
+          )}
           {channel.channelType !== 'direct' && (
             <Badge tone="info">{channel.channelType}</Badge>
           )}
@@ -551,6 +563,20 @@ const styles = {
     minWidth: 0,
   } as const,
   headerActions: { display: 'flex', gap: spacing.xs, flexShrink: 0 } as const,
+  presence: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: fontSize.xs,
+    color: colors.success,
+  },
+  presenceDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    background: colors.success,
+    display: 'inline-block',
+  },
   h2: { fontSize: fontSize.md, fontWeight: 600, margin: 0, color: colors.text } as const,
   muted: { color: colors.textMuted, fontSize: fontSize.sm } as const,
   scroll: { flex: 1, overflowY: 'auto', padding: spacing.md } as const,

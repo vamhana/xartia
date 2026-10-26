@@ -31,9 +31,10 @@ async function call<T = unknown>(
   return { status: res.status, data: data as T };
 }
 
-interface WsEvent { event: string; payload: unknown; }
+interface WsEvent { event: string; payload: unknown; ts?: number; channel?: string; }
 
-const received: WsEvent[] = [];
+/** Буфер событий на каждый сокет (у reconnect — свой). */
+const buffers = new WeakMap<WebSocket, WsEvent[]>();
 
 function waitFor(
   socket: WebSocket,
@@ -41,11 +42,12 @@ function waitFor(
   timeoutMs = 8000,
 ): Promise<WsEvent> {
   return new Promise((resolve, reject) => {
-    // Сообщения могли прийти до вызова waitFor — проверяем буфер.
-    const buffered = received.find(predicate);
-    if (buffered) {
-      received.splice(received.indexOf(buffered), 1);
-      resolve(buffered);
+    // Сообщения могли прийти до вызова waitFor — проверяем буфер сокета.
+    const buf = buffers.get(socket) ?? [];
+    const idx = buf.findIndex(predicate);
+    if (idx >= 0) {
+      const [buffered] = buf.splice(idx, 1);
+      resolve(buffered!);
       return;
     }
     const timer = setTimeout(() => {
@@ -83,11 +85,14 @@ async function main(): Promise<void> {
   const me = login.data.participant.id;
 
   const socket = new WebSocket(`${WS}?token=${encodeURIComponent(token)}`);
-  socket.addEventListener('message', (ev) => {
+  const pushEvent = (target: WebSocket, ev: MessageEvent): void => {
+    const list = buffers.get(target) ?? [];
     try {
-      received.push(JSON.parse(String(ev.data)) as WsEvent);
+      list.push(JSON.parse(String(ev.data)) as WsEvent);
     } catch { /* ignore */ }
-  });
+    buffers.set(target, list);
+  };
+  socket.addEventListener('message', (ev) => pushEvent(socket, ev));
   const connected = await waitFor(socket, (e) => e.event === 'connected');
   if ((connected.payload as { participantId?: string }).participantId === me) {
     ok('подключение авторизовано (participantId совпал)');
@@ -120,6 +125,7 @@ async function main(): Promise<void> {
   else { fail(`ожидали FORBIDDEN, получили ${code}`); }
 
   // Доменное событие: создаём и назначаем задачу — должен прийти task.assigned.
+  let lastEventTs = 0;
   const task = await call<{ id: string }>(
     'POST', '/tasks',
     { direction_id: (await call<{ data: Array<{ id: string; number: number }> }>(
@@ -133,13 +139,42 @@ async function main(): Promise<void> {
     await call('POST', `/tasks/${task.data.id}/assign`, { participant_id: me }, token);
     try {
       const ev = await assigned;
+      lastEventTs = ev.ts ?? 0;
       ok(`событие доставлено: ${ev.event}`);
     } catch {
       fail('task.assigned не дошёл за 8с');
     }
   }
 
+  // Catch-up: после разрыва клиент присылает since и получает пропущенное.
+  const lastTs = lastEventTs;
   socket.close();
+  await new Promise((r) => setTimeout(r, 300));
+
+  const socket2 = new WebSocket(`${WS}?token=${encodeURIComponent(token)}`);
+  socket2.addEventListener('message', (ev) => pushEvent(socket2, ev));
+  await waitFor(socket2, (e) => e.event === 'connected');
+  let catchupOk = false;
+  for (let attempt = 1; attempt <= 3 && !catchupOk; attempt++) {
+    socket2.send(JSON.stringify({
+      action: 'subscribe',
+      channel: 'tasks',
+      requestId: `catchup-${attempt}`,
+      since: Math.max(0, lastTs - 1),
+    }));
+    await waitFor(socket2, (e) => e.event === 'subscribed');
+    try {
+      const replayed = await waitFor(socket2, (e) => e.event === 'task.assigned', 4000);
+      ok(`catch-up: пропущенное событие доставлено (${replayed.event})`);
+      catchupOk = true;
+    } catch {
+      // повторяем: бэклог в Redis мог ещё не записаться
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  if (!catchupOk) {fail('catch-up не доставил пропущенное событие');}
+  socket2.close();
+
   console.log('\n✅ done');
 }
 

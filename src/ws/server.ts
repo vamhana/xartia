@@ -479,6 +479,8 @@ interface ClientMessage {
   requestId?: string;
   event?: string;
   payload?: unknown;
+  /** Время последнего полученного события (catch-up после разрыва). */
+  since?: number;
 }
 
 async function handleClientMessage(conn: WSConnection, raw: Buffer): Promise<void> {
@@ -527,6 +529,11 @@ async function handleClientMessage(conn: WSConnection, raw: Buffer): Promise<voi
       set.add(conn.id);
       send(conn, 'subscribed', { channel: msg.channel, requestId: msg.requestId });
       broadcastPresence(msg.channel);
+
+      // Догон пропущенного: клиент присылает since (ms последнего события).
+      if (typeof msg.since === 'number' && msg.since > 0) {
+        await replayBacklog(conn, msg.channel, msg.since);
+      }
       return;
     }
     case 'unsubscribe': {
@@ -587,7 +594,13 @@ async function handleClientMessage(conn: WSConnection, raw: Buffer): Promise<voi
 
 // -------- Отправка конкретному сокету --------
 
-function send(conn: WSConnection, event: string, payload: unknown): void {
+function send(
+  conn: WSConnection,
+  event: string,
+  payload: unknown,
+  channel?: string,
+  ts?: number,
+): void {
   if (conn.socket.readyState !== conn.socket.OPEN) {return;}
   if (conn.socket.bufferedAmount > MAX_BUFFERED_BYTES) {
     logger.warn(
@@ -602,7 +615,12 @@ function send(conn: WSConnection, event: string, payload: unknown): void {
     return;
   }
   try {
-    conn.socket.send(JSON.stringify({ event, payload }));
+    conn.socket.send(JSON.stringify({
+      event,
+      payload,
+      ...(channel ? { channel } : {}),
+      ts: ts ?? Date.now(),
+    }));
   } catch (e) {
     logger.warn({ err: e, connectionId: conn.id }, 'ws: send failed');
   }
@@ -663,7 +681,56 @@ async function dispatchFromRedis(redisChannel: string, raw: string): Promise<voi
   }
 }
 
+
+// -------- Catch-up (last-event-id по времени) --------
+//
+// История событий канала хранится в Redis (LPUSH/LTRIM). Клиент при
+// переподключении присылает since=ms последнего события и получает пропущенное.
+
+const BACKLOG_MAX = 200;
+const BACKLOG_TTL_SEC = 3600;
+
+async function rememberEvent(
+  channel: string,
+  event: string,
+  payload: unknown,
+  ts: number,
+): Promise<void> {
+  try {
+    const key = `ws:backlog:${channel}`;
+    await redis.lpush(key, JSON.stringify({ event, payload, channel, ts }));
+    await redis.ltrim(key, 0, BACKLOG_MAX - 1);
+    await redis.expire(key, BACKLOG_TTL_SEC);
+  } catch (e) {
+    logger.warn({ err: e, channel }, 'ws: backlog write failed');
+  }
+}
+
+async function replayBacklog(conn: WSConnection, channel: string, since: number): Promise<void> {
+  try {
+    const raw = await redis.lrange(`ws:backlog:${channel}`, 0, -1);
+    const entries = raw
+      .map((s) => {
+        try { return JSON.parse(s) as { event: string; payload: unknown; ts: number }; }
+        catch { return null; }
+      })
+      .filter((e): e is { event: string; payload: unknown; ts: number } => e !== null)
+      .filter((e) => e.ts > since)
+      .sort((a, b) => a.ts - b.ts);
+    for (const e of entries) {
+      send(conn, e.event, e.payload, channel);
+    }
+  } catch (e) {
+    logger.warn({ err: e, channel }, 'ws: backlog replay failed');
+  }
+}
+
 function dispatchToChannel(channel: string, event: string, payload: unknown): void {
+  const ts = Date.now();
+  // Catch-up: помним последние события канала в Redis, чтобы клиент после
+  // разрыва мог догнать пропущенное (last-event-id по времени).
+  void rememberEvent(channel, event, payload, ts);
+
   const set = byChannel.get(channel);
   if (!set) {return;}
   const handler = channelHandlers.get(channel);
