@@ -462,6 +462,7 @@ export async function seedTemplates(
   // после widgets, чтобы установка «с нуля» давала рабочие панели.
   if (selected.includes('widgets')) {
     await seedPanels();
+  await seedProductPanels();
   }
   result.all = ALL_TEMPLATES.reduce((s, t) => s + result[t], 0);
 
@@ -816,6 +817,87 @@ async function seedPanels(): Promise<number> {
       );
       inserted += 1;
     }
+  }
+  return inserted;
+}
+
+/**
+ * Продуктовые виджеты панелей (D.2.01.44/45): казна, Совет, надзор,
+ * наставничество, сделки и активы. Миграции 044/045 на чистой базе
+ * пропускаются (нет Архитектора), поэтому добиваем здесь — после seed.
+ */
+async function seedProductPanels(): Promise<number> {
+  const arch = await getFirstArchitectId();
+  if (!arch) {return 0;}
+
+  const libs: Array<[string, string]> = [
+    ['metric', 'treasury_price'],
+    ['metric', 'treasury_coverage'],
+    ['list', 'signatories'],
+    ['table', 'spend_requests'],
+    ['card', 'council'],
+    ['tree', 'oversight'],
+    ['table', 'mentees'],
+    ['table', 'transactions'],
+    ['table', 'assets'],
+    ['list', 'dictionary'],
+    ['table', 'plans'],
+  ];
+  for (const [type, entity] of libs) {
+    await query(
+      `INSERT INTO widgets (type, entity, config, default_rights, created_by)
+       SELECT $1::text, $2::text, '{}'::jsonb, '{}'::jsonb, $3::uuid
+        WHERE NOT EXISTS (
+          SELECT 1 FROM widgets WHERE type = $1::text AND entity = $2::text
+        )`,
+      [type, entity, arch],
+    );
+  }
+
+  type Extra = { panel: string; role?: string; dir?: number; type: string; entity: string; x: number; y: number; w: number; h: number; title: string };
+  const extras: Extra[] = [
+    { panel: 'FIRST_ARCHITECT', role: 'FIRST_ARCHITECT', type: 'metric', entity: 'treasury_price', x: 0, y: 8, w: 3, h: 3, title: 'Курс казны' },
+    { panel: 'FIRST_ARCHITECT', role: 'FIRST_ARCHITECT', type: 'metric', entity: 'treasury_coverage', x: 3, y: 8, w: 3, h: 3, title: 'Покрытие пола' },
+    { panel: 'FIRST_ARCHITECT', role: 'FIRST_ARCHITECT', type: 'list', entity: 'signatories', x: 6, y: 8, w: 6, h: 3, title: 'Подписанты казны' },
+    { panel: 'FIRST_ARCHITECT', role: 'FIRST_ARCHITECT', type: 'table', entity: 'spend_requests', x: 0, y: 11, w: 6, h: 4, title: 'Запросы трат' },
+    { panel: 'FIRST_ARCHITECT', role: 'FIRST_ARCHITECT', type: 'tree', entity: 'oversight', x: 6, y: 11, w: 6, h: 4, title: 'Надзор: планы → ячейки' },
+    { panel: 'COUNCIL_MEMBER', role: 'COUNCIL_MEMBER', type: 'card', entity: 'council', x: 0, y: 7, w: 4, h: 4, title: 'Совет направления' },
+    { panel: 'COUNCIL_MEMBER', role: 'COUNCIL_MEMBER', type: 'table', entity: 'spend_requests', x: 4, y: 7, w: 4, h: 4, title: 'Траты на подпись' },
+    { panel: 'COUNCIL_MEMBER', role: 'COUNCIL_MEMBER', type: 'metric', entity: 'treasury_coverage', x: 8, y: 7, w: 4, h: 4, title: 'Покрытие пола' },
+    { panel: 'BALANCER', role: 'BALANCER', type: 'tree', entity: 'oversight', x: 0, y: 7, w: 8, h: 5, title: 'Надзор: планы → ячейки' },
+    { panel: 'BALANCER', role: 'BALANCER', type: 'metric', entity: 'treasury_coverage', x: 8, y: 7, w: 4, h: 3, title: 'Покрытие пола' },
+    { panel: 'VERIFIER', role: 'VERIFIER', type: 'table', entity: 'spend_requests', x: 0, y: 7, w: 6, h: 4, title: 'Запросы трат' },
+    { panel: 'KEEPER', role: 'KEEPER', type: 'table', entity: 'spend_requests', x: 0, y: 7, w: 6, h: 4, title: 'Запросы трат' },
+    { panel: 'OBLIVION', role: 'OBLIVION', type: 'list', entity: 'dictionary', x: 8, y: 0, w: 4, h: 4, title: 'Словарь' },
+    { panel: 'GATEWAY', dir: 15, type: 'table', entity: 'transactions', x: 0, y: 5, w: 8, h: 4, title: 'Сделки Шлюза' },
+    { panel: 'GATEWAY', dir: 15, type: 'table', entity: 'assets', x: 8, y: 5, w: 4, h: 4, title: 'Активы' },
+    { panel: 'BALANCING', dir: 8, type: 'tree', entity: 'oversight', x: 0, y: 5, w: 12, h: 5, title: 'Надзор: планы → ячейки' },
+  ];
+
+  let inserted = 0;
+  for (const e of extras) {
+    const cond = e.role
+      ? `p.name = 'Роль: ${e.role}'`
+      : e.dir === 15
+        ? `d.number = 15 AND p.role_id IS NULL`
+        : `d.number = 8 AND p.role_id IS NULL`;
+    const r = await query<{ id: string }>(
+      `INSERT INTO panel_widgets (panel_id, widget_id, position, size, overrides)
+       SELECT p.id, w.id,
+              jsonb_build_object('x', $1::int, 'y', $2::int),
+              jsonb_build_object('w', $3::int, 'h', $4::int),
+              jsonb_build_object('title', $5::text)
+         FROM panels p
+         ${e.role ? '' : 'JOIN directions d ON d.id = p.direction_id'}
+         JOIN widgets w ON w.type = $6::text AND w.entity = $7::text
+        WHERE ${cond}
+          AND NOT EXISTS (
+            SELECT 1 FROM panel_widgets pw WHERE pw.panel_id = p.id AND pw.widget_id = w.id
+          )
+       RETURNING panel_id AS id`,
+      [e.x, e.y, e.w, e.h, e.title, e.type, e.entity],
+    );
+    inserted += r.length;
   }
   return inserted;
 }
