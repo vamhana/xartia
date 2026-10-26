@@ -276,6 +276,11 @@
 |Публичный API: REST.
 |↙ ПОТРЕБЛЯЕТ: C.0.04.10, C.0.04.11, C.0.04.12.
 |↘ ПРЕДОСТАВЛЯЕТ: F.4.02.10 (панели), A.1.04.01 (ячейки).
+|A.1.04.21|API|Controller|TypeScript|src/api/reassignment/controller.ts|C.0.04.13|v.0.0.01|Draft|—|
+|Описание: REST сигналов перестановки: POST /reassignment-signals, GET списка/карточки, escalate, resolve, reject.
+|Публичный API: REST.
+|↙ ПОТРЕБЛЯЕТ: C.0.04.13.
+|↘ ПРЕДОСТАВЛЯЕТ: страницы ячеек/ОТК.
 |Описание: Контроллер Cells. **8 эндпоинтов** из 10 заявленных: tree, card, members, children, create, add/remove member. Отсутствуют `PATCH /cells/:id`, `DELETE /cells/:id` (roadmap — нет сервисных функций). Права: `cell:C` (create, add member), `cell:D` (remove member). `GET`-эндпоинты — только `authMiddleware` (без `requireRight`). `uuidIdParams` из L.0.01.03; `memberParams = uuidIdParams.extend({ participant_id: uuidSchema })`. Zod-схемы: `listQuery` (**с `roots_only`**), `createBody`, `addMemberBody`. `addMemberBody.role_in_cell` — enum из 8 значений. **`listQuery.roots_only`** — `z.coerce.boolean().optional()` — фильтр «только корни» (`parent_cell_id IS NULL`); если задан, `parent_cell_id` игнорируется. |
 |Публичный API:
 - `GET /cells` — preHandler `[authMiddleware, validateQuery(listQuery)]`. Query: `{ direction_id?, level (coerce 0..11)?, parent_cell_id?, **roots_only? (coerce boolean)** }`. `listCells({ directionId?, level?, parentCellId?, rootsOnly? })`. → 200 `{ data: Cell[], audit_id }`.
@@ -3935,6 +3940,11 @@
 |Публичный API: getCellReadiness(cellId), markCellReady(cellId).
 |↙ ПОТРЕБЛЯЕТ: C.0.04.02, D.2.01.53 (plans.cell_id), C.0.35.01 (планы).
 |↘ ПРЕДОСТАВЛЯЕТ: A.1.04.01, X.0.01.15.
+|C.0.04.13|Core|Domain|TypeScript|src/core/cells/reassignment.ts|C.0.04.12|v.0.0.01|Draft|—|
+|Описание: Сигналы перестановки: создание с уровнем 0–3, эскалация до L3, решение/отклонение с историей.
+|Публичный API: create/list/get/escalate/resolve/reject.
+|↙ ПОТРЕБЛЯЕТ: D.2.01.54, C.0.04.02.
+|↘ ПРЕДОСТАВЛЯЕТ: A.1.04.21, F.4.02.10.
 |Описание: Сервис ячеек. **10 публичных функций**: `listCells` (с `rootsOnly`), `getById`, `getMembers`, `getChildren`, `buildTree` (WITH RECURSIVE + Redis-кэш TTL 300), `createCellService`, `addMemberService`, `removeMemberService`, **`invalidateCache(cellId?)`** (публичная, для внешних потребителей). **Инвалидация кэша дерева — по цепочке предков** (`invalidateTreeAncestors` через `WITH RECURSIVE`, B1/B4). **`addMemberService` проверяет `participant.direction_id === cell.directionId`** (B2). **`createCellService` проверяет `parent.directionId === input.directionId`** (B3). **`buildTree` — 1 запрос вместо N+1** (B5). **`listCells` — флаг `rootsOnly`** (B6). `members_count` обновляется триггером D.4.01.07. **`getMembersCount` не реализован** (упоминался в старой спеке). `updateCellService`/`deleteCellService` — roadmap. |
 |Публичный API (10 функций):
 - `interface CellFilter { directionId?; level?; parentCellId?; **rootsOnly?** }`.
@@ -10742,6 +10752,10 @@
 |Описание: participant_competencies, plans.cell_id, cells.status (forming/ready/frozen) — ёмкость и готовность ячеек.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.03 (участники), D.2.01.35 (планы), D.2.01.23 (ячейки).
 |↘ ПРЕДОСТАВЛЯЕТ: C.0.04.10–C.0.04.12.
+|D.2.01.54|DB|Migration|SQL|db/migrations/054_reassignment_signals.sql|D.2.01.23|v.0.0.01|Draft|—|
+|Описание: reassignment_signals — сигналы перестановки L0–L3: ячейка/задача/направление, причина, статус, кто поднял и кто решил.
+|↙ ПОТРЕБЛЯЕТ: D.2.01.23 (ячейки), D.2.01.42 (задачи).
+|↘ ПРЕДОСТАВЛЯЕТ: C.0.04.13, A.1.04.21.
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
 |Публичный API:
@@ -24842,6 +24856,11 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |Публичный API: pnpm tsx scripts/test-capacity-cells.ts <phone> <password>.
 |↙ ПОТРЕБЛЯЕТ: C.0.04.10, C.0.04.12, A.1.04.20.
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — ёмкость и ячейки» в I.1.01.16.
+|I.9.04.68|Infra|Test|TypeScript|scripts/test-reassignment.ts|C.0.04.13|v.0.0.01|Draft|—|
+|Описание: Тест сигналов перестановки: L0 → L1 → L2 → L3, запрет выше L3, resolve и повторный resolve 409, фильтр списка, reject, уровень 4 → 422, несуществующая ячейка → 404.
+|Публичный API: pnpm tsx scripts/test-reassignment.ts <phone> <password>.
+|↙ ПОТРЕБЛЯЕТ: C.0.04.13, A.1.04.21.
+|↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — перестановка» в I.1.01.16.
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
 |Публичный API:
