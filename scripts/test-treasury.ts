@@ -7,6 +7,7 @@ import 'dotenv/config';
 
 import { query } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+import { invalidateCache } from '../src/security/rbac.js';
 
 const BASE = process.env['API_URL'] ?? 'http://localhost:3000';
 const phone = process.argv[2] ?? process.env['ARCHITECT_PHONE'] ?? '+79001234567';
@@ -164,6 +165,7 @@ async function main(): Promise<void> {
         LIMIT 1`,
       [pid, architectId],
     );
+    await invalidateCache(pid);
     approvers.push(pid);
   }
   ok(`подписантов подготовлено: ${approvers.length}`);
