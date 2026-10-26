@@ -79,7 +79,8 @@ pnpm typecheck:web      # типы веба
 pwsh scripts/ci-local.ps1   # полный локальный прогон: 36 проверок (Windows)
 ```
 
-Подробнее — в [CONTRIBUTING.md](CONTRIBUTING.md).
+Подробнее в [CONTRIBUTING.md](CONTRIBUTING.md). Если стек не встаёт:
+[docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Что уже работает (и чем это проверено)
 
