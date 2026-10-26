@@ -119,9 +119,11 @@ async function main(): Promise<void> {
       consent_video: true,
       consent_data: true,
     });
+    const dirs = await req<{ data: Array<{ id: string; number: number }> }>('GET', '/directions');
+    const dirNumber = dirs.data.data.find((d) => d.id === me.direction_id)?.number ?? 1;
     const acc = await req<{ participant: { id: string } }>(
       'POST', `/admin/registration-requests/${reg.data.request_id}/accept`,
-      { direction_id: me.direction_id, name: `Исполнитель ${suffix}` },
+      { direction_id: me.direction_id, name: `Исполнитель ${suffix}`, direction_number: dirNumber },
     );
     if (acc.status !== 201) {
       console.error(`   ✗ не удалось создать исполнителя: ${acc.status}`);
