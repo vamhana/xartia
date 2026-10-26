@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   752
-  Файлов в проекте:        748
+  Блоков в спецификации:   753
+  Файлов в проекте:        749
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 559
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 560
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -134,12 +134,12 @@
   C.0.06.05        src/core/plans/tree.ts [3962 б]
   C.0.06.06        src/core/plans/oversight.ts [13458 б]
   C.0.07.01        src/core/tasks/entity.ts [4736 б]
-  C.0.07.02        src/core/tasks/service.ts [20881 б]
+  C.0.07.02        src/core/tasks/service.ts [24448 б]
   C.0.07.04        src/core/tasks/overdue.ts [3300 б]
   C.0.08.01        src/core/reports/entity.ts [2103 б]
   C.0.08.02        src/core/reports/service.ts [7527 б]
   C.0.09.01        src/core/otc/entity.ts [2834 б]
-  C.0.09.02        src/core/otc/service.ts [17151 б]
+  C.0.09.02        src/core/otc/service.ts [17243 б]
   C.0.10.01        src/core/signals/entity.ts [5423 б]
   C.0.10.02        src/core/signals/service.ts [18648 б]
   C.0.11.01        src/core/connections/entity.ts [4943 б]
@@ -148,8 +148,8 @@
   C.0.12.02        src/core/arbitrations/service.ts [10919 б]
   C.0.13.01        src/core/universal-runs/entity.ts [4581 б]
   C.0.13.02        src/core/universal-runs/service.ts [12668 б]
-  C.0.14.01        src/core/flows/entity.ts [2353 б]
-  C.0.14.02        src/core/flows/service.ts [11417 б]
+  C.0.14.01        src/core/flows/entity.ts [2481 б]
+  C.0.14.02        src/core/flows/service.ts [12036 б]
   C.0.15.01        src/core/goods/entity.ts [5407 б]
   C.0.15.02        src/core/goods/service.ts [17951 б]
   C.0.16.01        src/core/standards/entity.ts [1293 б]
@@ -260,6 +260,7 @@
   D.2.01.46        db/migrations/046_crisis_mentor_coordinator.sql [3686 б]
   D.2.01.47        db/migrations/047_unit_accounts.sql [2708 б]
   D.2.01.48        db/migrations/048_unit_accounts_unique.sql [634 б]
+  D.2.01.49        db/migrations/049_flow_idempotency.sql [852 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -373,7 +374,7 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [263669 б]
+  I.10.05.04       tsconfig.tsbuildinfo [263855 б]
   I.10.05.05       vite.config.ts [1171 б]
   I.10.05.06       tsconfig.web.tsbuildinfo [130809 б]
   I.3.00.01        k8s/README.md [40063 б]
@@ -491,7 +492,7 @@
   I.9.04.19        scripts/test-semantic.ts [15642 б]
   I.9.04.20        scripts/test-signals.ts [17273 б]
   I.9.04.21        scripts/test-standards.ts [15836 б]
-  I.9.04.22        scripts/test-tasks.ts [7384 б]
+  I.9.04.22        scripts/test-tasks.ts [10454 б]
   I.9.04.23        scripts/test-universal-runs-multi.ts [17161 б]
   I.9.04.24        scripts/test-verification.ts [19150 б]
   I.9.04.25        scripts/test-regime-middleware.ts [7552 б]
@@ -531,7 +532,7 @@
   I.9.04.59        scripts/test-tree-naryad.ts [11253 б]
   I.9.04.60        scripts/test-council.ts [9464 б]
   I.9.04.61        scripts/test-delegation.ts [7535 б]
-  I.9.04.62        scripts/test-treasury.ts [13087 б]
+  I.9.04.62        scripts/test-treasury.ts [12433 б]
   I.9.04.63        scripts/test-panels.ts [5299 б]
   I.9.04.64        scripts/test-ws.ts [7827 б]
   I.9.05.01        scripts/test-ws-server.ts [6555 б]
@@ -587,7 +588,7 @@
   S.0.01.07        src/security/gateway-isolation.ts [21128 б]
   S.0.01.08        src/security/integrity.ts [17645 б]
   T.0.08.01        .ws-test-env.json [775 б]
-  W.0.01.01        src/ws/server.ts [32423 б]
+  W.0.01.01        src/ws/server.ts [32469 б]
   W.0.01.02        src/ws/_helpers.ts [892 б]
   W.2.01.01        src/ws/signals.ts [4376 б]
   W.2.02.01        src/ws/tasks.ts [5043 б]
@@ -776,5 +777,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  559
+  Файлов с содержимым:  560
   Пустых файлов:        157

@@ -74,11 +74,25 @@ export async function charge(input: ChargeInput, requesterId: UUID): Promise<Flo
   const id = newUUID();
 
   await transaction(async (client) => {
-    // Триггер fn_update_flow_balance обновит flows
+    // task_flow_awards — атомарный «замок»: одно начисление на задачу.
+    if (input.taskId) {
+      const claim = await client.query(
+        `INSERT INTO task_flow_awards (task_id, participant_id, transaction_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (task_id) DO NOTHING
+         RETURNING task_id`,
+        [input.taskId, input.participantId, id],
+      );
+      if (claim.rowCount === 0) {
+        return; // уже начислено — второй INSERT не делаем
+      }
+    }
+    // Триггер fn_update_flow_balance обновит flows.
     await client.query(
-      `INSERT INTO flow_transactions (id, participant_id, type, amount, reason, source)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [id, input.participantId, input.type, input.amount, input.reason, input.source],
+      `INSERT INTO flow_transactions (id, participant_id, type, amount, reason, source, task_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, input.participantId, input.type, input.amount, input.reason,
+       input.source, input.taskId ?? null],
     );
   });
 
@@ -352,6 +366,7 @@ export async function awardForAcceptedTask(
     amount: 1,
     reason: `Приёмка задачи ${taskId}`,
     source: 'otc',
+    taskId,
   }, otcId);
 }
 

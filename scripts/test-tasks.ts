@@ -4,6 +4,7 @@
 import 'dotenv/config';
 
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+import { query } from '../src/lib/db.js';
 const BASE = process.env['API_URL'] ?? 'http://localhost:3000';
 let TOKEN = '';
 
@@ -21,6 +22,12 @@ async function req<T = unknown>(method: string, path: string, body?: unknown): P
   let data: unknown;
   try { data = JSON.parse(text); } catch { data = text; }
   return { status: res.status, data: data as T };
+}
+
+async function asToken<T>(token: string, fn: () => Promise<T>): Promise<T> {
+  const prev = TOKEN;
+  TOKEN = token;
+  try { return await fn(); } finally { TOKEN = prev; }
 }
 
 function log(label: string, status: number, data: unknown): void {
@@ -93,9 +100,26 @@ async function main(): Promise<void> {
   const tasksList = await req<{ data: unknown[]; meta: { total: number } }>('GET', '/tasks');
   log('GET /tasks', tasksList.status, { count: tasksList.data.data?.length, total: tasksList.data.meta?.total });
 
-  // 8. Назначить на Архитектора
+  // 8. Исполнитель — другой участник направления (I.2.12: ОТК не проверяет себя).
+  const execRows = await query<{ id: string }>(
+    `SELECT id FROM participants
+      WHERE direction_id = $1 AND id <> $2 AND deleted_at IS NULL
+      ORDER BY created_at
+      LIMIT 1`,
+    [me.direction_id, me.id],
+  );
+  const executor = execRows[0] ? { id: execRows[0].id } : null;
+  if (!executor) {
+    console.error('   ✗ нет второго участника направления для проверки ОТК');
+    process.exit(1);
+  }
+  const impersonated = await req<{ access_token: string }>(
+    'POST', `/dev/impersonate/${executor.id}`,
+  );
+  const execToken = impersonated.data.access_token;
+
   const assigned = await req<{ status: string; assignedTo: string }>(
-    'POST', `/tasks/${taskId}/assign`, { participant_id: me.id },
+    'POST', `/tasks/${taskId}/assign`, { participant_id: executor.id },
   );
   log(`POST /tasks/${taskId}/assign`, assigned.status, assigned.data);
   if (assigned.data.status === 'assigned') {ok('Задача назначена');}
@@ -105,16 +129,20 @@ async function main(): Promise<void> {
   log('GET /tasks/my', myTasks.status, { count: myTasks.data.data?.length });
 
   // 10. Взять в работу
-  const taken = await req<{ status: string }>('POST', `/tasks/${taskId}/take`);
+  const taken = await asToken(execToken, () =>
+    req<{ status: string }>('POST', `/tasks/${taskId}/take`),
+  );
   log(`POST /tasks/${taskId}/take`, taken.status, taken.data);
   if (taken.data.status === 'in_progress') {ok('Задача в работе');}
 
   // 10b. Отчёт с артефактом: программист прикладывает ссылку на PR.
   // Без этого ОТК проверяет только текст, а вклад не восстановить (C.0.08.01).
   const artifact = 'https://github.com/xartia/core/pull/1';
-  const report = await req<{ artifactUrl: string | null }>(
-    'POST', `/tasks/${taskId}/reports`,
-    { type: 'text', comment: 'Проверка отчёта с артефактом.', artifact_url: artifact },
+  const report = await asToken(execToken, () =>
+    req<{ artifactUrl: string | null }>(
+      'POST', `/tasks/${taskId}/reports`,
+      { type: 'text', comment: 'Проверка отчёта с артефактом.', artifact_url: artifact },
+    ),
   );
   log(`POST /tasks/${taskId}/reports`, report.status, report.data);
   if (report.status === 201 && report.data.artifactUrl === artifact) {
@@ -125,7 +153,9 @@ async function main(): Promise<void> {
   }
 
   // 11. Сдать
-  const submitted = await req<{ status: string }>('POST', `/tasks/${taskId}/submit`);
+  const submitted = await asToken(execToken, () =>
+    req<{ status: string }>('POST', `/tasks/${taskId}/submit`),
+  );
   log(`POST /tasks/${taskId}/submit`, submitted.status, submitted.data);
   if (submitted.data.status === 'submitted') {ok('Задача сдана');}
 
@@ -133,6 +163,46 @@ async function main(): Promise<void> {
   const accepted = await req<{ status: string }>('POST', `/tasks/${taskId}/accept`);
   log(`POST /tasks/${taskId}/accept`, accepted.status, accepted.data);
   if (accepted.data.status === 'accepted') {ok('Задача принята');}
+
+  // P0.4: Поток начислен ровно один раз (реестр присуждений).
+  const awards = await query<{ c: string }>(
+    `SELECT COUNT(*)::text AS c FROM task_flow_awards WHERE task_id = $1`,
+    [taskId],
+  );
+  const flows = await query<{ c: string }>(
+    `SELECT COUNT(*)::text AS c FROM flow_transactions WHERE task_id = $1`,
+    [taskId],
+  );
+  if (parseInt(awards[0]?.c ?? '0', 10) === 1 && parseInt(flows[0]?.c ?? '0', 10) === 1) {
+    ok('Поток начислен ровно один раз (P0.4)');
+  } else {
+    console.error(`   ✗ Поток начислен неверно: awards=${awards[0]?.c}, flows=${flows[0]?.c}`);
+    process.exitCode = 1;
+  }
+
+  const again = await req<{ code?: string }>('POST', `/tasks/${taskId}/accept`);
+  if (again.status === 409) {ok('Повторная приёмка отклонена');}
+  else {console.error(`   ✗ повторная приёмка → ${again.status}`); process.exitCode = 1;}
+
+  // P0.2: сдача без отчёта с артефактом запрещена.
+  const bare = await req<{ id: string }>('POST', '/tasks', {
+    direction_id: me.direction_id,
+    description: 'Задача без отчёта (P0.2)',
+    priority: 'standard',
+  });
+  if (bare.status === 201) {
+    await req('POST', `/tasks/${bare.data.id}/assign`, { participant_id: executor!.id });
+    await asToken(execToken, () => req('POST', `/tasks/${bare.data.id}/take`));
+    const bareSubmit = await asToken(execToken, () =>
+      req<{ code?: string; message?: string }>('POST', `/tasks/${bare.data.id}/submit`),
+    );
+    if (bareSubmit.status === 409 && /артефакт/i.test(bareSubmit.data.message ?? '')) {
+      ok('Без отчёта с артефактом сдача отклонена (P0.2)');
+    } else {
+      console.error(`   ✗ submit без отчёта → ${bareSubmit.status}: ${bareSubmit.data.message}`);
+      process.exitCode = 1;
+    }
+  }
 
   // 13. Проверить финальный статус
   const finalTask = await req<{ status: string }>('GET', `/tasks/${taskId}`);

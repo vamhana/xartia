@@ -655,7 +655,7 @@ async function dispatchFromRedis(redisChannel: string, raw: string): Promise<voi
   // Broadcast в конкретный канал
   if (redisChannel.startsWith(`${REDIS_CHANNEL_PREFIX}broadcast:`)) {
     const channel = envelope.channel ?? redisChannel.slice(`${REDIS_CHANNEL_PREFIX}broadcast:`.length);
-    dispatchToChannel(channel, envelope.event, envelope.payload);
+    await dispatchToChannel(channel, envelope.event, envelope.payload);
     return;
   }
 
@@ -725,11 +725,11 @@ async function replayBacklog(conn: WSConnection, channel: string, since: number)
   }
 }
 
-function dispatchToChannel(channel: string, event: string, payload: unknown): void {
+async function dispatchToChannel(channel: string, event: string, payload: unknown): Promise<void> {
   const ts = Date.now();
-  // Catch-up: помним последние события канала в Redis, чтобы клиент после
-  // разрыва мог догнать пропущенное (last-event-id по времени).
-  void rememberEvent(channel, event, payload, ts);
+  // Catch-up: сначала фиксируем событие в бэклоге, затем доставляем —
+  // иначе клиент, переподключившийся сразу, может не найти его.
+  await rememberEvent(channel, event, payload, ts);
 
   const set = byChannel.get(channel);
   if (!set) {return;}
@@ -744,7 +744,7 @@ function dispatchToChannel(channel: string, event: string, payload: unknown): vo
         logger.warn({ err: e, channel, event }, 'ws: channel handler error');
       }
     }
-    send(conn, event, payload);
+    send(conn, event, payload, channel, ts);
   }
 }
 

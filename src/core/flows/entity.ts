@@ -34,6 +34,8 @@ export interface ChargeInput {
   amount: number;
   reason: string;
   source: string;
+  /** Задача-основание: даёт идемпотентность начисления (P0). */
+  taskId?: UUID;
 }
 
 export function validateCharge(input: ChargeInput): void {

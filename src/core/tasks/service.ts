@@ -16,10 +16,11 @@
 //   - listTasks/getById — нет access control (per-direction модель прав).
 //   - TASK_SELECT — 2 correlated subquery на return_reason/returned_at (N+1-ish).
 
-import { query, queryOne, isUniqueViolation } from '../../lib/db.js';
+import { query, queryOne, isUniqueViolation, transaction } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
 import { logger } from '../../lib/logger.js';
-import { awardForAcceptedTask } from '../flows/service.js';
+import { listByTask } from '../reports/service.js';
+import { hasRole } from '../../security/rbac.js';
 import { send as sendNotification, sendToRole } from '../../lib/notifications.js';
 import {
   emitTaskAssigned,
@@ -32,6 +33,24 @@ import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError } from '../errors.js';
 import { Role } from '../roles.js';
 import type { UUID, Priority, TaskStatus } from '../types.js';
+
+/**
+ * P0.5: действие с задачей — только в своём направлении.
+ * Архитектор — исключение (гарант), остальные — строго своё направление.
+ */
+export async function assertDirectionScope(participantId: UUID, directionId: UUID): Promise<void> {
+  if (await hasRole(participantId, Role.FIRST_ARCHITECT)) {return;}
+  const row = await queryOne<{ direction_id: string | null }>(
+    `SELECT direction_id FROM participants WHERE id = $1 AND deleted_at IS NULL`,
+    [participantId],
+  );
+  if (!row) {throw new ForbiddenError('Участник не найден');}
+  if (row.direction_id !== directionId) {
+    throw new ForbiddenError('Действие вне вашего направления');
+  }
+}
+
+
 
 /**
  * Уведомление — побочный эффект, а не часть домена: его падение не должно
@@ -256,6 +275,8 @@ export async function createTaskService(
   input: CreateTaskRequest,
   requesterId: UUID,
 ): Promise<Task> {
+  await assertDirectionScope(requesterId, input.directionId);
+
   // B8: planExists + plan.directionId match
   if (input.planId) {
     const planRow = await queryOne<{ lead_direction_id: string }>(
@@ -380,6 +401,8 @@ export async function assignTaskService(
   taskId: UUID, participantId: UUID, requesterId: UUID,
 ): Promise<Task> {
   const task = await getById(taskId);
+  await assertDirectionScope(requesterId, task.directionId);
+  await assertDirectionScope(participantId, task.directionId);
   assignTask(task, participantId);  // entity-validate: даст понятную ошибку для invalid state
 
   const result = await query<{ id: string }>(
@@ -445,6 +468,11 @@ export async function submitTaskService(taskId: UUID, requesterId: UUID): Promis
   if (task.assignedTo !== requesterId) {
     throw new ForbiddenError('Сдать задачу может только назначенный исполнитель');
   }
+  // P0.2: результат без артефакта не принимается — отчёт обязателен.
+  const reports = await listByTask(taskId);
+  if (!reports.some((r) => typeof r.artifactUrl === 'string' && r.artifactUrl.length > 0)) {
+    throw new ConflictError('Нельзя сдать: приложите отчёт с артефактом (ссылка на коммит/PR)');
+  }
   submitTask(task);  // entity-validate
 
   const result = await query<{ id: string }>(
@@ -486,43 +514,101 @@ export async function submitTaskService(taskId: UUID, requesterId: UUID): Promis
   return finalTask;
 }
 
-export async function acceptTaskService(taskId: UUID, requesterId: UUID): Promise<Task> {
+export interface AcceptOptions {
+  comment?: string | null;
+}
+
+/**
+ * Единый путь приёмки (P0):
+ *   - отчёт с артефактом обязателен;
+ *   - решение ОТК создаётся, если его нет;
+ *   - статус задачи и начисление Потока — в одной транзакции;
+ *   - task_flow_awards не даёт начислить дважды.
+ */
+export async function acceptTaskService(
+  taskId: UUID,
+  requesterId: UUID,
+  options: AcceptOptions = {},
+): Promise<Task> {
   const task = await getById(taskId);
   // B2: I.2.12 — ОТК не принимает свою работу.
   if (task.assignedTo === requesterId) {
     throw new ForbiddenError('ОТК не может принять свою работу (I.2.12)');
   }
   acceptTask(task);  // entity-validate
+  await assertDirectionScope(requesterId, task.directionId);
 
-  const result = await query<{ id: string }>(
-    `UPDATE tasks
-        SET status = 'accepted', updated_at = now()
-      WHERE id = $1 AND status = $2
-      RETURNING id`,
-    [taskId, task.status],
+  // P0.1/P0.2: без отчёта с артефактом приёмки нет.
+  const reports = await listByTask(taskId);
+  const report = reports.find(
+    (r) => typeof r.artifactUrl === 'string' && r.artifactUrl.length > 0,
   );
-  if (result.length === 0) {
-    throw new ConflictError('Задача изменена параллельным запросом');
+  if (!report) {
+    throw new ConflictError('Нельзя принять: нет отчёта с артефактом');
   }
+
+  const decisionId = newUUID();
+
+  // P0.3: решение, статус и Поток — атомарно.
+  await transaction(async (client) => {
+    const locked = await client.query<{ status: string; assigned_to: string | null }>(
+      `SELECT status, assigned_to FROM tasks WHERE id = $1 FOR UPDATE`,
+      [taskId],
+    );
+    const row = locked.rows[0];
+    if (!row || row.status !== 'submitted') {
+      throw new ConflictError('Задача изменена параллельным запросом');
+    }
+
+    const existing = await client.query<{ id: string }>(
+      `SELECT id FROM otc_decisions
+        WHERE report_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1`,
+      [report.id],
+    );
+    if ((existing.rowCount ?? 0) === 0) {
+      await client.query(
+        `INSERT INTO otc_decisions
+           (id, report_id, otc_id, verdict, comment, criteria_version)
+         VALUES ($1, $2, $3, 'accepted', $4, 1)`,
+        [decisionId, report.id, requesterId, options.comment ?? null],
+      );
+    }
+
+    await client.query(
+      `UPDATE tasks SET status = 'accepted', updated_at = now() WHERE id = $1`,
+      [taskId],
+    );
+
+    // P0.4: одно начисление на задачу — атомарный клейм.
+    if (row.assigned_to) {
+      const claim = await client.query(
+        `INSERT INTO task_flow_awards (task_id, participant_id)
+         VALUES ($1, $2)
+         ON CONFLICT (task_id) DO NOTHING
+         RETURNING task_id`,
+        [taskId, row.assigned_to],
+      );
+      if ((claim.rowCount ?? 0) === 1) {
+        await client.query(
+          `INSERT INTO flow_transactions
+             (id, participant_id, type, amount, reason, source, task_id)
+           VALUES ($1, $2, 'main', 1, $3, 'otc', $4)`,
+          [newUUID(), row.assigned_to, `Приёмка задачи ${taskId}`, taskId],
+        );
+      }
+    }
+  });
 
   await logAction({
     actorId: requesterId, actorType: 'participant',
     action: 'tasks.accept', entityType: 'task', entityId: taskId,
+    newValue: { decision_id: decisionId, report_id: report.id },
   });
 
   const finalTask = await getById(taskId);
   await emitTaskAccepted(toWsPayload(finalTask));
-
-  // Приёмка = начисление Потока. Раньше это делал только ОТК-сервис, и при
-  // приёмке через /tasks/:id/accept Поток не начислялся. Теперь начисление
-  // живёт в единственном месте — здесь.
-  if (finalTask.assignedTo) {
-    try {
-      await awardForAcceptedTask(finalTask.assignedTo, taskId, requesterId);
-    } catch (e) {
-      logger.warn({ err: e, taskId }, 'flow award on accept failed');
-    }
-  }
 
   if (finalTask.assignedTo) {
     await notifySafely(
@@ -544,6 +630,7 @@ export async function returnTaskService(
   if (task.assignedTo === requesterId) {
     throw new ForbiddenError('ОТК не может вернуть свою работу (I.2.12)');
   }
+  await assertDirectionScope(requesterId, task.directionId);
   returnTask(task, reason);  // entity-validate
 
   const result = await query<{ id: string }>(

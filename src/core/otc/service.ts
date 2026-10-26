@@ -30,7 +30,12 @@ import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError } from '../errors.js';
 import { Role } from '../roles.js';
 import { getById as getReportById } from '../reports/service.js';
-import { getById as getTaskById, acceptTaskService, returnTaskService } from '../tasks/service.js';
+import {
+  getById as getTaskById,
+  acceptTaskService,
+  returnTaskService,
+  assertDirectionScope,
+} from '../tasks/service.js';
 import type { UUID } from '../types.js';
 
 import {
@@ -153,6 +158,7 @@ export async function decide(
   if (task.assignedTo === otcId) {
     throw new ForbiddenError('ОТК не может проверять свою работу (I.2.12)');
   }
+  await assertDirectionScope(otcId, task.directionId);
 
   const entity = createDecision(
     input.reportId,

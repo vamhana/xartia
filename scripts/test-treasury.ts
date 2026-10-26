@@ -110,30 +110,15 @@ async function main(): Promise<void> {
 
   // Два дополнительных подписанта: KEEPER в направлении.
   const approvers: string[] = [architectId];
-  for (let i = 0; i < 2; i++) {
-    const suffix = String(Date.now()).slice(-6) + i;
-    const reg = await call<{ request_id: string }>('POST', '/auth/register', {
-      phone: `+7994${suffix}`,
-      messengers: { telegram: `@treasury_${suffix}` },
-      password: `Treasury${suffix}`,
-      consent_video: true,
-      consent_data: true,
-    });
-    if (reg.status !== 201) { fail(`register → ${reg.status}`); continue; }
-    const acc = await call<{ participant: { id: string } }>(
-      'POST', `/admin/registration-requests/${reg.data.request_id}/accept`,
-      { direction_id: directionId, name: `Подписант ${suffix}`, direction_number: 9 },
-      token,
-    );
-    if (acc.status !== 201) { fail(`accept → ${acc.status}`); continue; }
-    const pid = acc.data.participant.id;
-    await query(
-      `INSERT INTO participant_roles (participant_id, role_id, direction_id, status, valid_from, granted_by)
-       SELECT $1, r.id, $2, 'active', now(), $3
-         FROM roles r WHERE r.name = 'KEEPER' AND r.direction_id = $2 LIMIT 1`,
-      [pid, directionId, architectId],
-    );
-    approvers.push(pid);
+  // Подписанты — реальные держатели мест казны (Совет/Верификация/Шлюз/Хранитель).
+  const sigs = await call<{
+    data: Array<{ holder: { participantId?: string } | null }>;
+  }>('GET', '/treasury/signatories', undefined, token);
+  for (const seat of sigs.data.data) {
+    const pid = seat.holder?.participantId;
+    if (pid && !approvers.includes(pid) && approvers.length < 3) {
+      approvers.push(pid);
+    }
   }
   ok(`подписантов подготовлено: ${approvers.length}`);
 
