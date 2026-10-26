@@ -4,7 +4,8 @@
  * Реестр расширяется — новые типы добавляются в WIDGET_REGISTRY.
  */
 
-import { Component } from 'react';
+import { Component, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ComponentType, ErrorInfo, ReactElement, ReactNode } from 'react';
 
 
@@ -76,6 +77,55 @@ function mergedConfig(
   return { ...widget.config, ...instance.overrides };
 }
 
+
+/** Куда ведёт виджет: клик по шапке открывает полный раздел. */
+export const ENTITY_ROUTE: Record<string, string> = {
+  tasks: '/tasks',
+  my_tasks: '/tasks',
+  signals: '/signals',
+  cells: '/cells',
+  cell: '/cells',
+  cell_tree: '/cells',
+  plans: '/balance',
+  daily_plan: '/naryad',
+  archive: '/archive',
+  communities: '/planetary',
+  goods: '/goods',
+  flows: '/flows',
+  regimes: '/regimes',
+  transactions: '/gateway',
+  assets: '/gateway',
+  gateway_council: '/gateway',
+  otc_queue: '/otc',
+  otc_stats: '/otc',
+  mandates: '/admin/mandates',
+  participants: '/admin/participants',
+  courses: '/learning',
+  audits: '/verification',
+  rechecks: '/verification',
+  complaints: '/justice',
+  investigations: '/justice',
+  arbitrations: '/justice',
+  jury_session: '/jury',
+  jury_votes: '/jury',
+  oversight: '/balance',
+  council: '/councils',
+  signatories: '/treasury',
+  spend_requests: '/treasury',
+  treasury_price: '/treasury',
+  treasury_coverage: '/treasury',
+  mentees: '/admin/mentors',
+  dictionary: '/semantic',
+  connections: '/collective',
+  all_connections: '/collective',
+  notifications_history: '/workspace',
+};
+
+export function entityRoute(entity: string | undefined): string | null {
+  if (!entity) {return null;}
+  return ENTITY_ROUTE[entity] ?? null;
+}
+
 // ─── Базовые рендеры (по типам) ─────────────────────────────────
 
 interface ItemShape {
@@ -108,13 +158,25 @@ function renderList(props: WidgetProps): ReactElement {
           item.label ??
           `Элемент ${i + 1}`;
         const value = item.value;
-        return (
-          <div key={item.id ?? i} style={styles.listRow}>
+        const href = entityRoute(props.widget.entity);
+        const row = (
+          <>
             <span style={styles.listTitle}>{title}</span>
             {value !== undefined ? (
               <span style={styles.listValue}>{String(value)}</span>
             ) : null}
-          </div>
+          </>
+        );
+        return href ? (
+          <a
+            key={item.id ?? i}
+            href={href}
+            style={{ ...styles.listRow, textDecoration: 'none' }}
+          >
+            {row}
+          </a>
+        ) : (
+          <div key={item.id ?? i} style={styles.listRow}>{row}</div>
         );
       })}
     </div>
@@ -172,6 +234,10 @@ function renderTable(props: WidgetProps): ReactElement {
 
   return (
     <Table<ItemShape>
+        onRowClick={() => {
+          const href = entityRoute(props.widget.entity);
+          if (href) {window.location.assign(href);}
+        }}
       data={items}
       columns={columns}
       getRowId={(r) => String(r[ROW_KEY])}
@@ -478,6 +544,8 @@ export interface WidgetShellProps {
   dragHandleClassName?: string;
   /** Если задан — на корневой div вешается data-canvas-region. */
   canvasRegion?: string;
+  /** Куда ведёт раздел (клик по заголовку и кнопка «Открыть»). */
+  openHref?: string | null;
   children: ReactNode;
 }
 
@@ -488,8 +556,11 @@ export function WidgetShell({
   selected,
   dragHandleClassName,
   canvasRegion,
+  openHref,
   children,
 }: WidgetShellProps): ReactElement {
+  const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
   return (
     <div
       style={{ ...styles.shell, ...(selected ? styles.shellSelected : {}) }}
@@ -500,7 +571,44 @@ export function WidgetShell({
         style={styles.shellHeader}
         className={dragHandleClassName ?? ''}
       >
-        <span style={styles.shellTitle}>{title}</span>
+        <span
+          style={{ ...styles.shellTitle, ...(openHref ? styles.shellTitleLink : {}) }}
+          onClick={(e) => {
+            if (!openHref) {return;}
+            e.stopPropagation();
+            navigate(openHref);
+          }}
+          title={openHref ? 'Открыть раздел' : undefined}
+        >
+          {title}
+        </span>
+        <span style={styles.shellActions}>
+        <button
+          type="button"
+          style={styles.shellIcon}
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
+          aria-label="Развернуть виджет"
+          title="Развернуть"
+        >
+          ⤢
+        </button>
+        {openHref ? (
+          <button
+            type="button"
+            style={styles.shellIcon}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(openHref);
+            }}
+            aria-label="Открыть раздел"
+            title="Открыть раздел"
+          >
+            →
+          </button>
+        ) : null}
         {onRemove ? (
           <button
             type="button"
@@ -514,8 +622,41 @@ export function WidgetShell({
             ×
           </button>
         ) : null}
+        </span>
       </div>
       <div style={styles.shellBody}>{children}</div>
+      {expanded ? (
+        <div
+          style={styles.expandOverlay}
+          onClick={() => setExpanded(false)}
+        >
+          <div style={styles.expandCard} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.shellHeader}>
+              <span style={styles.shellTitle}>{title}</span>
+              <span style={styles.shellActions}>
+                {openHref ? (
+                  <button
+                    type="button"
+                    style={styles.shellIcon}
+                    onClick={() => navigate(openHref)}
+                  >
+                    →
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  style={styles.shellIcon}
+                  onClick={() => setExpanded(false)}
+                  aria-label="Свернуть"
+                >
+                  ×
+                </button>
+              </span>
+            </div>
+            <div style={styles.expandBody}>{children}</div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -561,6 +702,43 @@ const styles = {
     fontWeight: 600,
     textTransform: 'uppercase' as const,
     letterSpacing: 0.4,
+  },
+  shellTitleLink: { cursor: 'pointer' as const, textDecoration: 'underline dotted' },
+  shellActions: { display: 'flex', alignItems: 'center', gap: 6 },
+  shellIcon: {
+    background: 'transparent',
+    border: 'none',
+    color: colors.textMuted,
+    cursor: 'pointer' as const,
+    fontSize: 14,
+    lineHeight: 1,
+    padding: 0,
+  },
+  expandOverlay: {
+    position: 'fixed' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.55)',
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  expandCard: {
+    width: '92vw',
+    height: '88vh',
+    background: colors.bgSoft,
+    border: `1px solid ${colors.border}`,
+    borderRadius: radius.md,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    overflow: 'hidden' as const,
+  },
+  expandBody: {
+    flex: 1,
+    padding: spacing.md,
+    overflow: 'auto' as const,
+    minHeight: 0,
   },
   shellRemove: {
     background: 'transparent',

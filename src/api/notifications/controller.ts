@@ -52,7 +52,7 @@ const deviceParams = z.object({
 
 const historyQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  per_page: z.coerce.number().int().min(1).max(200).default(50),
+  per_page: z.coerce.number().int().min(1).max(500).default(50),
 });
 
 const testBody = z.object({

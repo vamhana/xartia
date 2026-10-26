@@ -2,8 +2,8 @@
 СРАВНЕНИЕ СПЕЦИФИКАЦИИ И ФАЙЛОВ
 ========================================================================
   Файл спецификации:       id_2.md
-  Блоков в спецификации:   746
-  Файлов в проекте:        742
+  Блоков в спецификации:   747
+  Файлов в проекте:        743
 
 ========================================================================
 1. БЛОКИ БЕЗ ФАЙЛОВ: 33
@@ -48,7 +48,7 @@
   (нет)
 
 ========================================================================
-3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 553
+3. ФАЙЛЫ С СОДЕРЖИМЫМ (с блоком в спецификации): 554
 ========================================================================
   A.1.00.01        src/server.ts [16020 б]
   A.1.01.01        src/api/auth/controller.ts [12201 б]
@@ -193,7 +193,7 @@
   C.0.34.01        src/core/connectivity/entity.ts [4446 б]
   C.0.34.02        src/core/connectivity/service.ts [13841 б]
   C.0.35.01        src/core/admin/entity.ts [3378 б]
-  C.0.35.02        src/core/admin/service.ts [56531 б]
+  C.0.35.02        src/core/admin/service.ts [64580 б]
   C.0.36.01        src/core/chat/entity.ts [4889 б]
   C.0.36.02        src/core/chat/service.ts [30181 б]
   C.0.37.01        src/core/webhooks/entity.ts [7522 б]
@@ -257,6 +257,7 @@
   D.2.01.43        db/migrations/043_treasury_gateway_unique.sql [461 б]
   D.2.01.44        db/migrations/044_panels_product.sql [7596 б]
   D.2.01.45        db/migrations/045_panels_product_fixes.sql [3866 б]
+  D.2.01.46        db/migrations/046_crisis_mentor_coordinator.sql [3686 б]
   F.4.01.01        src/web/App.tsx [14754 б]
   F.4.01.02        src/web/pages/auth/Login.tsx [5095 б]
   F.4.01.03        src/web/pages/auth/Register.tsx [8060 б]
@@ -319,7 +320,7 @@
   F.4.05.06        src/web/pages/chat/CreateChannelModal.tsx [6916 б]
   F.4.05.07        src/web/pages/chat/index.ts [203 б]
   F.4.98.01        src/web/pages/Workspace.tsx [13648 б]
-  F.4.99.01        src/web/components/ui/Widget.tsx [21596 б]
+  F.4.99.01        src/web/components/ui/Widget.tsx [26914 б]
   F.4.99.02        src/web/components/ui/Table.tsx [13604 б]
   F.4.99.03        src/web/components/ui/Card.tsx [1919 б]
   F.4.99.04        src/web/components/ui/Form.tsx [12849 б]
@@ -332,7 +333,7 @@
   F.4.99.12        src/web/api/client.ts [12991 б]
   F.4.99.13        src/web/ws/client.ts [8214 б]
   F.4.99.14        src/web/components/ui/Map.tsx [8753 б]
-  F.4.99.15        src/web/components/ui/Notifications.tsx [15802 б]
+  F.4.99.15        src/web/components/ui/Notifications.tsx [16074 б]
   F.4.99.16        src/web/components/ui/Search.tsx [18435 б]
   F.4.99.17        src/web/components/layout/Layout.tsx [1197 б]
   F.4.99.18        src/web/components/layout/Sidebar.tsx [6022 б]
@@ -344,7 +345,7 @@
   F.4.99.24        src/web/components/ui/Badge.tsx [1633 б]
   F.4.99.25        src/web/components/ui/Button.tsx [1597 б]
   F.4.99.26        src/web/components/ui/Spinner.tsx [1187 б]
-  F.4.99.27        src/web/components/ui/PanelCanvas.tsx [30955 б]
+  F.4.99.27        src/web/components/ui/PanelCanvas.tsx [31036 б]
   F.4.99.28        src/web/components/ui/PanelCanvas.constants.ts [1305 б]
   F.4.99.29        src/web/components/ui/DndManager.tsx [5503 б]
   F.4.99.30        src/web/lib/dev.ts [1584 б]
@@ -354,7 +355,7 @@
   I.0.01.04        docker/docker-compose.yml [4734 б]
   I.0.01.07        docker/entrypoint.sh [3250 б]
   I.0.01.08        docker/nginx.conf [1168 б]
-  I.1.01.16        .github/workflows/ci.yml [11321 б]
+  I.1.01.16        .github/workflows/ci.yml [11524 б]
   I.10.01.01       .gitignore [1086 б]
   I.10.01.02       .editorconfig [360 б]
   I.10.01.04       .prettierrc.json [402 б]
@@ -369,9 +370,9 @@
   I.10.05.01       tsconfig.base.json [721 б]
   I.10.05.02       tsconfig.json [492 б]
   I.10.05.03       tsconfig.web.json [326 б]
-  I.10.05.04       tsconfig.tsbuildinfo [264968 б]
+  I.10.05.04       tsconfig.tsbuildinfo [265112 б]
   I.10.05.05       vite.config.ts [1171 б]
-  I.10.05.06       tsconfig.web.tsbuildinfo [130763 б]
+  I.10.05.06       tsconfig.web.tsbuildinfo [130767 б]
   I.3.00.01        k8s/README.md [40063 б]
   I.3.00.02        k8s/.gitignore [483 б]
   I.3.00.03        k8s/worker/README.md [17251 б]
@@ -461,7 +462,7 @@
   I.9.02.15        scripts/ensure-aggregator-cron.ts [8603 б]
   I.9.02.16        scripts/ensure-quanta-cron.ts [8539 б]
   I.9.02.17        scripts/ensure-experiments-cron.ts [8498 б]
-  I.9.02.18        scripts/ci-local.ps1 [5590 б]
+  I.9.02.18        scripts/ci-local.ps1 [5674 б]
   I.9.02.19        scripts/seed-base.ts [2529 б]
   I.9.02.20        scripts/ensure-buckets.ts [1868 б]
   I.9.03.01        scripts/lib/ws-env.ts [2936 б]
@@ -565,7 +566,7 @@
   L.0.01.07        src/lib/s3.ts [9661 б]
   L.0.01.08        src/lib/redis.ts [12873 б]
   L.0.01.09        src/lib/db.ts [6135 б]
-  L.0.01.10        src/lib/notifications.ts [19568 б]
+  L.0.01.10        src/lib/notifications.ts [19661 б]
   L.0.01.11        src/lib/regime-cache.ts [877 б]
   L.0.01.12        src/lib/shutdown.ts [1905 б]
   L.0.01.13        src/lib/jobs.ts [10501 б]
@@ -600,7 +601,7 @@
   W.2.14.01        src/ws/psy.ts [7200 б]
   X.0.01.07        README.md [7334 б]
   X.0.01.08        docs/roadmap.md [29308 б]
-  X.0.01.11        docs/product-v0.1.md [30636 б]
+  X.0.01.11        docs/product-v0.1.md [31586 б]
   X.0.01.12        TROUBLESHOOTING.md [48623 б]
   X.0.01.13        docs/journey.md [18915 б]
 
@@ -770,5 +771,5 @@
 ========================================================================
   Блоков без файлов:    33
   Файлов без блоков:    0
-  Файлов с содержимым:  553
+  Файлов с содержимым:  554
   Пустых файлов:        157

@@ -842,6 +842,7 @@ async function seedProductPanels(): Promise<number> {
     ['table', 'assets'],
     ['list', 'dictionary'],
     ['table', 'plans'],
+    ['table', 'daily_plan'],
   ];
   for (const [type, entity] of libs) {
     await query(
@@ -873,6 +874,70 @@ async function seedProductPanels(): Promise<number> {
     { panel: 'GATEWAY', dir: 15, type: 'table', entity: 'assets', x: 8, y: 5, w: 4, h: 4, title: 'Активы' },
     { panel: 'BALANCING', dir: 8, type: 'tree', entity: 'oversight', x: 0, y: 5, w: 12, h: 5, title: 'Надзор: планы → ячейки' },
   ];
+
+  // Кризис: казна, надзор, сигналы.
+  const crisis: Array<[string, string, number, number, number, number, string]> = [
+    ['metric', 'treasury_price', 0, 0, 4, 2, 'Курс казны'],
+    ['metric', 'treasury_coverage', 4, 0, 4, 2, 'Покрытие пола'],
+    ['tree', 'oversight', 0, 2, 8, 4, 'Надзор'],
+    ['list', 'signals', 8, 0, 4, 6, 'Сигналы'],
+  ];
+  for (const [type, entity, x, y, w, h, title] of crisis) {
+    await query(
+      `INSERT INTO panel_widgets (panel_id, widget_id, position, size, overrides)
+       SELECT p.id, w.id,
+              jsonb_build_object('x', $1::int, 'y', $2::int),
+              jsonb_build_object('w', $3::int, 'h', $4::int),
+              jsonb_build_object('title', $5::text)
+         FROM panels p
+         JOIN widgets w ON w.type = $6::text AND w.entity = $7::text
+        WHERE p.name IN ('Кризис: FIRST_ARCHITECT', 'Кризис: COUNCIL_MEMBER')
+          AND p.context = 'crisis'
+          AND NOT EXISTS (
+            SELECT 1 FROM panel_widgets pw WHERE pw.panel_id = p.id AND pw.widget_id = w.id
+          )`,
+      [x, y, w, h, title, type, entity],
+    );
+  }
+
+  // Инкубация: наставничество; все направления и ASSOCIATED: наряд на день.
+  const byDir: Array<[number | null, string, string, string, number, number, number, number]> = [
+    [11, 'mentees', 'table', 'Наставничество: ученики', 0, 5, 12, 4],
+    [null, 'daily_plan', 'table', 'Наряд на день', 0, 9, 12, 4],
+  ];
+  for (const [dir, entity, type, title, x, y, w, h] of byDir) {
+    await query(
+      `INSERT INTO panel_widgets (panel_id, widget_id, position, size, overrides)
+       SELECT p.id, w.id,
+              jsonb_build_object('x', $1::int, 'y', $2::int),
+              jsonb_build_object('w', $3::int, 'h', $4::int),
+              jsonb_build_object('title', $5::text)
+         FROM panels p
+         JOIN directions d ON d.id = p.direction_id
+         JOIN widgets w ON w.type = $6::text AND w.entity = $7::text
+        WHERE p.role_id IS NULL ${dir === null ? "AND d.status = 'active'" : "AND d.number = $8"}
+          AND NOT EXISTS (
+            SELECT 1 FROM panel_widgets pw WHERE pw.panel_id = p.id AND pw.widget_id = w.id
+          )`,
+      dir === null
+        ? [x, y, w, h, title, type, entity]
+        : [x, y, w, h, title, type, entity, dir],
+    );
+  }
+
+  // ASSOCIATED: наряд на день.
+  await query(
+    `INSERT INTO panel_widgets (panel_id, widget_id, position, size, overrides)
+     SELECT p.id, w.id, '{"x":0,"y":4}'::jsonb, '{"w":12,"h":3}'::jsonb,
+            jsonb_build_object('title', 'Наряд на день')
+       FROM panels p
+       JOIN roles r ON r.id = p.role_id
+       JOIN widgets w ON w.type = 'table' AND w.entity = 'daily_plan'
+      WHERE r.name = 'ASSOCIATED' AND p.active
+        AND NOT EXISTS (
+          SELECT 1 FROM panel_widgets pw WHERE pw.panel_id = p.id AND pw.widget_id = w.id
+        )`,
+  );
 
   let inserted = 0;
   for (const e of extras) {

@@ -10,7 +10,7 @@ export const COLS = 12;
 export const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1] as const;
 export type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
-export const BASE_ROW_HEIGHT = 20;
+export const BASE_ROW_HEIGHT = 56;
 export const PREVIEW_ROW_HEIGHT = 20;
 
 export const CANVAS_PADDING = spacing.md;

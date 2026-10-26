@@ -87,7 +87,7 @@ const PREFS_KEY = (participantId: UUID): string => `notif:prefs:${participantId}
 const DEVICES_KEY = (participantId: UUID): string => `notif:devices:${participantId}`;
 const HISTORY_KEY = (participantId: UUID): string => `notif:history:${participantId}`;
 
-const HISTORY_MAX = 100;
+const HISTORY_MAX = 1000; // колокольчик: все непрочитанные, а не последние 10
 const HISTORY_TTL_SEC = 30 * 24 * 3600; // 30 дней
 
 // -------- Шаблоны --------

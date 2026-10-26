@@ -39,7 +39,7 @@ export function useNotifications(): UseNotificationsResult {
     queryKey: ['notifications', 'history', 1, 50],
     queryFn: () =>
       apiGet<{ data: NotificationRecord[] }>(
-        '/notifications/history?page=1&per_page=50',
+        '/notifications/history?page=1&per_page=500',
       ),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
@@ -309,7 +309,12 @@ export function NotificationList({
   const navigate = useNavigate();
 
   const visible = useMemo(
-    () => notifications.slice(0, max),
+    () => {
+      const unread = notifications.filter((n) => !n.read);
+      const read = notifications.filter((n) => n.read);
+      // Сначала всё непрочитанное, потом прочитанное — в пределах max.
+      return [...unread, ...read].slice(0, max);
+    },
     [notifications, max],
   );
 

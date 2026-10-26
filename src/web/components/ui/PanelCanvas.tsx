@@ -36,6 +36,7 @@ import {
 import { Spinner } from './Spinner';
 import {
   Widget as WidgetRenderer,
+  entityRoute,
   WidgetShell,
   type WidgetContext,
   type WidgetInstanceRef,
@@ -476,6 +477,7 @@ export function PanelCanvas(props: PanelCanvasProps): ReactElement {
           // Маркер региона: DndManager ищет closest('[data-canvas-region]')
           // от точки drop-а. Для контейнера — inst.id; для листа — не ставим.
           canvasRegion={isContainer ? inst.id : undefined}
+          openHref={isContainer ? null : entityRoute(w.entity)}
           {...(handleSelect ? { onSelect: handleSelect } : {})}
           {...(interactive && onRemoveInstance
             ? { onRemove: (): void => onRemoveInstance(inst.id) }
