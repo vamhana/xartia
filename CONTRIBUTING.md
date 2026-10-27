@@ -55,7 +55,8 @@ pnpm db:migrate
 pnpm tsx scripts/ensure-architect.ts   # создаст Архитектора из .env
 pnpm db:migrate                        # сиды (роли, направления, панели)
 
-pnpm dev                                # API :3000, WS :3001, web :5173
+pnpm dev                                # API :3000, WS :3001
+pnpm dev:web                            # веб :5173 (отдельный терминал)
 ```
 
 Проверки перед PR:
@@ -81,7 +82,7 @@ src/core/       — домен: задачи, ОТК, Поток, казна, С
 src/api/        — REST-контроллеры (Fastify)
 src/ws/         — WebSocket-каналы
 src/web/        — React-интерфейс (страницы, компоненты, панели)
-db/migrations/  — схема БД (56 миграций)
+db/migrations/  — схема БД (57 миграций)
 scripts/        — smoke-тесты и обслуживание
 docs/           — Хартия, продукт, карта «Хартия → код»
 ```
