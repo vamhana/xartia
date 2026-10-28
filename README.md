@@ -81,7 +81,8 @@ pnpm typecheck:web      # типы веба
 pwsh scripts/ci-local.ps1   # полный локальный прогон: 38 проверок (Windows)
 ```
 
-Подробнее в [CONTRIBUTING.md](CONTRIBUTING.md). Если стек не встаёт:
+Подробнее в [CONTRIBUTING.md](CONTRIBUTING.md). Первый день хартийца:
+[docs/onboarding-first-day.md](docs/onboarding-first-day.md). Если стек не встаёт:
 [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Что уже работает (и чем это проверено)
