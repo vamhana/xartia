@@ -91,5 +91,11 @@
     "vite": "^8.3.4",
     "vitest": "^2.1.2",
     "ws": "^8.22.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "argon2",
+      "esbuild"
+    ]
   }
 }

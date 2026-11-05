@@ -100,3 +100,4 @@ docs/Новый текстовый документ.txt
 scripts/ws_launch_workspace.py
 node.tar.xz
 *.tar.xz
+pnpm-workspace.yaml
