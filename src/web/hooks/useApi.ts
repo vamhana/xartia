@@ -33,19 +33,31 @@ export interface ApiMutationOptions {
   invalidateKeys?: readonly (readonly unknown[])[];
 }
 
+export interface ApiMutationOptionsWithBody<TVars> extends ApiMutationOptions {
+  /** Тело запроса из переменных мутации. Для POST / PATCH (DELETE — без тела). */
+  bodyBuilder?: (vars: TVars) => unknown;
+}
+
 export function useApiMutation<TData, TVars>(
   pathBuilder: (vars: TVars) => string,
   method: 'POST' | 'PATCH' | 'DELETE',
-  options: ApiMutationOptions = {},
+  options: ApiMutationOptionsWithBody<TVars> = {},
 ): UseMutationResult<TData, Error, TVars> {
   const queryClient = useQueryClient();
 
   return useMutation<TData, Error, TVars>({
     mutationFn: async (vars) => {
       const path = pathBuilder(vars);
-      if (method === 'POST') {return apiPost<TData>(path);}
-      if (method === 'PATCH') {return apiPatch<TData>(path);}
-      return apiDelete<TData>(path);
+      const body = options.bodyBuilder ? options.bodyBuilder(vars) : undefined;
+      if (method === 'POST') {
+        return body !== undefined ? apiPost<TData>(path, body) : apiPost<TData>(path);
+      }
+      if (method === 'PATCH') {
+        return body !== undefined ? apiPatch<TData>(path, body) : apiPatch<TData>(path);
+      }
+      return body !== undefined
+        ? apiDelete<TData>(path, body)
+        : apiDelete<TData>(path);
     },
     onSuccess: () => {
       for (const key of options.invalidateKeys ?? []) {

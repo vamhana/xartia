@@ -106,6 +106,7 @@ export interface TaskCardProps {
   showActions?: boolean;
   onTake?: () => void;
   onSubmit?: () => void;
+  onProfile?: () => void;
   userCompetencies?: string[];
 }
 
@@ -115,6 +116,7 @@ export function TaskCard({
   showActions = false,
   onTake,
   onSubmit,
+  onProfile,
   userCompetencies,
 }: TaskCardProps): ReactElement {
   const isCompact = variant === 'compact';
@@ -151,8 +153,13 @@ export function TaskCard({
     </div>
   );
 
-  const actions = showActions && (
+  const actions = (showActions || onProfile) && (
     <div style={{ display: 'flex', gap: spacing.sm }}>
+      {onProfile && (
+        <Button size="sm" variant="ghost" onClick={onProfile}>
+          Профиль требований
+        </Button>
+      )}
       {task.status === 'assigned' && onTake && (
         <Button size="sm" onClick={onTake}>
           Взять

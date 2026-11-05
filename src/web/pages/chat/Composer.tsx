@@ -20,6 +20,7 @@ import {
 import { uploadFile } from '../../api/client';
 import { Button } from '../../components/ui/Button';
 import { formatBytes } from '../../lib/format';
+import { safeUuid } from '../../lib/uuid';
 import { colors, fontSize, radius, spacing } from '../../theme';
 
 import type { ChatMessageRich } from './ChannelView';
@@ -60,7 +61,7 @@ interface Props {
 }
 
 interface PendingUpload {
-  /** Локальный id для key в React (генерится через crypto.randomUUID). */
+  /** Локальный id для key в React (генерится через safeUuid). */
   id: string;
   name: string;
   status: 'uploading' | 'error';
@@ -238,7 +239,7 @@ export function Composer({
   const uploadAll = async (files: File[]): Promise<void> => {
     // Каждый файл кладём в pending сразу, чтобы UI показал прогресс.
     const jobs = files.map((file) => ({
-      id: crypto.randomUUID(),
+      id: safeUuid(),
       file,
     }));
     setPending((prev) => [

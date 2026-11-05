@@ -16,6 +16,8 @@ import { apiGet, apiPost } from '../../api/client';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { colors, fontSize, radius, spacing } from '../../theme';
+import { safeCopy } from '../../lib/clipboard';   // путь проверь
+
 
 interface RegistrationRequest {
   id: string;
@@ -202,7 +204,7 @@ export function RequestsPage(): ReactElement {
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => void navigator.clipboard.writeText(accepted.temporary_password)}
+              onClick={() => void safeCopy(accepted.temporary_password)}
             >
               Скопировать
             </Button>

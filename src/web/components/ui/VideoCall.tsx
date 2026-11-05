@@ -128,6 +128,12 @@ export function useWebRTC(
 
   const start = useCallback(async () => {
     // 1. Локальный поток
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error(
+        'Видеозвонки доступны только через HTTPS или localhost. ' +
+        'Открой страницу по https:// или через localhost (не по IP в LAN).'
+      );
+    }
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,

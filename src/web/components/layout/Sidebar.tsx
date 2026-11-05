@@ -22,6 +22,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/collective',         icon: '👥', label: 'Коллектив' },
   { path: '/chat',               icon: '💬', label: 'Чат' },
   { path: '/passport',           icon: '👤', label: 'Паспорт' },
+  { path: '/teams',              icon: '🤝', label: 'Команды' },
+  { path: '/calibration',        icon: '⚖️', label: 'Калибровка', requiresRole: COUNCIL_ROLES },
+  { path: '/catalog/proposals',  icon: '📝', label: 'Предложения', requiresRole: COUNCIL_ROLES },
   { path: '/workspace',          icon: '🎛️', label: 'Рабочая панель' },
 
   // ── Ежедневные операции ─────────────────────────────────

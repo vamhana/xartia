@@ -169,6 +169,7 @@ export function TasksPage(): ReactElement {
                 showActions={true}
                 onTake={() => onAction(() => takeMutation.mutateAsync(t.id))}
                 onSubmit={() => navigate(`/tasks/${t.id}/report`)}
+                onProfile={() => navigate(`/tasks/${t.id}/profile`)}
               />
             </div>
           ))}

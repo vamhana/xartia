@@ -22,6 +22,7 @@ import {
   FormSelect,
   FormCheckbox,
 } from '../components/ui/Form';
+import { safeCopy } from '../lib/clipboard';
 import { Spinner } from '../components/ui/Spinner';
 import { Table } from '../components/ui/Table';
 import type { Column } from '../components/ui/Table';
@@ -338,7 +339,8 @@ function ComplaintsSection(): ReactElement {
 function CopyIdButton({ id }: { id: string }): ReactElement {
   const [copied, setCopied] = useState(false);
   const onCopy = (): void => {
-    void navigator.clipboard.writeText(id).then(() => {
+    void safeCopy(id).then((ok) => {
+      if (!ok) return;              // можно показать «не удалось скопировать»
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });

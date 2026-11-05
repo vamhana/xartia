@@ -3,7 +3,7 @@
 // для POST. Единый формат ошибок ApiError.
 
 import type { UUID } from '../types';
-
+import { safeUuid } from '../lib/uuid';
 // -------- Типы --------
 
 export interface ApiError {
@@ -106,7 +106,7 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
 }
 
 function newIdempotencyKey(): string {
-  return crypto.randomUUID();
+  return safeUuid();
 }
 
 async function parseError(res: Response): Promise<ApiError> {
