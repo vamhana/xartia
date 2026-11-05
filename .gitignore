@@ -89,3 +89,14 @@ legacy/
 .ws-test-env.json
 # Integrity signatures (локальные, генерируются signAll)
 .integrity/
+# Local junk (added 2026-11-05)
+node.tar.xz
+*.tar.xz
+tmpcard.json
+/tmp/
+docs/Новый текстовый документ.txt
+
+# Local dev tools (not part of project)
+scripts/ws_launch_workspace.py
+node.tar.xz
+*.tar.xz
