@@ -153,6 +153,14 @@ jobs:
       - name: Базовые справочники
         run: pnpm tsx scripts/seed-base.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD"
 
+      # Паспорт: 54 pilot atoms + 3 profiles + 17 directions + relations.
+      # Прямой DB-скрипт (без API). test-passport-v2 п.1 ожидает total >= 54,
+      # п.1b — idempotent rerun. Без этого шага оба падают на пустой БД.
+      - name: Seed — паспорт (54 pilot atoms)
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/seed-passport.ts | tee /tmp/seed-passport.log
+
       - name: Smoke — система
         run: |
           set -o pipefail
