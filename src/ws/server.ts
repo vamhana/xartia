@@ -42,6 +42,7 @@ import { verifyToken, isRevoked, type JwtPayload } from '../security/jwt.js';
 import { canAccessChannel, getChannelByStringId } from '../core/chat/service.js';
 import { queryOne } from '../lib/db.js';
 
+
 // -------- Типы --------
 
 export interface WSConnection {
@@ -888,7 +889,6 @@ export async function startWSServer(port?: number): Promise<FastifyInstance> {
 
   await ensureRedisSubscribed();
   startHeartbeat();
-
   await app.listen({ port: WS_PORT, host: HOST });
   startedAt = Date.now();
 

@@ -24,6 +24,7 @@ import { escalateOverdue } from '../core/otc/service.js';
 import { processExpired } from '../core/mandates/service.js';
 import { escalateOverdueQuestions } from '../core/questions/service.js';
 import { flagOverdueProposals } from '../core/proposals/service.js';
+import { runPermitsExpire } from './jobs/permits-expire.js';
 import { logger } from '../lib/logger.js';
 import { gracefulShutdown } from '../lib/shutdown.js';
 
@@ -177,23 +178,39 @@ async function main(): Promise<void> {
   }, CLEANUP_INTERVAL_MS);
   cleanupTimer.unref();
 
-// Управленческий контур: SLA-эскалация ОТК и истечение мандатов.
-async function runGovernance(): Promise<void> {
-  try {
-    const escalations = await escalateOverdue();
-    const mandates = await processExpired();
-    const questions = await escalateOverdueQuestions();
-    const proposals = await flagOverdueProposals();
-    logger.info({ escalations, mandates, questions, proposals }, 'worker: governance done');
-  } catch (e) {
-    logger.warn({ err: e }, 'worker: governance failed');
+  // Управленческий контур: SLA-эскалация ОТК и истечение мандатов.
+  async function runGovernance(): Promise<void> {
+    try {
+      const escalations = await escalateOverdue();
+      const mandates = await processExpired();
+      const questions = await escalateOverdueQuestions();
+      const proposals = await flagOverdueProposals();
+      logger.info({ escalations, mandates, questions, proposals }, 'worker: governance done');
+    } catch (e) {
+      logger.warn({ err: e }, 'worker: governance failed');
+    }
   }
-}
-void runGovernance();
-const governanceTimer = setInterval(() => {
   void runGovernance();
-}, GOVERNANCE_INTERVAL_MS);
-governanceTimer.unref();
+  const governanceTimer = setInterval(() => {
+    void runGovernance();
+  }, GOVERNANCE_INTERVAL_MS);
+  governanceTimer.unref();
+
+  // ─── permits-expire (Фаза 3c, A51, A59) ───────────────────────────
+  // Раз в час: permits/participant_permits со status='active' и
+  // valid_until < now() → status='expired'. Идемпотентно. Лаг до 1 ч
+  // приемлем (downstream проверяет valid_until, а не status).
+
+  const permitsExpireTimer = setInterval(() => {
+    runPermitsExpire().catch((e) => {
+      logger.error({ err: e }, 'permits-expire: unhandled error');
+    });
+  }, GOVERNANCE_INTERVAL_MS);
+
+  // Первый прогон — сразу при старте (чтобы не ждать час).
+  void runPermitsExpire().catch((e) => {
+    logger.warn({ err: e }, 'permits-expire: initial run failed');
+  });
 
   // Graceful shutdown.
   const stop = async (signal: string): Promise<void> => {
@@ -202,6 +219,7 @@ governanceTimer.unref();
     logger.info({ signal }, 'worker: shutting down');
     clearInterval(cleanupTimer);
     clearInterval(governanceTimer);
+    clearInterval(permitsExpireTimer);
     try {
       await gracefulShutdown();
       process.exit(0);

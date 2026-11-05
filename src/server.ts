@@ -32,6 +32,7 @@ import { registerMetricsRoutes } from './api/system/metrics.js';
 // 3. Домен — по возрастанию ID.
 import { registerAuthRoutes } from './api/auth/controller.js';
 import { registerParticipantsRoutes } from './api/participants/controller.js';
+import { registerPassportRoutes } from './api/passport/controller.js';
 import { registerDirectionsRoutes } from './api/directions/controller.js';
 import { registerCapacityRoutes } from './api/capacity/controller.js';
 import { registerProposalRoutes } from './api/proposals/controller.js';
@@ -236,6 +237,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   // 3. Domain (по возрастанию ID)
   await registerAuthRoutes(app);
   await registerParticipantsRoutes(app);
+  await registerPassportRoutes(app);      
   await registerDirectionsRoutes(app);
   await registerCellsRoutes(app);
   await registerCapacityRoutes(app);
