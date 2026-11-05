@@ -188,14 +188,14 @@ jobs:
         env:
           TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
           TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
-       - name: Smoke — паспорт v5
+      - name: Smoke — паспорт v5
         run: |
           set -o pipefail
           pnpm tsx scripts/test-passport-v5.ts | tee /tmp/smoke-test-passport-v5.log
         env:
           TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
           TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
-       - name: Smoke — паспорт v6
+      - name: Smoke — паспорт v6
         run: |
           set -o pipefail
           pnpm tsx scripts/test-passport-v6.ts | tee /tmp/smoke-test-passport-v6.log
@@ -230,7 +230,7 @@ jobs:
           pnpm tsx scripts/test-passport-v8.ts | tee /tmp/smoke-test-passport-v8.log
         env:
           TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
-          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}          
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
       - name: Smoke — коллектив
         run: |
           set -o pipefail
@@ -373,4 +373,3 @@ jobs:
           grep -hiE 's3|artifact|PutObject|SignatureDoesNotMatch|AccessDenied|ECONNREFUSED|ETIMEDOUT' /tmp/api.log 2>/dev/null | tail -6 | while IFS= read -r line; do
             echo "::error title=API::${line}"
           done
-
