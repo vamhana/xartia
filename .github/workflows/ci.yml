@@ -169,6 +169,68 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-passport.ts "$ARCHITECT_PHONE" "$ARCHITECT_PASSWORD" 2>&1 | tee /tmp/smoke-test-passport.log
+      - name: Smoke — паспорт v2
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport-v2.ts 2>&1 | tee /tmp/smoke-test-passport-v2.log
+
+      - name: Smoke — паспорт v3
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport-v3.ts 2>&1 | tee /tmp/smoke-test-passport-v3.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
+      - name: Smoke — паспорт v4
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport-v4.ts | tee /tmp/smoke-test-passport-v4.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
+       - name: Smoke — паспорт v5
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport-v5.ts | tee /tmp/smoke-test-passport-v5.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
+       - name: Smoke — паспорт v6
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport-v6.ts | tee /tmp/smoke-test-passport-v6.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
+      - name: Smoke — паспорт v7
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport-v7.ts | tee /tmp/smoke-test-passport-v7.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
+      - name: Seed — каталог v0.4
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/seed-catalog-v04.ts | tee /tmp/seed-catalog-v04.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
+
+      - name: Smoke — каталог v0.4
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-catalog-v04.ts | tee /tmp/smoke-catalog-v04.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}
+      - name: Smoke — паспорт v8
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-passport-v8.ts | tee /tmp/smoke-test-passport-v8.log
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS:  ${{ env.ARCHITECT_PASSWORD }}          
       - name: Smoke — коллектив
         run: |
           set -o pipefail

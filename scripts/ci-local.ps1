@@ -80,10 +80,22 @@ if (-not $StaticOnly) {
   if (-not $password) { $password = 'ChangeMe123456' }
 
   Invoke-Step 'seed: base' { pnpm tsx scripts/seed-base.ts $phone $password }
+  # Каталог v0.4: 0055 (педагогическая компетенция) + 9 anchor'ов + fix
+  # practice_review_policy у 0055. Без него smoke v6 упадёт на 1a
+  # (to_calibrate = 0), а smoke catalog-v04 — на anchor'ах.
+  Invoke-Step 'seed: catalog-v04' { pnpm tsx scripts/seed-catalog-v04.ts }
   Invoke-Step 'smoke: system' { pnpm tsx scripts/test-system.ts }
   Invoke-Step 'smoke: public' { pnpm tsx scripts/test-public.ts }
   Invoke-Step 'smoke: register' { pnpm tsx scripts/test-register.ts }
   Invoke-Step 'smoke: passport' { pnpm tsx scripts/test-passport.ts $phone $password }
+  Invoke-Step 'smoke: passport-v2' { pnpm tsx scripts/test-passport-v2.ts $phone $password }
+  Invoke-Step 'smoke: passport-v3' { pnpm tsx scripts/test-passport-v3.ts }
+  Invoke-Step 'smoke: passport-v4' { pnpm tsx scripts/test-passport-v4.ts }
+  Invoke-Step 'smoke: passport-v5' { pnpm tsx scripts/test-passport-v5.ts }
+  Invoke-Step 'smoke: passport-v6' { pnpm tsx scripts/test-passport-v6.ts }
+  Invoke-Step 'smoke: passport-v7' { pnpm tsx scripts/test-passport-v7.ts }
+  Invoke-Step 'smoke: catalog-v04' { pnpm tsx scripts/test-catalog-v04.ts }
+  Invoke-Step 'smoke: passport-v8' { pnpm tsx scripts/test-passport-v8.ts }
   Invoke-Step 'smoke: collective' { pnpm tsx scripts/test-collective.ts $phone $password }
   Invoke-Step 'smoke: onboarding-role' { pnpm tsx scripts/test-onboarding-role.ts $phone $password }
   Invoke-Step 'smoke: notifications' { pnpm tsx scripts/test-notification-link.ts $phone $password }

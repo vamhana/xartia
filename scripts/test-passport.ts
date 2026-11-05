@@ -1,4 +1,4 @@
-// scripts/test-passport.ts
+// |I.9.04.15|Infra|Tools|TypeScript|scripts/test-passport.ts
 // Smoke-тест: login → /me → /directions → /participants
 // Запуск: pnpm tsx scripts/test-passport.ts
 
