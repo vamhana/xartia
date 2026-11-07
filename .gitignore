@@ -101,3 +101,8 @@ scripts/ws_launch_workspace.py
 node.tar.xz
 *.tar.xz
 pnpm-workspace.yaml
+
+# Service artifacts (AI-context glue, file checks)
+check_files.md
+клей.md
+клей_файл.md
