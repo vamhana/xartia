@@ -1,4 +1,4 @@
-// W.2.xx.xx — Cron: permits.status='expired' (Фаза 3c, A51, A59).
+// I.9.07.05 — Cron: permits.status='expired' (Фаза 3c, A51, A59).
 //
 // Раз в час:
 //   UPDATE permits SET status='expired'

@@ -1,4 +1,4 @@
-// F.4.02.01 — Старый профиль участника (перенесён из HEAD:src/web/pages/Passport.tsx
+// F.4.10.28 — Старый профиль участника (перенесён из HEAD:src/web/pages/Passport.tsx
 // как есть по содержанию). Контракт /me/passport и PassportFull не меняются.
 //
 // Ключ ['passport', 'me'] — общий с Start.tsx (TanStack дедуплицирует).

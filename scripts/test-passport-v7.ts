@@ -34,7 +34,7 @@ function pass(label: string, detail?: unknown): void {
 }
 function fail(label: string, detail?: unknown): void {
   console.error(`FAIL  ${label}${detail !== undefined ? `  ${JSON.stringify(detail)}` : ''}`);
-  failed;
+  failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
   if (actual === expected) pass(label, { actual });

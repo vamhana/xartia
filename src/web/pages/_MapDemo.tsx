@@ -1,4 +1,4 @@
-// F.4.99.30 — Map demo page (вынесена из App.tsx для lazy-роута).
+// F.4.99.34 — Map demo page (вынесена из App.tsx для lazy-роута).
 // Использует components/ui/Map (leaflet) — тяжёлая, потому lazy.
 
 import type { ReactElement } from 'react';
