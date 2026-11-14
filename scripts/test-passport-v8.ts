@@ -16,7 +16,7 @@ import 'dotenv/config';
 
 import { query, queryOne } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
-import { ATOM_SEEDS } from './seed-data/atoms.js';
+
 import {
   BASE,
   createAndMergeProposal,
@@ -26,6 +26,7 @@ import {
   request,
   submitAssessment,
 } from './lib/passport-fixtures.js';
+import { ATOM_SEEDS } from './seed-data/atoms.js';
 
 const ARCHITECT_PHONE = process.env['TEST_ARCHITECT_PHONE'] ?? '+79001234567';
 const ARCHITECT_PASS = process.env['TEST_ARCHITECT_PASS'] ?? 'ChangeMe123456';
@@ -39,8 +40,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 async function main(): Promise<void> {
@@ -58,7 +59,7 @@ async function main(): Promise<void> {
 
   // Чтобы cleanup 0009 (п.2) не сломал seed, фиксируем исходное состояние.
   const original0009 = ATOM_SEEDS.find((a) => a.atom_id === 'CYB.ATOM.0009');
-  if (!original0009) throw new Error('0009 not found in ATOM_SEEDS');
+  if (!original0009) {throw new Error('0009 not found in ATOM_SEEDS');}
 
   // ─── 1. criteria_version ────────────────────────────────────────────
   {

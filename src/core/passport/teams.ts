@@ -11,11 +11,12 @@
 // индивидуальных оценок (§11.4).
 
 import { query, queryOne, transaction } from '../../lib/db.js';
+import { newUUID } from '../../lib/id.js';
 import {
   ForbiddenError, NotFoundError, ValidationError,
 } from '../errors.js';
-import { newUUID } from '../../lib/id.js';
 import type { UUID } from '../types.js';
+
 import type {
   AssessTeamInput,
   CreateTeamInput,
@@ -114,7 +115,7 @@ async function validateParticipants(participants: UUID[]): Promise<void> {
 function validateCriteria(
   criteria: Record<string, Record<string, unknown>> | undefined,
 ): Record<string, Record<string, unknown>> {
-  if (criteria === undefined) return {};
+  if (criteria === undefined) {return {};}
   if (typeof criteria !== 'object' || criteria === null || Array.isArray(criteria)) {
     throw new ValidationError('criteria must be an object');
   }
@@ -368,7 +369,7 @@ export async function updateTeam(
       [teamId],
     );
     const team = cur.rows[0];
-    if (!team) throw new NotFoundError('Team', teamId);
+    if (!team) {throw new NotFoundError('Team', teamId);}
 
     // Права: created_by ИЛИ любая из TEAM_CREATOR_ROLES.
     const isAuthor = team.created_by === actorId;
@@ -440,7 +441,7 @@ export async function deprecateTeam(
       [teamId],
     );
     const team = cur.rows[0];
-    if (!team) throw new NotFoundError('Team', teamId);
+    if (!team) {throw new NotFoundError('Team', teamId);}
 
     // Права: created_by | FA | COUNCIL_MEMBER | OTC.
     const isAuthor = team.created_by === actorId;

@@ -37,7 +37,10 @@ import {
   seedTemplates,
   updateParticipantAdmin,
 } from '../../core/admin/service.js';
+import { getById as getDirectionById } from '../../core/directions/service.js';
 import { ForbiddenError } from '../../core/errors.js';
+import { assignMentorService, getMenteeCard, listMentorRegistry } from '../../core/mentors/service.js';
+import { createWelcomeTask } from '../../core/onboarding/service.js';
 import {
   approveRecoveryRequest,
   createFromRequest,
@@ -45,11 +48,8 @@ import {
   nextWaveNumber,
   rejectRecoveryRequest,
 } from '../../core/participants/service.js';
-import { getById as getDirectionById } from '../../core/directions/service.js';
-import { assignMentorService, getMenteeCard, listMentorRegistry } from '../../core/mentors/service.js';
-import { createWelcomeTask } from '../../core/onboarding/service.js';
-import type { RegistrationStatus } from '../../core/types.js';
 import { Role } from '../../core/roles.js';
+import type { RegistrationStatus } from '../../core/types.js';
 import { mustGetLimit } from '../../security/rate-limit.js';
 import { assignRole, hasRole } from '../../security/rbac.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';

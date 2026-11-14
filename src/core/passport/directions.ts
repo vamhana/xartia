@@ -3,6 +3,7 @@
 // Сид atom_direction_map уже прошёл (шаг 2). Здесь — read-only.
 
 import { query, queryOne } from '../../lib/db.js';
+
 import type {
   AtomDirection,
   AtomDirectionRole,
@@ -88,9 +89,9 @@ export async function getAtomDirections(atomId: string): Promise<AtomDirections>
       role: r.role,
       note: r.note,
     };
-    if (r.role === 'home') home = item;
-    else if (r.role === 'main') main = item;
-    else related.push(item);
+    if (r.role === 'home') {home = item;}
+    else if (r.role === 'main') {main = item;}
+    else {related.push(item);}
   }
 
   return { home, main, related };

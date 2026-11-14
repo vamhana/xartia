@@ -27,46 +27,55 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import {
-  disputeEvidence,
-  resolveDispute,
-  reuseEvidence,
-} from '../../core/passport/evidence.js';
 import { resolveAppeal } from '../../core/passport/appeal.js';
-import {
-  getAtomById,
-  getCatalog,
-  getRelationsForAtom,
-} from '../../core/passport/catalog.js';
-import { getAtomDirections, getDirections } from '../../core/passport/directions.js';
-import { getHistory } from '../../core/passport/history.js';
 import {
   submitEvidence,
   submitAssessment,
   submitAppeal,
   createPath,
 } from '../../core/passport/assessment.js';
+import {
+  assignAnchor,
+  createAnchor,
+  createSession,
+  getSession,
+  getSessionReport,
+  listAnchors,
+  listSessions,
+  scoreAssignment,
+} from '../../core/passport/calibration.js';
+import {
+  createProposal,
+  getProposal,
+  listProposals,
+  mergeProposal,
+  setProposalStatus,
+} from '../../core/passport/catalog-proposals.js';
+import {
+  getAtomById,
+  getCatalog,
+  getRelationsForAtom,
+} from '../../core/passport/catalog.js';
+import { getAtomDirections, getDirections } from '../../core/passport/directions.js';
+import {
+  disputeEvidence,
+  resolveDispute,
+  reuseEvidence,
+} from '../../core/passport/evidence.js';
+import { getGraph } from '../../core/passport/graph.js';
+import { getHistory } from '../../core/passport/history.js';
+import {
+  getCandidates,
+  matchTask,
+} from '../../core/passport/matching.js';
+import {
+  createPermit,
+  getParticipantPermits,
+  issuePermitToParticipant,
+  listPermits,
+  revokeParticipantPermit,
+} from '../../core/passport/permits.js';
 import { getAtomCard, getOverview } from '../../core/passport/projection.js';
-import { authMiddleware, getAuthContext } from '../middleware/auth.js';
-import {
-  validateBody,
-  validateParams,
-  validateQuery,
-} from '../middleware/validation.js';
-import { uuidSchema, uuidIdParams } from '../../lib/validators.js';
-import {
-  getVisibilityAll,
-  getVisibility,
-  setVisibility,
-  recordAccess,
-  listAccessLog,
-  maskOverview,
-  resolveScopeGrant,
-  listGrants,
-  createGrant,
-  revokeGrant,
-} from '../../core/passport/visibility.js';
-import { query, queryOne } from '../../lib/db.js';
 import {
   createTaskProfile,
   getTaskProfile,
@@ -85,17 +94,6 @@ import {
   getMyQuestions,
 } from '../../core/passport/teaching.js';
 import {
-  getCandidates,
-  matchTask,
-} from '../../core/passport/matching.js';
-import {
-  createPermit,
-  getParticipantPermits,
-  issuePermitToParticipant,
-  listPermits,
-  revokeParticipantPermit,
-} from '../../core/passport/permits.js';
-import {
   assessTeam,
   createTeam,
   getTeam,
@@ -105,23 +103,25 @@ import {
   deprecateTeam,
 } from '../../core/passport/teams.js';
 import {
-  assignAnchor,
-  createAnchor,
-  createSession,
-  getSession,
-  getSessionReport,
-  listAnchors,
-  listSessions,
-  scoreAssignment,
-} from '../../core/passport/calibration.js';
-import { getGraph } from '../../core/passport/graph.js';
+  getVisibilityAll,
+  getVisibility,
+  setVisibility,
+  recordAccess,
+  listAccessLog,
+  maskOverview,
+  resolveScopeGrant,
+  listGrants,
+  createGrant,
+  revokeGrant,
+} from '../../core/passport/visibility.js';
+import { query, queryOne } from '../../lib/db.js';
+import { uuidSchema, uuidIdParams } from '../../lib/validators.js';
+import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import {
-  createProposal,
-  getProposal,
-  listProposals,
-  mergeProposal,
-  setProposalStatus,
-} from '../../core/passport/catalog-proposals.js';
+  validateBody,
+  validateParams,
+  validateQuery,
+} from '../middleware/validation.js';
 
 // ─────────────────────────────────────────────────────────────────────
 // Схемы валидации

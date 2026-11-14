@@ -28,7 +28,7 @@ export function TeamsListPage(): ReactElement {
     '/passport/teams',
   );
 
-  if (q.isLoading) return <Spinner label="Загрузка команд…" />;
+  if (q.isLoading) {return <Spinner label="Загрузка команд…" />;}
   if (q.isError) {
     return (
       <Card title="Ошибка" variant="outlined">

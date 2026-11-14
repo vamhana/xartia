@@ -3,8 +3,8 @@
 import type { ReactElement } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { TaskProfilePanel } from '../components/passport/TaskProfilePanel';
 import { MatchingPanel } from '../components/passport/MatchingPanel';
+import { TaskProfilePanel } from '../components/passport/TaskProfilePanel';
 import { colors, spacing } from '../theme';
 
 export function TaskProfilePage(): ReactElement {

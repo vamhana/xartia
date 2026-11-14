@@ -78,7 +78,7 @@ export async function disputeEvidence(
       [evidenceId],
     );
     const ev = evRes.rows[0];
-    if (!ev) throw new NotFoundError('Evidence', evidenceId);
+    if (!ev) {throw new NotFoundError('Evidence', evidenceId);}
 
     if (!['submitted', 'accepted'].includes(ev.status)) {
       throw new ConflictError(
@@ -183,7 +183,7 @@ export async function resolveDispute(
       [evidenceId],
     );
     const ev = evRes.rows[0];
-    if (!ev) throw new NotFoundError('Evidence', evidenceId);
+    if (!ev) {throw new NotFoundError('Evidence', evidenceId);}
 
     if (ev.status !== 'disputed') {
       throw new ConflictError(
@@ -294,7 +294,7 @@ export async function reuseEvidence(
       [evidenceId],
     );
     const ev = evRes.rows[0];
-    if (!ev) throw new NotFoundError('Evidence', evidenceId);
+    if (!ev) {throw new NotFoundError('Evidence', evidenceId);}
 
     if (ev.participant_id !== actorId) {
       throw new ForbiddenError('Only the owner can reuse evidence');

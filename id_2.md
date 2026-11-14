@@ -269,30 +269,78 @@
 - **13 недостающих эндпоинтов** (create, update, abolish, zones, professions, roles POST, council) — roadmap (сервисных функций в C.0.03.02 нет).
 ТЕСТОВОЕ ПОКРЫТИЕ: прямого теста нет. Косвенно — все интеграционные тесты, где `GET /directions` используется для подготовки данных. |
 
-|A.1.04.01|API|REST|TypeScript|src/api/cells/controller.ts|C.0.04.02, L.0.01.03, A.1.99.01, A.1.99.02, A.1.99.06|v.0.0.03|Draft|I.5|
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-26: GET /cells/:id/card — состав, общий план, дневной план ячейки.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-26: GET /cells/:id/card — состав, общий план, дневной план ячейки.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-26: GET /cells/:id/card — состав, общий план, дневной план ячейки.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-26: GET /cells/:id/card — состав, общий план, дневной план ячейки.
-|2026-10-25: маршруты наряда ячейки — GET /cells/:id/daily-plan, GET /cells/:id/daily-plan/candidates, POST /cells/:id/daily-plan, POST /cells/:id/daily-plan/:task_id/assign.
-|2026-10-25 (передача): GET /cells/:id/daily-plan/tree и POST /cells/:id/daily-plan/distribute — наряд верхней ячейки делится между дочерними.
-|2026-10-26: GET /cells/:id/card — состав, общий план, дневной план ячейки.
+|A.1.04.01|API|REST|TypeScript|src/api/cells/controller.ts|C.0.04.02, C.0.04.12, C.0.04.15, C.0.41.03, C.0.41.04, L.0.01.03, A.1.99.01, A.1.99.02, A.1.99.06|v.0.0.04|Draft|I.5|
+|Описание: Контроллер Cells. **17 эндпоинтов**: дерево/список/карточка/readiness/состав/дети, создание ячейки, добавление/удаление участников, **наряд ячейки** (C.0.41.03), **передача наряда дочерним** (C.0.41.04). Чтение — только `authMiddleware` (без `requireRight`). Мутации: `cell:C` (создание ячейки, добавление участника), `cell:D` (удаление участника), `plan:C` (upsert/assign/distribute наряда). **Rate-limit на мутациях отсутствует** (в контроллере нет `writeLimit`). **`GET /cells/:id/card`** — карточка (`getCellCard` из C.0.04.15); **`GET /cells/:id/readiness`** — чек-лист (C.0.04.12). **`POST /cells/:id/daily-plan`** принимает опциональный `reason` (min 1..max 500) — проброс в `upsertCellDailyPlan`. `uuidIdParams`/`uuidSchema` из L.0.01.03. Порядок preHandler: `authMiddleware` → `requireRight` → `validateParams`/`validateBody`/`validateQuery`. |
+|Публичный API:
+- `GET /cells` — preHandler `[authMiddleware, validateQuery(listQuery)]`. Query: `{ direction_id?, level? (0..11), parent_cell_id?, roots_only? }`. `listCells({ directionId?, level?, parentCellId?, rootsOnly? })` → 200 `{ data, audit_id }`.
+- `GET /cells/:id` — `[authMiddleware, validateParams(uuidIdParams)]`. `getById(id)` → 200 `{ ...cell, audit_id }`.
+- `GET /cells/:id/card` — `[authMiddleware, validateParams(uuidIdParams)]`. `getCellCard(id)` → 200 `{ ...card, audit_id }`. Состав + общий план + дневной план.
+- `GET /cells/:id/readiness` — `[authMiddleware, validateParams(uuidIdParams)]`. `getCellReadiness(id)` → 200.
+- `GET /cells/:id/members` — `[authMiddleware, validateParams(uuidIdParams)]`. `getMembers(id)` → 200 `{ data, audit_id }`.
+- `GET /cells/:id/children` — `[authMiddleware, validateParams(uuidIdParams)]`. `getChildren(id)` → 200 `{ data, audit_id }`.
+- `GET /cells/tree/:id` — `[authMiddleware, validateParams(uuidIdParams)]`. `buildTree(id)` → 200 `{ data, audit_id }`.
+- `POST /cells` — `[authMiddleware, requireRight('cell','C'), validateBody(createBody)]`. Body: `{ level (0..11), number (1..16), profile? (1..64), parent_cell_id?, direction_id }`. `createCellService({ level, number, profile?, parentCellId?, directionId }, auth.participantId)` → 201.
+- `POST /cells/:id/members` — `[authMiddleware, requireRight('cell','C'), validateParams(uuidIdParams), validateBody(addMemberBody)]`. Body: `{ participant_id, role_in_cell? (enum: member|coordinator|otc|keeper|liaison|verifier|balancer|psy) }`. `addMemberService(id, { participantId, roleInCell? }, auth.participantId)` → 201.
+- `DELETE /cells/:id/members/:participant_id` — `[authMiddleware, requireRight('cell','D'), validateParams(memberParams)]`. `removeMemberService(id, participant_id, auth.participantId)` → 204.
+- `GET /cells/:id/daily-plan` — `[authMiddleware, validateParams(uuidIdParams), validateQuery(cellPlanQuery)]`. Query: `{ date (/^\d{4}-\d{2}-\d{2}$/) }`. `getCellDailyPlan(id, date)` → 200.
+- `GET /cells/:id/daily-plan/candidates` — `[authMiddleware, validateParams(uuidIdParams)]`. `listCellPlanCandidates(id)` → 200 `{ data, audit_id }`.
+- `GET /cells/:id/daily-plan/versions` — `[authMiddleware, validateParams(uuidIdParams), validateQuery(cellPlanQuery)]`. `listCellPlanVersions(id, date)` → 200 `{ data, audit_id }`. История версий наряда.
+- `POST /cells/:id/daily-plan` — `[authMiddleware, requireRight('plan','C'), validateParams(uuidIdParams), validateBody({ date, task_ids: uuid[] (1..50), reason? (1..500) })]`. `upsertCellDailyPlan({ cellId, date, taskIds, approvedById, reason? })` → 201. UPSERT.
+- `POST /cells/:id/daily-plan/:task_id/assign` — `[authMiddleware, requireRight('plan','C'), validateParams(uuidIdParams.extend({ task_id: uuidSchema })), validateBody({ date, participant_id })]`. `assignCellDailyTask({ cellId, date, taskId, participantId, requesterId })` → 200.
+- `GET /cells/:id/daily-plan/tree` — `[authMiddleware, validateParams(uuidIdParams), validateQuery(cellPlanQuery)]`. `getDelegationTree(id, date)` (C.0.41.04) → 200 `{ parent, children, audit_id }`.
+- `POST /cells/:id/daily-plan/distribute` — `[authMiddleware, requireRight('plan','C'), validateParams(uuidIdParams), validateBody({ date, assignments: [{ child_cell_id, task_ids: uuid[] (max 50) }] (1..50) })]`. `distributeCellDailyPlan({ cellId, date, assignments, requesterId })` → 201 `{ parent, children, audit_id }`.
+- Zod-схемы (5): `memberParams = uuidIdParams.extend({ participant_id })`, `listQuery`, `createBody`, `addMemberBody`, `cellPlanQuery`; inline-схемы для POST daily-plan, assign, distribute. `uuidIdParams`/`uuidSchema` — из L.0.01.03. |
+|↙ ПОТРЕБЛЯЕТ:
+- **C.0.04.02** cells/service — `listCells`, `getById`, `getMembers`, `getChildren`, `buildTree`, `createCellService`, `addMemberService`, `removeMemberService`.
+- **C.0.04.12** cells/readiness — `getCellReadiness`.
+- **C.0.04.15** cards/service — `getCellCard`.
+- **C.0.41.03** cells/daily — `assignCellDailyTask`, `getCellDailyPlan`, `listCellPlanCandidates`, `listCellPlanVersions`, `upsertCellDailyPlan`.
+- **C.0.41.04** cells/delegation — `distributeCellDailyPlan`, `getDelegationTree`.
+- L.0.01.03 validators — `uuidIdParams`, `uuidSchema`.
+- A.1.99.01 auth — `authMiddleware`, `getAuthContext`.
+- A.1.99.02 rights — `requireRight`.
+- A.1.99.06 validation — `validateBody`, `validateParams`, `validateQuery`.
+- Внешние: fastify, zod. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- `registerCellsRoutes(app): Promise<void>` — регистрируется в A.1.00.01.
+- `GET /cells`, `/cells/:id`, `/cells/:id/card`, `/cells/:id/readiness`, `/cells/:id/members`, `/cells/:id/children`, `/cells/tree/:id` — F.4.02.35 `CellsMap.tsx`, F.4.02.36 `CellCard.tsx`.
+- `POST /cells`, `POST/DELETE /cells/:id/members` — Совет направления / Архитектор.
+- Наряд ячейки (`GET/POST /cells/:id/daily-plan*`, `assign`, `versions`) — F.4.02.99 `DailyPlan.tsx`, F.4.02.32 `Naryad.tsx`.
+- Передача наряда (`GET .../tree`, `POST .../distribute`) — F.4.02.35 `CellsMap.tsx`.
+- `audit_id` во всех ответах. |
+|Реализация:
+- **Порядок регистрации** (важен для статических сегментов): `GET /cells` → `GET /cells/:id` → `/card` → `/readiness` → `/members` → `/children` → `/cells/tree/:id` → `POST /cells` → `POST /cells/:id/members` → наряд (daily-plan → candidates → versions → POST → assign → tree → distribute) → `DELETE /cells/:id/members/:participant_id`.
+- **`GET /cells`** — `listCells` с опциональными фильтрами через spread-условия (`directionId`, `level`, `parentCellId`, `rootsOnly`).
+- **`POST /cells`** — `getAuthContext` → `createCellService` с camelCase-маппингом (`parent_cell_id → parentCellId`, `direction_id → directionId`) → 201.
+- **`POST /cells/:id/members`** — `addMemberService(id, { participantId, roleInCell? }, auth.participantId)` → 201.
+- **`DELETE /cells/:id/members/:participant_id`** — `removeMemberService(id, participant_id, auth.participantId)` → 204.
+- **Наряд**: `getCellDailyPlan` / `listCellPlanCandidates` / `listCellPlanVersions` — чтение без прав; `upsertCellDailyPlan` — с `reason?`; `assignCellDailyTask` — `requesterId`; `distributeCellDailyPlan` — маппинг `child_cell_id → childCellId`, `task_ids → taskIds`, `requesterId`.
+- **`delegation`**: `GET .../tree` — `getDelegationTree`; `POST .../distribute` — `distributeCellDailyPlan` → 201. |
+|Примечания:
+РЕАЛИЗОВАНО: **17 эндпоинтов**, 5 Zod-схем (+3 inline), `requireRight` на 5 мутациях (`cell:C` ×2, `cell:D` ×1, `plan:C` ×3 — фактически upsert/assign/distribute).
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.03):
+- **`GET /cells`, `/cells/:id`, `/members`, `/children`, `/tree/:id`, `POST /cells`, `POST/DELETE /members`** — восстановлены в блоке (в старом блоке были только appended-строки про наряд).
+- **`GET /cells/:id/card`** (C.0.04.15) и **`GET /cells/:id/readiness`** (C.0.04.12) — новые маршруты.
+- **`GET /cells/:id/daily-plan/versions`** — история версий наряда (`listCellPlanVersions`).
+- **`POST /cells/:id/daily-plan`** — добавлен `reason?` (1..500), проброс в `upsertCellDailyPlan`.
+- **`POST /cells/:id/daily-plan/distribute`** — `assignments` 1..50, каждый `task_ids` max 50.
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.04.02: 8 функций сервиса.
+СВЯЗЬ С C.0.41.03: 5 функций наряда.
+СВЯЗЬ С C.0.41.04: `getDelegationTree` / `distributeCellDailyPlan`.
+СВЯЗЬ С C.0.04.15: `getCellCard` — карточка ячейки (состав + планы).
+СВЯЗЬ С C.0.04.12: `getCellReadiness` — чек-лист готовности.
+ТЕХДОЛГ:
+- **Rate-limit на мутациях отсутствует** — `POST /cells`, `POST/DELETE /members`, `POST /daily-plan`, `assign`, `distribute` без `writeLimit`. Отличие от A.1.06.01/A.1.07.01, где `api.write` навешан.
+- **`roots_only: z.coerce.boolean()`** — известный quirk Zod: `z.coerce.boolean()` приводит любую непустую строку (`'false'`, `'0'`) к `true`. Нужен `z.enum(['true','false']).transform(...)` или `z.coerce.boolean()` заменить.
+- **`GET /cells/tree/:id`** — сегмент `tree` статический; регистрируется после `/cells/:id`, но 3 сегмента vs 2 — конфликта нет. Однако если появится `GET /cells/:id/:something` — порядок станет критичным.
+- **`listCellPlanVersions(p.id as never, ...)`** — `as never` — обход типизации; сигнатура ожидает `UUID`, приведение маскирует рассинхрон типов.
+- **`distributeCellDailyPlan`** — валидация «child в том же направлении» — в сервисе (C.0.41.04), не в контроллере; контроллер доверяет сервису.
+- **`POST /cells/:id/daily-plan` — `task_ids` 1..50** (в A.1.06.01 `task_ids` до 100) — разные лимиты для ячейки и направления; согласовано с C.0.41.03.
+- **`assignCellDailyTask` / `distributeCellDailyPlan` — `as never`** для `taskId`/`childCellId` — типизация хрупкая.
+- **Нет пагинации** для `GET /cells` — `listCells` возвращает всё; для больших деревьев — риск (техдолг C.0.04.02).
+- **`DELETE /cells/:id/members/:participant_id`** объявлен после наряд-роутов — порядок не влияет (разные пути), но стилистически «свален» в конец.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.03 test-cells.ts, I.9.04.59 test-tree-naryad.ts, I.9.04.61 test-delegation.ts, I.9.04.67 test-capacity-cells.ts, I.9.04.71 test-cards.ts. |
 
 |A.1.04.20|API|Controller|TypeScript|src/api/capacity/controller.ts|C.0.04.10|v.0.0.01|Draft|—|
 |Описание: GET /capacity, GET/PUT /participants/:id/competencies, DELETE компетенции; GET /cells/:id/readiness.
@@ -464,205 +512,182 @@
 - **`GET /mandates` — нет фильтра по `expires_at`** (ближайшие/просроченные) — есть `GET /mandates/due` для этой цели (`within_days`).
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.12 test-mandates.ts (полный цикл). |
 
-|A.1.06.01|API|REST|TypeScript|src/api/plans/controller.ts|C.0.06.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.4|
-|Описание: Контроллер Plans. **10 эндпоинтов** (6 plans + 4 daily-plans): список, карточка, создание, approve/activate/stop, list/current/upsert daily-plans, remove task из daily-plan. **Rate-limit (`api.write`) на 6 мутациях** (POST /plans, /approve, /activate, /stop, POST /daily-plans, DELETE /daily-plans/:id/tasks/:task_id). **`GET /plans*` и `GET /daily-plans*` — без `requireRight`** (reference data): `/daily-plans/current` используется F.4.02.03 `Tasks.tsx` у всех ролей; требование `plan:V` сломало бы список задач у `ASSOCIATED` (нет `plan:V`). Права: `plan:C` (create), `plan:A` (approve, activate, daily-upsert, daily-remove-task), `plan:E` (stop). `uuidIdParams`, `planTypeSchema`, `planStatusSchema` из L.0.01.03. 7 Zod-схем. |
+|A.1.06.01|API|REST|TypeScript|src/api/plans/controller.ts|C.0.06.02, C.0.06.03, C.0.06.04, C.0.06.05, C.0.06.06, C.0.10.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.03|Draft|II.4|
+|Описание: Контроллер Plans. **21 эндпоинт** (6 plans + 9 аналитика/дерево/версии + 4 daily-plans + 2 versions/daily-versions): список, карточка, создание, approve/activate/stop, отклонения (deviation + сигнал), ветки (branches), дерево (tree), надзор (oversight), версии плана (list/create/restore), daily-plans (list/current/versions/upsert/remove-task). **`writeLimit` (`api.write`) на 9 мутациях**: POST /plans, approve, activate, stop, deviation/signal, POST /daily-plans, DELETE daily, POST versions, POST restore. **`GET /plans*` / `GET /daily-plans*` — без `requireRight`** (reference data): `/daily-plans/current` используется F.4.02.03 `Tasks.tsx` у всех ролей. Права: `plan:C` (create), `plan:A` (approve, activate, daily-upsert, daily-remove, versions, restore), `plan:E` (stop), `signal:C` (deviation/signal). **Статические сегменты (`/oversight`, `/branches`, `/deviations`) объявлены до `/plans/:id`.** `uuidIdParams`/`planTypeSchema`/`planStatusSchema` из L.0.01.03. 12 Zod-схем. |
 |Публичный API:
-- `GET /plans` — preHandler `[authMiddleware, validateQuery(listQuery)]`. Query: `{ type? (planType), status? (planStatus), lead_direction_id?, page=1, per_page=20 max 200 }`. `listPlans({ ...(type ? { type } : {}), ...(status ? { status } : {}), ...(lead_direction_id ? { leadDirectionId } : {}), page, perPage })`. → 200 `{ data, meta: { page, per_page, total }, audit_id }`.
-- `GET /plans/:id` — preHandler `[authMiddleware, validateParams(uuidIdParams)]`. `getById(params.id)`. → 200 `{ ...plan, audit_id }`.
-- `POST /plans` — preHandler `[authMiddleware, writeLimit, requireRight('plan','C'), validateBody(createBody)]`. Body: `{ type (planType), title (1..255), expected_result (1..), lead_direction_id, criteria?, checkpoints?: [{ at (ISO offset), description (1..) }], stop_conditions? }`. `createPlanService({ ... }, auth.participantId)`. → 201 `{ ...plan, audit_id }`. Crisis-валидация (`criteria.scenario`) — в сервисе.
-- `POST /plans/:id/approve` — preHandler `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(uuidIdParams)]`. `approvePlanService(...)`. → 200 `{ ...plan, audit_id }`.
-- `POST /plans/:id/activate` — preHandler `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(uuidIdParams)]`. `activatePlanService(...)`. → 200 `{ ...plan, audit_id }`.
-- `POST /plans/:id/stop` — preHandler `[authMiddleware, writeLimit, requireRight('plan','E'), validateParams(uuidIdParams), validateBody(stopBody)]`. Body: `{ reason (1..500) }`. `stopPlanService(...)`. → 200 `{ ...plan, audit_id }`.
-- `GET /daily-plans` — preHandler `[authMiddleware, validateQuery(dailyListQuery)]`. Query: `{ direction_id?, date? (/^\d{4}-\d{2}-\d{2}$/) }`. `listDailyPlans(direction_id, date)`. → 200 `{ data, audit_id }`.
-- `GET /daily-plans/current` — preHandler `[authMiddleware, validateQuery(z.object({ direction_id: uuidSchema }))]`. `getDailyPlan(direction_id)`. → 200 `{ data, audit_id }`. **Без `requireRight`** (reference data для Tasks).
-- `POST /daily-plans` — preHandler `[authMiddleware, writeLimit, requireRight('plan','A'), validateBody(dailyUpsertBody)]`. Body: `{ direction_id, date (/^\d{4}-\d{2}-\d{2}$/), task_ids: uuid[] (0..100) }`. `upsertDailyPlan({ directionId, date, taskIds, approvedById: auth.participantId })`. → 201 `{ ...plan, audit_id }`.
-- `DELETE /daily-plans/:id/tasks/:task_id` — preHandler `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(dailyTaskParams)]`. `removeTaskFromDailyPlan(...)`. → 204.
-- Zod-схемы (7): `listQuery`, `createBody`, `stopBody`, `dailyListQuery`, `dailyUpsertBody`, `dailyTaskParams = uuidIdParams.extend({ task_id: uuidSchema })`, inline `z.object({ direction_id: uuidSchema })` для `/daily-plans/current`. |
+- `GET /plans` — `[authMiddleware, validateQuery(listQuery)]`. Query: `{ type?, status?, lead_direction_id?, signal_id?, curator_id?, page=1, per_page=20 max 200 }`. → 200 `{ data, meta, audit_id }`. Без `requireRight`.
+- `GET /plans/oversight` — `[authMiddleware, validateQuery({ lead_direction_id? })]`. `getOversightTree(lead_direction_id?)` → 200 `{ data, audit_id }`. Дерево план → ветка → ячейка → человек.
+- `GET /plans/branches` — `[authMiddleware, validateQuery({ lead_direction_id? })]`. `listPlanBranches(lead_direction_id?)` → 200 `{ data, meta: { total }, audit_id }`.
+- `GET /plans/deviations` — `[authMiddleware, validateQuery(deviationsQuery)]`. Query: `{ lead_direction_id?, only_behind?: 'true'|'false' }`. `listDeviations({ leadDirectionId?, onlyBehind? })` → 200 `{ data, meta: { total }, audit_id }`.
+- `GET /plans/:id/tree` — `[authMiddleware, validateParams(uuidIdParams)]`. `getPlanTree(id)` → 200 `{ roots, total, done, audit_id }`.
+- `GET /plans/:id/branches` — `[authMiddleware, validateParams(uuidIdParams)]`. `computePlanBranches(id)` → 200 `{ branches, behindCount, audit_id }`.
+- `GET /plans/:id/deviation` — `[authMiddleware, validateParams(uuidIdParams)]`. `computeDeviation(id)` → 200.
+- `POST /plans/:id/deviation/signal` — `[authMiddleware, writeLimit, requireRight('signal','C'), validateParams(uuidIdParams)]`. `computeDeviation` → если `on_track` → 409; `hasRecentDeviationSignal` → 409 (`{ signalId }`); `createSignalService({ type: behind?'problem':'idea', description: '[план:<id>] …', justification, priority: behind && overdue>3 ? 'high' : 'standard', directions: [leadDirectionId], leadDirectionId })` → 201. Текст: для `behind` — «просрочено N задач» / «чекпоинты не закрыты»; для `ahead` — «принято X из Y, ожидалось Z».
+- `GET /plans/:id` — `[authMiddleware, validateParams(uuidIdParams)]`. `getById(id)` → 200.
+- `POST /plans` — `[authMiddleware, writeLimit, requireRight('plan','C'), validateBody(createBody)]`. Body: `{ type, title (1..255), expected_result (1..), lead_direction_id, signal_id?, curator_id?, criteria?, checkpoints?: [{ at (ISO offset), description (1..) }], stop_conditions?, cell_id? }`. `createPlanService({ ..., signalId?, curatorId?, cellId?, criteria?, checkpoints?, stopConditions? }, auth.participantId)` → 201.
+- `POST /plans/:id/approve` — `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(uuidIdParams)]` → 200.
+- `POST /plans/:id/activate` — `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(uuidIdParams)]` → 200.
+- `POST /plans/:id/stop` — `[authMiddleware, writeLimit, requireRight('plan','E'), validateParams(uuidIdParams), validateBody(stopBody)]`. Body: `{ reason (1..500) }` → 200.
+- `GET /daily-plans` — `[authMiddleware, validateQuery(dailyListQuery)]`. Query: `{ direction_id?, date? }`. `listDailyPlans(direction_id?, date?)` → 200 `{ data, audit_id }`. Без `requireRight`.
+- `GET /daily-plans/current` — `[authMiddleware, validateQuery({ direction_id })]`. `getDailyPlan(direction_id)` → 200 `{ data, audit_id }`. Без `requireRight` (F.4.02.03).
+- `GET /daily-plans/versions` — `[authMiddleware, validateQuery({ direction_id, date })]`. `listDailyPlanVersions(direction_id, date)` → 200 `{ data, audit_id }`.
+- `POST /daily-plans` — `[authMiddleware, writeLimit, requireRight('plan','A'), validateBody(dailyUpsertBody)]`. Body: `{ direction_id, date, task_ids: uuid[] (max 100) }`. `upsertDailyPlan({ directionId, date, taskIds, approvedById })` → 201. UPSERT.
+- `DELETE /daily-plans/:id/tasks/:task_id` — `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(dailyTaskParams)]` → 204.
+- `GET /plans/:id/versions` — `[authMiddleware, validateParams(uuidIdParams)]`. `listPlanVersions(id)` → 200 `{ data, audit_id }`.
+- `POST /plans/:id/versions` — `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(uuidIdParams), validateBody(versionBody)]`. Body: `{ reason (5..1000), patch?: { title?, expected_result?, criteria?, checkpoints?, stop_conditions? } }`. `createPlanVersion(id, { reason, patch? }, auth.participantId)` → 201.
+- `POST /plans/:id/versions/:version/restore` — `[authMiddleware, writeLimit, requireRight('plan','A'), validateParams(versionParams), validateBody(restoreVersionBody)]`. Body: `{ reason? (5..1000) }`. `restorePlanVersion(id, version, reason ?? 'Восстановление v<version>', auth.participantId)` → 201.
+- Zod-схемы (12): `listQuery`, `createBody`, `stopBody`, `versionPatch`, `versionBody`, `versionParams = uuidIdParams.extend({ version: coerce int ≥1 })`, `restoreVersionBody`, `deviationsQuery`, `dailyListQuery`, `dailyVersionsQuery`, `dailyUpsertBody`, `dailyTaskParams`; + 2 inline (`oversight`/`branches` query). |
 |↙ ПОТРЕБЛЯЕТ:
-- C.0.06.02 plans/service — `listPlans`, `getById`, `createPlanService`, `approvePlanService`, `activatePlanService`, `stopPlanService`, `getDailyPlan`, `listDailyPlans`, `upsertDailyPlan`, `removeTaskFromDailyPlan`.
-- L.0.01.03 validators — `uuidIdParams`, `uuidSchema`, **`planTypeSchema`**, **`planStatusSchema`**.
-- **S.0.01.06 rate-limit** — `mustGetLimit('api.write')`.
+- **C.0.06.02** plans/service — `listPlans`, `getById`, `createPlanService`, `approvePlanService`, `activatePlanService`, `stopPlanService`, `getDailyPlan`, `listDailyPlans`, `upsertDailyPlan`, `removeTaskFromDailyPlan`, `listPlanVersions`, `createPlanVersion`, `restorePlanVersion`, `listDailyPlanVersions`.
+- **C.0.06.03** plans/deviation — `computeDeviation`, `hasRecentDeviationSignal`, `listDeviations`.
+- **C.0.06.04** plans/branches — `computePlanBranches`, `listPlanBranches`.
+- **C.0.06.05** plans/tree — `getPlanTree`.
+- **C.0.06.06** plans/oversight — `getOversightTree`.
+- **C.0.10.02** signals/service — `createSignalService`.
+- L.0.01.03 validators — `uuidIdParams`, `uuidSchema`, `planTypeSchema`, `planStatusSchema`.
+- **S.0.01.06** rate-limit — `mustGetLimit('api.write')`.
 - A.1.99.01 auth — `authMiddleware`, `getAuthContext`.
 - A.1.99.02 rights — `requireRight`.
-- **A.1.99.05 rate-limit** — `rateLimit`.
+- **A.1.99.05** rate-limit — `rateLimit`.
 - A.1.99.06 validation — `validateBody`, `validateParams`, `validateQuery`.
 - Внешние: fastify, zod. |
 |↘ ПРЕДОСТАВЛЯЕТ:
 - `registerPlansRoutes(app): Promise<void>` — регистрируется в A.1.00.01.
-- `GET /plans`, `POST /plans`, `GET /plans/:id`, `POST /plans/:id/approve|activate|stop` — F.4.02.06 `Signals` (план как результат сигнала), F.4.02.24 Admin.
-- `GET /daily-plans`, `GET /daily-plans/current`, `POST /daily-plans`, `DELETE /daily-plans/:id/tasks/:task_id` — F.4.02.99 `DailyPlan.tsx`, F.4.02.03 `Tasks.tsx`.
-- Тесты I.9.04.08 (external_id), I.9.04.13/14 (OTC), I.9.04.22 (tasks). |
+- `GET /plans`, `POST /plans`, `GET /plans/:id`, `approve/activate/stop` — F.4.02.06 `Signals`, F.4.02.24 Admin.
+- `GET /plans/oversight`, `/plans/branches`, `/plans/:id/tree`, `/plans/:id/branches` — F.4.02.31 `PlanTree.tsx`, F.4.02.35 `CellsMap.tsx`, панель балансировки.
+- `GET /plans/deviations`, `/plans/:id/deviation`, `POST /plans/:id/deviation/signal` — F.4.02.31, панель балансировки.
+- Версии (`GET/POST /plans/:id/versions`, `POST .../restore`) — F.4.02.31.
+- `GET/POST /daily-plans*` — F.4.02.99 `DailyPlan.tsx`, F.4.02.03 `Tasks.tsx`.
+- Тесты I.9.04.56, I.9.04.57, I.9.04.59, I.9.04.70. |
 |Реализация:
-- **`writeLimit = rateLimit({ config: mustGetLimit('api.write') })`** — модуль-константа, применяется на 6 мутациях.
-- **`GET /plans`**: `listPlans({ ...(type ? { type } : {}), ...(status ? { status } : {}), ...(lead_direction_id ? { leadDirectionId } : {}), page, perPage })` → `{ data, meta, audit_id }`. **Без `requireRight`**.
-- **`GET /plans/:id`**: `getById(params.id)` → `{ ...plan, audit_id }`.
-- **`POST /plans`**: `createPlanService({ type, title, expectedResult: expected_result, leadDirectionId: lead_direction_id, ...(criteria ? { criteria } : {}), ...(checkpoints ? { checkpoints } : {}), ...(stop_conditions ? { stopConditions: stop_conditions } : {}) }, auth.participantId)` → 201.
-- **`POST /plans/:id/approve|activate`**: `approvePlanService(...)` / `activatePlanService(...)` → 200.
-- **`POST /plans/:id/stop`**: `stopPlanService(params.id, b.reason, auth.participantId)` → 200.
-- **`GET /daily-plans`**: `listDailyPlans(q.direction_id, q.date)` → `{ data, audit_id }`. **Без `requireRight`**.
-- **`GET /daily-plans/current`**: `getDailyPlan(q.direction_id)` → `{ data, audit_id }`. **Без `requireRight`** — используется F.4.02.03 у всех ролей.
-- **`POST /daily-plans`**: `upsertDailyPlan({ directionId, date, taskIds: task_ids, approvedById: auth.participantId })` → 201. UPSERT (не пара create/update).
-- **`DELETE /daily-plans/:id/tasks/:task_id`**: `removeTaskFromDailyPlan(...)` → 204.
-- **Порядок регистрации роутов**: /plans → /plans/:id → /plans/:id/approve → /plans/:id/activate → /plans/:id/stop → /daily-plans → /daily-plans/current → POST /daily-plans → DELETE /daily-plans/:id/tasks/:task_id. |
+- **`writeLimit = rateLimit({ config: mustGetLimit('api.write') })`** — модуль-константа; 9 мутаций.
+- **Порядок регистрации** (статическое до параметрического): `/plans` → `/plans/oversight` → `/plans/branches` → `/plans/deviations` → `/plans/:id/tree` → `/plans/:id/branches` → `/plans/:id/deviation` → `POST /plans/:id/deviation/signal` → `GET /plans/:id` → `POST /plans` → `approve/activate/stop` → daily-plans (list → current → versions → POST → DELETE) → `GET/POST /plans/:id/versions` → `POST .../restore`.
+- **`GET /plans`** — `listPlans` с 5 фильтрами (type/status/leadDirectionId/signalId/curatorId) → `{ data, meta: { page, per_page, total }, audit_id }`. Без `requireRight`.
+- **`POST /plans/:id/deviation/signal`** — `computeDeviation` → guard `on_track` (409) → `hasRecentDeviationSignal` (409 с `signalId`) → `behind = status==='behind'`; `facts` — overdue>0 / чекпоинты / ahead-текст; `createSignalService` с `type`, `description: '[план:<planId>] …'`, `justification`, `priority: behind && overdue>3 ? 'high' : 'standard'`, `directions: [leadDirectionId]`, `leadDirectionId` → 201.
+- **`POST /plans`** — `createPlanService` с маппингом `expected_result → expectedResult`, `lead_direction_id → leadDirectionId`, `signal_id → signalId`, `curator_id → curatorId`, `cell_id → cellId`, `stop_conditions → stopConditions`, `checkpoints` как есть → 201.
+- **`POST /plans/:id/versions`** — маппинг `patch` (`expected_result → expectedResult`, `stop_conditions → stopConditions`) → `createPlanVersion` → 201.
+- **`POST /plans/:id/versions/:version/restore`** — `restorePlanVersion(id, version, reason ?? 'Восстановление v<version>', auth.participantId)` → 201.
+- **`GET /daily-plans/versions`** — `listDailyPlanVersions(direction_id, date)`.
+- **`GET /daily-plans/current`** — `getDailyPlan(direction_id)` — без `requireRight`.
+- **`DELETE /daily-plans/:id/tasks/:task_id`** — `removeTaskFromDailyPlan(id, task_id, auth.participantId)` → 204. |
 |Примечания:
-РЕАЛИЗОВАНО: **10 эндпоинтов**, 7 Zod-схем, `writeLimit` на 6 мутациях, `requireRight` на мутациях, `uuidIdParams`/`planTypeSchema`/`planStatusSchema` из L.0.01.03.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.01):
-- **`uuidIdParams`** из L.0.01.03 (было локальная `idParams`).
-- **`planTypeSchema` / `planStatusSchema`** из L.0.01.03 (было enum'ы inline).
-- **`checkpoints[].description` — `z.string().min(1)`** (было без `min`).
-- **`writeLimit` на 6 мутациях** (`api.write`).
-- **`GET /plans*`, `GET /daily-plans*` — без `requireRight`** (reference data): `/daily-plans/current` используется F.4.02.03 `Tasks.tsx` у всех ролей; требование `plan:V` сломало бы список задач у `ASSOCIATED`.
+РЕАЛИЗОВАНО: **21 эндпоинт**, 12 Zod-схем (+2 inline), `writeLimit` на 9 мутациях, `requireRight` на 9 мутациях (`plan:C`/`plan:A`/`plan:E`/`signal:C`).
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.02):
+- **9 новых аналитических/дерево-эндпоинтов**: `/plans/oversight`, `/plans/branches`, `/plans/deviations`, `/plans/:id/tree`, `/plans/:id/branches`, `/plans/:id/deviation`, `POST /plans/:id/deviation/signal`, `/daily-plans/versions`, `/plans/:id/versions` (+ POST/restore).
+- **`POST /plans/:id/deviation/signal`** — новый: балансировка поднимает сигнал направлению; `on_track` → 409; повтор в течение 24 ч (`hasRecentDeviationSignal`) → 409; `priority` зависит от `overdue > 3`.
+- **Версии плана**: `GET/POST /plans/:id/versions`, `POST .../:version/restore` — 3 маршрута; `patch` с маппингом snake→camel.
+- **`createBody`** — добавлены `signal_id`, `curator_id`, `cell_id`.
+- **`listQuery`** — добавлены `signal_id`, `curator_id`.
+- **`writeLimit`** — 9 мутаций (было 6): +deviation/signal, +versions, +restore.
+- **`deviationsQuery`** — `only_behind` как `'true'|'false'` (строка) → `onlyBehind: true` только при `'true'`.
 ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
-СВЯЗЬ С C.0.06.02: 10 функций сервиса.
-СВЯЗЬ С A.1.99.02: `requireRight('plan','C'|'A'|'E')` — на мутациях.
-СВЯЗЬ С A.1.99.05: `rateLimit` middleware.
-СВЯЗЬ С S.0.01.06: `mustGetLimit('api.write')`.
-СВЯЗЬ С C.0.01.06: `plan:V` — у COUNCIL_MEMBER (`['V','C','E','A']`), KEEPER (`['V','S']`); `plan:A` — у COUNCIL_MEMBER; `plan:C` — у COUNCIL_MEMBER; `plan:E` — у COUNCIL_MEMBER. `ASSOCIATED` не имеет `plan:V` (только `participant:V`, `direction:V` и т.д.).
-АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`GET /plans*`, `GET /daily-plans*` — без `requireRight`** — reference data. Критично для `/daily-plans/current` (F.4.02.03).
+СВЯЗЬ С C.0.06.03/04/05/06: `computeDeviation` / `computePlanBranches` / `getPlanTree` / `getOversightTree` — 4 аналитических блока.
+СВЯЗЬ С C.0.10.02: `createSignalService` — сигнал по отклонению; текст `[план:<id>]` — маркер для `hasRecentDeviationSignal`.
+СВЯЗЬ С A.1.99.02: `signal:C` — для `POST /plans/:id/deviation/signal`.
 ТЕХДОЛГ:
-- **`PATCH /plans/:id`** — roadmap (нет `updatePlanService`).
-- **`POST /plans/:id/sign`** (подпись Хранителя) — roadmap (нет `signPlan`).
-- **`GET /plans/:id/tasks`** — roadmap (нет `listTasks`).
-- **Активация без подписи** — разрыв с I.4.3. `activatePlanService` не требует подписи Хранителя.
-- **Валидация диссидентского плана «до 2 лет»** (I.1.8.10) — вероятно, в сервисе (C.0.06.02), не в контроллере. Не подтверждено.
-- **`POST /plans` — `criteria` и `stop_conditions` — `z.record(z.unknown())`** — без Zod-валидации полей (кроме crisis-валидации в сервисе).
-- **`dailyTaskParams = uuidIdParams.extend({ task_id: uuidSchema })`** — `task_id` — UUID, хотя `taskIdSchema` в L.0.01.03 — regex (TASK-YYYY-MM-DD-NNN). Рассинхрон: `tasks` идентифицируются по UUID (`id`), а `externalId` — по regex. В контроллере выбран UUID.
-- **`GET /plans` — нет `requireRight`** — список планов доступен всем аутентифицированным (reference data). UI фильтрует по правам.
-- **`POST /daily-plans` — `task_ids: uuid[] (0..100)`** — лимит 100 задач на план; больше — 422.
-- **`DELETE /daily-plans/:id/tasks/:task_id` — `plan:A`** — не `plan:E`. Согласовано с сервисом (`removeTaskFromDailyPlan`).
-ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.08 test-external-id-sequence, I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks. |
-|2026-10-24 (отклонения): GET /plans/deviations (only_behind, lead_direction_id), GET /plans/:id/deviation, POST /plans/:id/deviation/signal — балансировка поднимает сигнал направлению, повторный в течение 24 часов → 409.
-|2026-10-24 (опережение): сигнал поднимается и когда план идёт быстрее графика (status ahead) — «проверьте, можно ли перенести опыт на отстающие участки». on_track → 409.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-26: GET /plans/:id/versions, POST версии, POST restore.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-26: GET /plans/:id/versions, POST версии, POST restore.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-26: GET /plans/:id/versions, POST версии, POST restore.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-26: GET /plans/:id/versions, POST версии, POST restore.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-26: GET /plans/:id/versions, POST версии, POST restore.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-26: GET /plans/:id/versions, POST версии, POST restore.
-|2026-10-25 (дерево): GET /plans/:id/tree — вложенное дерево работ с агрегатами и исполнителями.
-|2026-10-25 (надзор): GET /plans/oversight — дерево план → ветка → ячейка → человек со счётчиками, координаторами и сигналами.
-|2026-10-26: GET /plans/:id/versions, POST версии, POST restore.
+- **`GET /plans/deviations`** — `only_behind` через `z.enum(['true','false'])`; если клиент пришлёт `true` (boolean) — 422; строгий контракт.
+- **`POST /plans/:id/deviation/signal`** — `createSignalService` в try/catch не обёрнут (в отличие от A.1.07.01 overdue/scan); сбой сервиса — 500 клиенту, хотя `deviation` уже посчитан.
+- **`GET /plans/oversight` / `/plans/branches`** — `lead_direction_id` опционален; при отсутствии — все направления (тяжёлый запрос, LIMIT 50/100 внутри).
+- **`GET /plans/:id/versions`** — без `requireRight` (как и `GET /plans/:id`); история версий доступна всем аутентифицированным.
+- **`POST /plans/:id/versions` — `patch`** — если `patch` пуст (`{}`), создаётся версия с инкрементом `version`, но без изменений полей; семантика «пустая версия» — на усмотрение сервиса (C.0.06.02).
+- **`POST /plans/:id/versions/:version/restore` — `reason?`** — опционален; дефолт `'Восстановление v<version>'` формируется в контроллере, не в сервисе.
+- **`dailyTaskParams = uuidIdParams.extend({ task_id: uuidSchema })`** — `task_id` — UUID, не `external_id`; согласовано с C.0.06.02.
+- **`POST /daily-plans` — `task_ids` max 100** (в A.1.04.01 — 50); разные лимиты для направления и ячейки.
+- **`POST /plans` — `criteria`/`stop_conditions` — `z.record(z.unknown())`** — без Zod-валидации полей; crisis-валидация `criteria.scenario` — в сервисе.
+- **`checkpoints[].at`** — `z.string().datetime({ offset: true })` — требует offset (например, `+03:00`); `Z` без offset — 422.
+- **`GET /plans/:id/tree` / `/branches`** — без `requireRight`; дерево/ветки доступны всем аутентифицированным (reference data).
+- **`POST /plans/:id/deviation/signal` — `directions: [deviation.leadDirectionId]`** — если `leadDirectionId` null (план без направления) — сигнал не создастся (ошибка в сервисе); контроллер не проверяет.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.56 test-signal-plan, I.9.04.57 test-plan-deviation, I.9.04.59 test-tree-naryad, I.9.04.70 test-plan-versions. |
 
-|A.1.07.01|API|REST|TypeScript|src/api/tasks/controller.ts|C.0.07.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5|
-|Описание: Контроллер Tasks. **9 эндпоинтов** (из 11 заявленных): список, мои, карточка, создание, assign, take, submit, accept, return. Отсутствуют `PATCH /tasks/:id`, `POST /tasks/:id/change-priority` (roadmap — нет сервисных функций `update`/`changePriority`). Права: `task:C` (create, assign), `otc:C` (accept, return). **`take`/`submit` — self-service** (только `authMiddleware`, проверка `assignedTo` в сервисе). **Rate-limit (`api.write`) на 6 мутациях** (create, assign, take, submit, accept, return). `uuidIdParams`, `taskStatusSchema`, `prioritySchema` из L.0.01.03. 5 Zod-схем. **`createBody.description` — max(5000)**, `required_competencies` — max(50). |
+|A.1.07.01|API|REST|TypeScript|src/api/tasks/controller.ts|C.0.07.02, C.0.07.03, C.0.07.04, C.0.10.02, C.1.10.01, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.04|Draft|II.5|
+|Описание: Контроллер Tasks. **15 эндпоинтов**: список, мои, карточка, создание (расширенный `createBody` — D.2.01.67), assign (**с `override`** — C.1.10.01), take, submit, accept, return, reopen, overdue (list/scan), dependencies (list/add/remove). **`writeLimit` (`api.write`) на 10 мутациях**: create, assign, take, submit, accept, return, reopen, dependencies POST/DELETE, overdue/scan. Права: `task:C` (create, assign, dependencies POST/DELETE), `otc:C` (accept, return, reopen), `signal:C` (overdue/scan). **`take`/`submit` — self-service** (только `authMiddleware`; `assignedTo` проверяется в C.0.07.02). **Matching при assign** — в сервисе (C.1.10.01): `partial` требует `override`, `no_match` — запрет. `uuidIdParams`/`taskStatusSchema`/`prioritySchema` из L.0.01.03. 10 Zod-схем. **`/tasks/overdue` и `/tasks/:id/dependencies` объявлены до `/tasks/:id`** — статические сегменты. |
 |Публичный API:
-- `GET /tasks` — preHandler `[authMiddleware, validateQuery(listQuery)]`. Query: `{ direction_id?, status? (taskStatus), priority?, assigned_to?, plan_id?, page=1, per_page=20 max 200 }`. `listTasks({ ... })`. → 200 `{ data, meta: { page, per_page, total }, audit_id }`. **Без `requireRight`** (техдолг: нет access control).
-- `GET /tasks/my` — preHandler `[authMiddleware]`. `listMyTasks(auth.participantId)`. → 200 `{ data, audit_id }`. **Без `requireRight`** (self-service).
-- `GET /tasks/:id` — preHandler `[authMiddleware, validateParams(uuidIdParams)]`. `getById(params.id)`. → 200 `{ ...task, audit_id }`.
-- `POST /tasks` — preHandler `[authMiddleware, writeLimit, requireRight('task','C'), validateBody(createBody)]`. Body: `{ direction_id, description (1..5000), priority (prioritySchema), plan_id?, required_competencies?: string[] (each 1..128, max 50), location?: { lat, lon } }`. `createTaskService({ ... }, auth.participantId)`. → 201 `{ ...task, audit_id }`. Deadline/externalId — в сервисе.
-- `POST /tasks/:id/assign` — preHandler `[authMiddleware, writeLimit, requireRight('task','C'), validateParams(uuidIdParams), validateBody(assignBody)]`. Body: `{ participant_id }`. `assignTaskService(...)`. → 200 `{ ...task, audit_id }`.
-- `POST /tasks/:id/take` — preHandler `[authMiddleware, writeLimit, validateParams(uuidIdParams)]`. **Self-service**. `takeTaskService(...)`. → 200 `{ ...task, audit_id }`. `assignedTo === participantId` проверяется в сервисе.
-- `POST /tasks/:id/submit` — preHandler `[authMiddleware, writeLimit, validateParams(uuidIdParams)]`. **Self-service**. `submitTaskService(...)`. → 200 `{ ...task, audit_id }`. `assignedTo === requesterId` проверяется в сервисе (B1).
-- `POST /tasks/:id/accept` — preHandler `[authMiddleware, writeLimit, requireRight('otc','C'), validateParams(uuidIdParams)]`. `acceptTaskService(...)`. → 200 `{ ...task, audit_id }`. I.2.12 (ОТК не принимает свою работу) — в сервисе (B2).
-- `POST /tasks/:id/return` — preHandler `[authMiddleware, writeLimit, requireRight('otc','C'), validateParams(uuidIdParams), validateBody(returnBody)]`. Body: `{ reason (1..500) }`. `returnTaskService(...)`. → 200 `{ ...task, audit_id }`. I.2.12 — в сервисе (B3).
-- Zod-схемы (5): `listQuery` (с `taskStatusSchema`, `prioritySchema`), `createBody` (`description` max 5000, `required_competencies` max 50), `assignBody`, `returnBody` (`reason` 1..500), `uuidIdParams` из L.0.01.03. | 
+- `GET /tasks` — `[authMiddleware, validateQuery(listQuery)]`. Query: `{ direction_id?, status?, priority?, assigned_to?, plan_id?, page=1, per_page=20 max 200 }`. `listTasks({ ... })` → 200 `{ data, meta, audit_id }`. Без `requireRight`.
+- `GET /tasks/my` — `[authMiddleware]`. `listMyTasks(auth.participantId)` → 200 `{ data, audit_id }`.
+- `GET /tasks/overdue` — `[authMiddleware, validateQuery({ direction_id? })]`. `listUnsubmittedTasks(direction_id?)` → 200 `{ data, meta: { total }, audit_id }`. Задачи со сроком, но без отчёта в ОТК.
+- `POST /tasks/overdue/scan` — `[authMiddleware, writeLimit, requireRight('signal','C')]`. `listUnsubmittedTasks()` → группировка по `directionId` → для каждого направления: `hasRecentOverdueSignal` (skip если есть) → `createSignalService({ type: 'problem', description: '[просрочка:<dir>] …', justification, priority: list.length>3 ? 'high':'standard', directions: [dir], leadDirectionId: dir })` → счётчики `created`/`skipped` → уведомление BALANCER (`tasks.overdue`, `data: { link: '/balance' }`) → 200 `{ tasks, directions, created, skipped }`.
+- `GET /tasks/:id/dependencies` — `[authMiddleware, validateParams(uuidIdParams)]`. `Promise.all([listDependencies(id), getBlockingDependencies(id)])` → 200 `{ data, blockedByDependencies: blocking.length>0, blocking, audit_id }`.
+- `POST /tasks/:id/dependencies` — `[authMiddleware, writeLimit, requireRight('task','C'), validateParams(uuidIdParams), validateBody(addDependencyBody)]`. Body: `{ depends_on_task_id, dependency_type? ('blocks') }`. `addDependency({ taskId, dependsOnTaskId, dependencyType?, requesterId })` → 201.
+- `DELETE /tasks/:id/dependencies/:dep_id` — `[authMiddleware, writeLimit, requireRight('task','C'), validateParams(dependencyParams)]`. `removeDependency({ taskId, dependencyId, requesterId })` → 204.
+- `GET /tasks/:id` — `[authMiddleware, validateParams(uuidIdParams)]`. `getById(id)` → 200.
+- `POST /tasks` — `[authMiddleware, writeLimit, requireRight('task','C'), validateBody(createBody)]`. Body: `{ direction_id, description (1..5000), priority, plan_id?, parent_task_id?, kind? ('package'|'deliverable'), expected_result? (1..5000), deadline? (ISO|null), planned_start_at? (ISO|null), estimated_minutes? (int>0), required_competencies? (max 50, each 1..128), location? ({lat,lon}) }`. `createTaskService({ directionId, description, priority, planId?, parentTaskId?, kind?, expectedResult?, deadline?, plannedStartAt?, estimatedMinutes?, requiredCompetencies?, location? }, auth.participantId)` → 201.
+- `POST /tasks/:id/assign` — `[authMiddleware, writeLimit, requireRight('task','C'), validateParams(uuidIdParams), validateBody(assignBody)]`. Body: `{ participant_id, override?: { reason (10..2000), risk? ('low'|'medium'|'high'), accompanying? (≤2000), training? (≤2000) } }`. `assignTaskService(id, participant_id, auth.participantId, override ? { override } : {})` → 200. **Matching (C.1.10.01)** в сервисе: `partial` требует `override.reason`, `no_match` — запрет.
+- `POST /tasks/:id/take` — `[authMiddleware, writeLimit, validateParams(uuidIdParams)]`. **Self-service**. `takeTaskService(id, auth.participantId)` → 200.
+- `POST /tasks/:id/submit` — `[authMiddleware, writeLimit, validateParams(uuidIdParams)]`. **Self-service**. `submitTaskService(id, auth.participantId)` → 200. Отчёт с артефактом — в сервисе (P0.2).
+- `POST /tasks/:id/accept` — `[authMiddleware, writeLimit, requireRight('otc','C'), validateParams(uuidIdParams), validateBody(acceptBody)]`. Body: `{ comment? (≤5000), criteria?: [{ id, passed, comment? (≤2000) }] }`. `acceptTaskService(id, auth.participantId, { comment: b.comment ?? null, criteria? })` → 200. I.2.12 — в сервисе.
+- `POST /tasks/:id/return` — `[authMiddleware, writeLimit, requireRight('otc','C'), validateParams(uuidIdParams), validateBody(returnBody)]`. Body: `{ reason (1..500) }`. `returnTaskService(id, reason, auth.participantId)` → 200.
+- `POST /tasks/:id/reopen` — `[authMiddleware, writeLimit, requireRight('otc','C'), validateParams(uuidIdParams), validateBody(reopenBody)]`. Body: `{ reason (3..1000) }`. `reopenTaskService(id, reason, auth.participantId)` → 200. `accepted → in_progress` + обратная проводка Потока.
+- Zod-схемы (10): `listQuery`, `createBody`, `assignBody`, `reopenBody`, `acceptBody`, `returnBody`, `dependencyParams = uuidIdParams.extend({ dep_id })`, `addDependencyBody`, inline `{ direction_id? }` для overdue; `uuidIdParams` из L.0.01.03. |
 |↙ ПОТРЕБЛЯЕТ:
-- C.0.07.02 tasks/service — `listTasks`, `getById`, `listMyTasks`, `createTaskService`, `assignTaskService`, `takeTaskService`, `submitTaskService`, `acceptTaskService`, `returnTaskService`.
-- L.0.01.03 validators — `uuidIdParams`, `uuidSchema`, `prioritySchema`, **`taskStatusSchema`**.
-- **S.0.01.06 rate-limit** — `mustGetLimit('api.write')`.
+- **C.0.07.02** tasks/service — `listTasks`, `getById`, `listMyTasks`, `createTaskService`, `assignTaskService`, `takeTaskService`, `submitTaskService`, `acceptTaskService`, `returnTaskService`, `reopenTaskService`.
+- **C.0.07.03** tasks/dependencies — `listDependencies`, `getBlockingDependencies`, `addDependency`, `removeDependency`.
+- **C.0.07.04** tasks/overdue — `listUnsubmittedTasks`, `hasRecentOverdueSignal`.
+- **C.0.10.02** signals/service — `createSignalService` (overdue/scan).
+- **C.1.10.01** passport/matching — косвенно, через `assignTaskService` (C.0.07.02): `partial` → override, `no_match` → запрет.
+- **C.0.01.01** roles — `Role.BALANCER` (уведомление в overdue/scan).
+- L.0.01.03 validators — `uuidIdParams`, `uuidSchema`, `prioritySchema`, `taskStatusSchema`.
+- **L.0.01.05** logger — `logger.warn` (overdue signal / notify fail).
+- **L.0.01.10** notifications — `send as sendNotification`.
+- **S.0.01.03** rbac — `listParticipantsWithRole(Role.BALANCER)`.
+- **S.0.01.06** rate-limit — `mustGetLimit('api.write')`.
 - A.1.99.01 auth — `authMiddleware`, `getAuthContext`.
-- A.1.99.02 rights — `requireRight` (для create/assign/accept/return).
-- **A.1.99.05 rate-limit** — `rateLimit`.
+- A.1.99.02 rights — `requireRight`.
+- **A.1.99.05** rate-limit — `rateLimit`.
 - A.1.99.06 validation — `validateBody`, `validateParams`, `validateQuery`.
 - Внешние: fastify, zod. |
 |↘ ПРЕДОСТАВЛЯЕТ:
 - `registerTasksRoutes(app): Promise<void>` — регистрируется в A.1.00.01.
-- `GET /tasks`, `GET /tasks/my`, `GET /tasks/:id` — F.4.02.03 `Tasks.tsx`, F.4.02.04 `Report.tsx`, M.4.02.03.
-- `POST /tasks`, `POST /tasks/:id/assign` — Совет/Архитектор.
+- `GET /tasks`, `GET /tasks/my`, `GET /tasks/:id` — F.4.02.03 `Tasks.tsx`, F.4.02.04 `Report.tsx`.
+- `POST /tasks`, `POST /tasks/:id/assign` — Совет / Архитектор; **override** — UI должен показать `reason`+опц. `risk`/`accompanying`/`training` при `partial`-matching.
 - `POST /tasks/:id/take`, `/submit` — self-service исполнителя.
-- `POST /tasks/:id/accept`, `/return` — очередь ОТК: F.4.02.08 `Otc`.
-- Тесты: I.9.04.13, I.9.04.14, I.9.04.22, I.9.04.05, I.9.04.24. |
+- `POST /tasks/:id/accept`, `/return`, `/reopen` — ОТК; F.4.02.08 `Otc`.
+- `GET/POST/DELETE /tasks/:id/dependencies` — F.4.02.31 `PlanTree.tsx` (блокировки), F.4.02.03 `Tasks.tsx`.
+- `GET /tasks/overdue`, `POST /tasks/overdue/scan` — панель балансировки `/balance`.
+- Тесты: I.9.04.05, I.9.04.13, I.9.04.14, I.9.04.22, I.9.04.24, I.9.04.71. |
 |Реализация:
-- **`writeLimit = rateLimit({ config: mustGetLimit('api.write') })`** — модуль-константа, применяется на 6 мутациях.
-- **`GET /tasks`**: `listTasks({ ...(q.direction_id ? { directionId } : {}), ...(q.status ? { status } : {}), ...(q.priority ? { priority } : {}), ...(q.assigned_to ? { assignedTo } : {}), ...(q.plan_id ? { planId } : {}), page, perPage })` → `{ data, meta, audit_id }`.
-- **`GET /tasks/my`**: `listMyTasks(auth.participantId)` → `{ data, audit_id }`.
-- **`GET /tasks/:id`**: `getById(params.id)` → `{ ...task, audit_id }`.
-- **`POST /tasks`**: `createTaskService({ directionId: direction_id, description, priority, ...(plan_id ? { planId } : {}), ...(required_competencies ? { requiredCompetencies } : {}), ...(location ? { location } : {}) }, auth.participantId)` → 201.
-- **`POST /tasks/:id/assign`**: `assignTaskService(params.id, b.participant_id, auth.participantId)` → 200.
-- **`POST /tasks/:id/take`**: `takeTaskService(params.id, auth.participantId)` → 200. **Без `requireRight`**.
-- **`POST /tasks/:id/submit`**: `submitTaskService(params.id, auth.participantId)` → 200. **Без `requireRight`**.
-- **`POST /tasks/:id/accept`**: `acceptTaskService(params.id, auth.participantId)` → 200.
-- **`POST /tasks/:id/return`**: `returnTaskService(params.id, b.reason, auth.participantId)` → 200.
-- **Порядок preHandler**: `authMiddleware` → (опц. `writeLimit` для мутаций) → (опц. `requireRight`) → `validateParams`/`validateBody`. |
+- **`writeLimit = rateLimit({ config: mustGetLimit('api.write') })`** — модуль-константа; 10 мутаций.
+- **Порядок регистрации** (статическое до параметрического): `/tasks` → `/tasks/my` → `/tasks/overdue` → `POST /tasks/overdue/scan` → `/tasks/:id/dependencies` (GET/POST/DELETE) → `GET /tasks/:id` → `POST /tasks` → `assign`/`take`/`submit`/`accept`/`return`/`reopen`.
+- **`POST /tasks/overdue/scan`** — `listUnsubmittedTasks()` → группировка `byDirection` → для каждого: `hasRecentOverdueSignal` (skip) → `createSignalService` в try/catch → `created += 1`; после — `listParticipantsWithRole(BALANCER)` → `sendNotification` в try/catch → 200 со счётчиками.
+- **`GET /tasks/:id/dependencies`** — `Promise.all` (deps + blocking) → `{ data, blockedByDependencies, blocking, audit_id }`.
+- **`POST /tasks`** — маппинг `direction_id → directionId`, `plan_id → planId`, `parent_task_id → parentTaskId`, `expected_result → expectedResult`, `planned_start_at → plannedStartAt`, `estimated_minutes → estimatedMinutes`, `required_competencies → requiredCompetencies`; поля с `!== undefined` (включая `null` для `deadline`/`planned_start_at`) — проброс `null` в сервис.
+- **`POST /tasks/:id/assign`** — `assignTaskService(id, participant_id, auth.participantId, b.override ? { override: b.override } : {})` — 4-й аргумент опционален; **Matching** — в сервисе.
+- **`POST /tasks/:id/accept`** — `acceptTaskService(id, auth.participantId, { comment: b.comment ?? null, ...(b.criteria ? { criteria } : {}) })` — `comment` всегда передаётся (`null` если нет).
+- **`POST /tasks/:id/reopen`** — `reopenTaskService(id, reason, auth.participantId)` — пересмотр принятой задачи.
+- **`DELETE /tasks/:id/dependencies/:dep_id`** — `removeDependency({ taskId, dependencyId: dep_id, requesterId })` → 204. |
 |Примечания:
-РЕАЛИЗОВАНО: **9 эндпоинтов**, 5 Zod-схем, `writeLimit` на 6 мутациях, self-service на take/submit.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.01):
-- **`uuidIdParams`** из L.0.01.03 (было локальная `idParams` — 7-й дубль).
-- **`taskStatusSchema`** из L.0.01.03 (было enum inline).
-- **`writeLimit` на 6 мутациях** (`api.write`).
-- **`createBody.description: z.string().min(1).max(5000)`** — добавлен `max(5000)` (T4).
-- **`required_competencies: z.array(z.string().min(1).max(128)).max(50)`** — добавлен `max(50)` (T5).
+РЕАЛИЗОВАНО: **15 эндпоинтов**, 10 Zod-схем, `writeLimit` на 10 мутациях, self-service на take/submit, `override`-механика на assign.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.02):
+- **D.2.01.67 (v0.0.03)**: `createBody` расширен — `parent_task_id`, `kind` (`package`|`deliverable`), `expected_result`, `deadline`, `planned_start_at`, `estimated_minutes`. `POST /tasks` пробрасывает все в `createTaskService`.
+- **C.1.10.01 (v0.0.04)**: `assignBody.override { reason (10..2000), risk?, accompanying?, training? }`; `assignTaskService` проверяет Matching — `partial` требует `override`, `no_match` — запрет.
+- **Новые маршруты**: `GET /tasks/overdue`, `POST /tasks/overdue/scan`, `GET/POST/DELETE /tasks/:id/dependencies`, `POST /tasks/:id/reopen`.
+- **`writeLimit`** — 10 мутаций (было 6): +reopen, +dependencies POST/DELETE, +overdue/scan.
+- **`acceptBody`** — добавлен `criteria?: [{ id, passed, comment? }]` — ОТК-критерии; передаётся в `acceptTaskService`.
+- **`acceptBody`/`reopenBody`** — новые Zod-схемы (в старом блоке accept/return были без body, reopen отсутствовал).
+- **`role`/`sendNotification`/`listParticipantsWithRole`** — импорты для overdue/scan (уведомление балансировке).
 ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
-СВЯЗЬ С C.0.07.02: 9 функций сервиса.
-СВЯЗЬ С A.1.99.02: `requireRight('task','C')` (create, assign), `requireRight('otc','C')` (accept, return). **`take`/`submit` — без `requireRight`** (self-service).
-СВЯЗЬ С S.0.01.06: `mustGetLimit('api.write')`.
-СВЯЗЬ С C.0.01.06: `task:C` — у COUNCIL_MEMBER (`['V','C','E','A']`), MASTER (`['V','C']`); `otc:C` — у OTC (`['V','C']`).
-АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`take`/`submit` — self-service** (без `requireRight`); проверка `assignedTo` — в сервисе.
-АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`accept`/`return` — `otc:C`** (право ОТК); I.2.12 (ОТК не принимает свою работу) — в сервисе.
+СВЯЗЬ С C.0.07.03: 4 функции зависимостей — блокировки задач.
+СВЯЗЬ С C.0.07.04: `listUnsubmittedTasks`/`hasRecentOverdueSignal` — overdue-скан; маркер `[просрочка:<dir>]` в описании сигнала.
+СВЯЗЬ С C.0.10.02: `createSignalService` — сигналы направлениям по просрочкам.
+СВЯЗЬ С C.1.10.01: `assignTaskService` (C.0.07.02) использует Matching; контроллер пробрасывает `override`.
+СВЯЗЬ С S.0.01.03: `listParticipantsWithRole(Role.BALANCER)` — уведомление балансировке.
 ТЕХДОЛГ:
-- **`PATCH /tasks/:id`** — roadmap (нет `updateTaskService`).
-- **`POST /tasks/:id/change-priority`** — roadmap (нет `changePriority`).
-- **`GET /tasks`, `GET /tasks/:id` — без `requireRight`** — любой авторизованный читает любую задачу. Нужна per-direction модель прав (scope).
-- **`assignTask` — `checkCompetencies` не реализован** (нет `participant.competencies`); `required_competencies` сохраняется, но не сверяется при назначении.
-- **`deadline?` и `parent_task_id?` в `createBody`** — отсутствуют. `deadline` вычисляется в сервисе по приоритету; `parent_task_id` не поддерживается.
-- **`POST /tasks/:id/submit` — создание Report** — внутри сервиса (C.0.08.02), контроллер не импортирует.
-- **`POST /tasks/:id/accept` — начисление +1 Поток** — через триггер `trg_flow_balance` (INSERT `flow_transactions` в сервисе).
-ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks, I.9.04.05 test-connections, I.9.04.24 test-verification. |
-|2026-10-25: GET /tasks/overdue (список не сданных в ОТК) и POST /tasks/overdue/scan — сигналы направлениям по просрочкам с защитой 24 часа, уведомление балансировке.
-|2026-10-25: GET /tasks/overdue (список не сданных в ОТК) и POST /tasks/overdue/scan — сигналы направлениям по просрочкам с защитой 24 часа, уведомление балансировке.
+- **`GET /tasks`, `GET /tasks/:id`** — без `requireRight`; любой авторизованный читает любую задачу. Нужна per-direction модель прав (scope) — унаследовано из C.0.07.02.
+- **`assignTask` без `TaskProfile`** — legacy-путь: если `task_profiles` нет, `checkCompetencies` не работает (техдолг C.0.07.02).
+- **`POST /tasks/overdue/scan`** — `createSignalService` в try/catch (в отличие от A.1.06.01 `deviation/signal`); при сбое одного направления — `created` не инкрементится, но цикл продолжается.
+- **`POST /tasks/overdue/scan` — `worst = list[0]!`** — non-null assertion; если `list` пуст (не должно быть по группировке) — упадёт; защита неявная.
+- **`POST /tasks/overdue/scan` — `listUnsubmittedTasks()` без фильтра** — сканирует все направления; для больших систем — тяжёлый вызов; пагинации нет.
+- **`POST /tasks/overdue/scan` — уведомление BALANCER** — `tasks.overdue` с `link: '/balance'`; при массовом сбое notifications — только `logger.warn`, клиент не узнает.
+- **`POST /tasks` — `deadline`/`planned_start_at`** — `z.string().datetime().nullable().optional()`; `null` пробрасывается в сервис (семантика «явно нет дедлайна» vs «не указан» — размыта).
+- **`POST /tasks` — `estimated_minutes: int positive`** — без верхней границы; можно передать `2147483647` (int32 overflow в БД) — 500.
+- **`POST /tasks/:id/assign` — `override.reason` min 10** — жёсткий минимум; UI должен требовать развёрнутое обоснование.
+- **`POST /tasks/:id/assign` — `override` без проверки роли** — любой с `task:C` может передать `override`; семантика «override — только Совет/Архитектор» — не реализована (право `task:C` даёт доступ).
+- **`POST /tasks/:id/accept` — `comment: b.comment ?? null`** — всегда передаётся `null`, если не задан; сервис должен корректно обрабатывать.
+- **`POST /tasks/:id/reopen` — `reason (3..1000)`** — минимальный порог 3 (в `returnBody` — 1); несогласованность.
+- **`GET /tasks/:id/dependencies`** — `blocking` считается `getBlockingDependencies` (C.0.07.03); семантика «blocked by deps» — если есть хоть одна незавершённая зависимость.
+- **`DELETE /tasks/:id/dependencies/:dep_id`** — `dep_id` — UUID зависимости (не `depends_on_task_id`); UI должен знать id связи.
+- **`GET /tasks/overdue`** — без пагинации; `meta: { total: data.length }` — «total» = длине (не из COUNT).
+- **`POST /tasks/overdue/scan`** — `byDirection` — `Map<string, typeof tasks>`; тип `typeof tasks` — массив `UnsubmittedTask`; при изменении типа — типизация сломается молча (нет явного `UnsubmittedTask[]`).
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.05 test-connections, I.9.04.13 test-otc, I.9.04.14 test-otc-two, I.9.04.22 test-tasks, I.9.04.24 test-verification, I.9.04.71 test-cards. |
 
 |A.1.08.01|API|REST|TypeScript|src/api/reports/controller.ts|C.0.08.02, L.0.01.03, S.0.01.06, A.1.99.01, A.1.99.02, A.1.99.05, A.1.99.06|v.0.0.02|Draft|II.5, II.7|
 |Описание: Контроллер Reports. **4 эндпоинта** из 5 заявленных (отсутствует `GET /reports/:id/upload-url` — presigned S3, roadmap). **JSON-контракт с `media_url`** (не multipart). **`requireRight('report','V')` на всех GET** — было: любой авторизованный читал любой отчёт с `media/geolocation/comment`. **`writeLimit` на POST**. `uuidIdParams`/`uuidTaskParams` из L.0.01.03 (было локальные схемы). **`media_url` — `max(2048)`**, **`geolocation.lat/lon` — min/max** (`-90..90`/`-180..180`). Валидация type↔comment/media_url — в сервисе (`chk_report_type_media` — последняя линия). Проверка «отчёт может сдать только assignee» — в сервисе (`B2`: `ForbiddenError`, не `ConflictError`). |
@@ -1991,60 +2016,107 @@
 СВЕРХ СТАРОЙ СПЕКИ: P1 (criteria refine), P2 (leaveBody), `approved` + `progress.required` в approve.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.39 (~28 шагов + P1/P2 негативы + 404/409/422).
 
-|A.1.31.01|API|REST|TypeScript|src/api/learning/controller.ts|C.0.31.02, C.0.01.06 (assertRight), L.0.01.03, A.1.99.01, A.1.99.02, A.1.99.06|v.0.0.02|Draft|V.1|
-|Описание: Контроллер Learning. **21 маршрут** (8 GET + 13 POST): курсы, цифровой наставник, ПТТ, когнитивные маршруты, рефреш, модули, интеграторы. **`writeLimit`/`rateLimit` не импортируется — мутации без rate-limit** (техдолг). `uuidIdParams` **не используется** — локальные `idParams`, `directionParams`, `mentorParams`. Локально **14 Zod-схем**. **P1** (v0.0.02): импорт `assertRight`. **P2**: `digital-mentor/transfer` — `assertRight` при чужом `mentee_id`. **P3**: `ptt/:id/advance` — `requireRight('learning','C')`. **P4**: `ptt/:id/audit` — `requireRight('learning','V')`. **P5**: `refresh-courses` — `assertRight` при чужом `participant_id`. **P6**: `modules/*` — `assertRight` при чужом `participant_id`. **P7**: `completeByCourse(courseId, participantId)` — 2 аргумента (без дубля).
+|A.1.31.01|API|REST|TypeScript|src/api/learning/controller.ts|C.0.31.02, C.1.09.02, C.0.01.06, D.2.01.69, L.0.01.03, A.1.99.01, A.1.99.02, A.1.99.06|v.0.0.3|Draft|II.6|
+|Описание: Контроллер Learning. **34 эндпоинта** в 6 группах: курсы (5), цифровой наставник (2), ПТТ (4), когнитивные маршруты (4), рефреш/модули (3), интеграторы (3), task-practices (7), план дня участника (6). **Rate-limit на мутациях отсутствует** (нет `writeLimit`/`rateLimit` в контроллере). Права: `learning:C` — на создание курсов, ПТТ, advance ПТТ, когнитивные маршруты, интеграторов; `learning:V` — audit ПТТ; `learning:E` — complete маршрута, добавление mentee интегратору. **Self-service с inline `assertRight`** (P2, P5, P6): если `participant_id === auth.participantId` — без права (участник действует от своего имени); иначе — `learning:C` через `assertRight` (`digital-mentor/transfer`, `refresh-courses`, `modules/basic-defense`, `modules/respect`). Task-practices и day-plans — **self-service без `requireRight`** (только `authMiddleware`). **Порядок регистрации day-plans**: `/me` и `/me/history` — ДО `/me/:date` (иначе Fastify распарсит «history» как `:date`). 20 Zod-схем. |
 |Публичный API:
-- GET /learning/courses — `authMiddleware`, `validateQuery(listCoursesQuery)`. Query: `{ page (default 1), per_page (default 50, max 200) }` → 200 `{ data, meta, audit_id }`.
-- GET /learning/courses/:id — `authMiddleware`, `validateParams(idParams)` → 200 Course + `audit_id`.
-- POST /learning/courses — `authMiddleware`, `requireRight('learning','C')`, `validateBody(createCourseBody)`. Body: `{ title: 1..255, description?: ≤5000, modules: array(record) default [], duration_days: positive int }` → 201 Course + `audit_id`.
-- POST /learning/courses/:id/enroll — `authMiddleware`, `validateParams(idParams)`. **Self-service** → 201 Enrollment + `audit_id`. Дубль → 409.
-- POST /learning/courses/:id/complete — `authMiddleware`, `validateParams(idParams)`. **Self-service** → 200 Enrollment + `audit_id`. Нет активной записи → 404.
-- GET /learning/digital-mentor — `authMiddleware` → 200 DigitalMentor + `audit_id`.
-- POST /learning/digital-mentor/transfer — `authMiddleware`, `validateBody(transferMentorBody)`. Body: `{ mentee_id: uuid, human_mentor_id: uuid, reason: 1..2000 }`. **P2**: `mentee_id !== auth.participantId` → `assertRight({ resource:'learning', action:'C', targetId: mentee_id })` → 403. → 200 DigitalMentor + `audit_id`.
-- POST /learning/ptt — `authMiddleware`, `requireRight('learning','C')`, `validateBody(pttBody)`. Body: `{ goal: 1..5000, duration_days: int 1..90 }` → 201 Ptt + `audit_id`. `>90` → 422.
-- GET /learning/ptt/:id — `authMiddleware`, `validateParams(idParams)` → 200 Ptt + `audit_id`.
-- POST /learning/ptt/:id/advance — `authMiddleware`, **`requireRight('learning','C')`** (P3), `validateParams(idParams)` → 200 Ptt + `audit_id`. `completed`/`cancelled` → 409.
-- GET /learning/ptt/:id/audit — `authMiddleware`, **`requireRight('learning','V')`** (P4), `validateParams(idParams)` → 200 `{ findings, audit_id }`.
-- GET /cognitive-routes — `authMiddleware`, `validateQuery(routeListQuery)`. Query: `{ participant_id?, status?: enum(3) }` → 200 `{ data, audit_id }`.
-- POST /cognitive-routes — `authMiddleware`, `requireRight('learning','C')`, `validateBody(routeBody)`. Body: `{ participant_id, direction_id, mentor_id }` → 201 CognitiveRoute + `audit_id`. **P11**: FK violation → 404.
-- POST /cognitive-routes/:id/complete — `authMiddleware`, `requireRight('learning','E')`, `validateParams(idParams)` → 200 CognitiveRoute + `audit_id`. Повтор → 409.
-- GET /cognitive-routes/queue/:direction_id — `authMiddleware`, `validateParams(directionParams)` → 200 `{ queue, freeSlots, audit_id }`.
-- POST /refresh-courses — `authMiddleware`, `validateBody(refreshBody)`. Body: `{ participant_id, direction_1_id, direction_2_id }`. **P5**: `participant_id !== auth.participantId` → `assertRight({ resource:'learning', action:'C', targetId })`. → 201 RefreshCourse + `audit_id`. **P10**: `d1`/`d2` не существуют → 404; `d1 === d2` → 422.
-- POST /modules/basic-defense — `authMiddleware`, `validateBody(moduleBody)`. Body: `{ participant_id }`. **P6**: `assertRight` при чужом → 403. → 201 ModulePass + `audit_id`.
-- POST /modules/respect — аналогично → 201 ModulePass + `audit_id`.
-- GET /integration/mentors — `authMiddleware`, `validateQuery(integratorListQuery)`. Query: `{ direction_id? }` → 200 `{ data, audit_id }`.
-- POST /integration/mentors — `authMiddleware`, `requireRight('learning','C')`, `validateBody(integratorBody)`. Body: `{ mentor_id, direction_id }` → 201 IntegratorMentor + `audit_id`. Дубль → 409.
-- POST /integration/mentors/:id/mentees — `authMiddleware`, `requireRight('learning','E')`, `validateParams(mentorParams)`, `validateBody(menteeBody)`. Body: `{ mentee_id }` → 200 IntegratorMentor + `audit_id`. **P9**: mentee не существует → 404; `mentees.length >= 3` → 409.
-|↙ ПОТРЕБЛЯЕТ: C.0.31.02 (listCourses, createCourseService, getCourse, enroll, completeByCourse, getDigitalMentor, transferToHuman, startPtt, getPtt, advancePttService, auditPtt, listRoutes, createRouteService, completeRouteService, getRouteQueue, startRefreshService, passModuleService, listIntegrators, assignIntegratorService, addIntegratorMenteeService), C.0.01.06 (`assertRight`), L.0.01.03 (`uuidSchema`), A.1.99.01 (`authMiddleware`, `getAuthContext`), A.1.99.02 (`requireRight`), A.1.99.06 (`validateBody`, `validateParams`, `validateQuery`).
-- Внешние: fastify, zod
-- **НЕ импортируется**: `rateLimit`/`mustGetLimit`, `uuidIdParams`.
-|↘ ПРЕДОСТАВЛЯЕТ: `registerLearningRoutes(app)` — 21 маршрут.
-- Регистрируется в A.1.00.01.
-- Используется в I.9.04.48.
+- **Курсы**:
+- `GET /learning/courses` — `[authMiddleware, validateQuery(listCoursesQuery)]`. Query: `{ page=1, per_page=50 max 200 }`. `listCourses({ page, perPage })` → 200 `{ data, meta, audit_id }`.
+- `GET /learning/courses/:id` — `[authMiddleware, validateParams(idParams)]`. `getCourse(id)` → 200.
+- `POST /learning/courses` — `[authMiddleware, requireRight('learning','C'), validateBody(createCourseBody)]`. Body: `{ title (1..255), description? (≤5000), modules: Record[] (default []), duration_days (int>0) }`. `createCourseService({ title, description?, modules, durationDays }, auth.participantId)` → 201.
+- `POST /learning/courses/:id/enroll` — `[authMiddleware, validateParams(idParams)]`. Self-service. `enroll(id, auth.participantId)` → 201.
+- `POST /learning/courses/:id/complete` — `[authMiddleware, validateParams(idParams)]`. Self-service. **P7:** `completeByCourse(id, auth.participantId)` — 2 аргумента (без дубля participantId) → 200.
+- **Цифровой наставник**:
+- `GET /learning/digital-mentor` — `[authMiddleware]`. `getDigitalMentor()` → 200.
+- `POST /learning/digital-mentor/transfer` — `[authMiddleware, validateBody(transferMentorBody)]`. Body: `{ mentee_id, human_mentor_id, reason (1..2000) }`. **P2:** self-service для себя; `mentee_id !== auth.participantId` → `assertRight({ participantId, resource:'learning', action:'C', targetId: mentee_id })`. `transferToHuman(mentee_id, human_mentor_id, reason, auth.participantId)` → 200.
+- **ПТТ**:
+- `POST /learning/ptt` — `[authMiddleware, requireRight('learning','C'), validateBody(pttBody)]`. Body: `{ goal (1..5000), duration_days (1..90) }`. `startPtt(goal, duration_days, auth.participantId)` → 201.
+- `GET /learning/ptt/:id` — `[authMiddleware, validateParams(idParams)]`. `getPtt(id)` → 200.
+- `POST /learning/ptt/:id/advance` — `[authMiddleware, requireRight('learning','C'), validateParams(idParams)]`. **P3:** мутация — `learning:C`. `advancePttService(id, auth.participantId)` → 200.
+- `GET /learning/ptt/:id/audit` — `[authMiddleware, requireRight('learning','V'), validateParams(idParams)]`. **P4:** чтение — `learning:V`. `auditPtt(id, auth.participantId)` → 200.
+- **Когнитивные маршруты**:
+- `GET /cognitive-routes` — `[authMiddleware, validateQuery(routeListQuery)]`. Query: `{ participant_id?, status?: 'active'|'completed'|'cancelled' }`. `listRoutes({ participantId?, status? })` → 200 `{ data, audit_id }`.
+- `POST /cognitive-routes` — `[authMiddleware, requireRight('learning','C'), validateBody(routeBody)]`. Body: `{ participant_id, direction_id, mentor_id }`. `createRouteService(participant_id, direction_id, mentor_id, auth.participantId)` → 201.
+- `POST /cognitive-routes/:id/complete` — `[authMiddleware, requireRight('learning','E'), validateParams(idParams)]`. `completeRouteService(id, auth.participantId)` → 200.
+- `GET /cognitive-routes/queue/:direction_id` — `[authMiddleware, validateParams(directionParams)]`. `getRouteQueue(direction_id)` → 200.
+- **Рефреш, модули (P5, P6)**:
+- `POST /refresh-courses` — `[authMiddleware, validateBody(refreshBody)]`. Body: `{ participant_id, direction_1_id, direction_2_id }`. Self-service для себя; иначе `assertRight('learning','C', targetId: participant_id)`. `startRefreshService(participant_id, direction_1_id, direction_2_id, auth.participantId)` → 201.
+- `POST /modules/basic-defense` — `[authMiddleware, validateBody(moduleBody)]`. Body: `{ participant_id }`. Self-service для себя; иначе `assertRight('learning','C', targetId)`. `passModuleService(participant_id, 'basic_defense', auth.participantId)` → 201.
+- `POST /modules/respect` — `[authMiddleware, validateBody(moduleBody)]`. Body: `{ participant_id }`. Self-service для себя; иначе `assertRight('learning','C', targetId)`. `passModuleService(participant_id, 'respect', auth.participantId)` → 201.
+- **Интеграторы**:
+- `GET /integration/mentors` — `[authMiddleware, validateQuery(integratorListQuery)]`. Query: `{ direction_id? }`. `listIntegrators(direction_id?)` → 200 `{ data, audit_id }`.
+- `POST /integration/mentors` — `[authMiddleware, requireRight('learning','C'), validateBody(integratorBody)]`. Body: `{ mentor_id, direction_id }`. `assignIntegratorService(mentor_id, direction_id, auth.participantId)` → 201.
+- `POST /integration/mentors/:id/mentees` — `[authMiddleware, requireRight('learning','E'), validateParams(mentorParams), validateBody(menteeBody)]`. Body: `{ mentee_id }`. `addIntegratorMenteeService(id, mentee_id, auth.participantId)` → 200.
+- **Task Practices (C.1.09.02)**:
+- `POST /learning/task-practices` — `[authMiddleware, validateBody(createPracticeBody)]`. Body: `{ teacher_id, learner_id, source_task_id, learner_task_id, competency_atom_id (/^CYB\.ATOM\.\d{4}$/), expected_learning_result (5..5000) }`. `createPractice({ ... }, auth.participantId)` → 201.
+- `GET /learning/task-practices/me` — `[authMiddleware]`. Self-service. `listMyPractices(auth.participantId)` → 200.
+- `GET /learning/task-practices/:id` — `[authMiddleware, validateParams(practiceIdParams)]`. `getPractice(id)` → 200.
+- `POST /learning/task-practices/:id/consent` — `[authMiddleware, validateParams(practiceIdParams)]`. `giveConsent(id, auth.participantId)` → 200.
+- `POST /learning/task-practices/:id/submit` — `[authMiddleware, validateParams(practiceIdParams)]`. `submitPractice(id, auth.participantId)` → 200.
+- `POST /learning/task-practices/:id/complete` — `[authMiddleware, validateParams(practiceIdParams)]`. `completePractice(id, auth.participantId)` → 200.
+- `POST /learning/task-practices/:id/cancel` — `[authMiddleware, validateParams(practiceIdParams), validateBody(cancelPracticeBody)]`. Body: `{ reason (3..2000) }`. `cancelPractice(id, auth.participantId, reason)` → 200.
+- **План дня участника (D.2.01.69)**:
+- `GET /learning/day-plans/me` — `[authMiddleware]`. `listMyDayPlans(auth.participantId)` → 200 `{ data, audit_id }`.
+- `GET /learning/day-plans/me/history` — `[authMiddleware, validateQuery({ date? })]`. Если `date` — `getDayPlan(participantId, date)` → 404 если нет → `listVersions(plan.id)` → 200; иначе `listMyDayPlans(participantId, 30)` → 200.
+- `GET /learning/day-plans/me/:date` — `[authMiddleware, validateParams(dayPlanParams)]`. `getDayPlan(participantId, date)` → 404 если нет, иначе 200.
+- `PUT /learning/day-plans/me/:date` — `[authMiddleware, validateParams(dayPlanParams), validateBody(upsertDayPlanBody)]`. Body: `{ timezone (1..64), available_minutes (int>0 ≤1440), blocks: dayBlockInput[] (max 50), reason? (≤500) }`. `upsertDayPlan({ participantId, date, timezone, availableMinutes, blocks, reason?, actorId })` → 200. `blocks[i].kind` enum: `production|learning|teaching|other`; опциональные `task_id`/`task_practice_id`/`learning_goal_id`/`teaching_assignment_id` (nullable).
+- `POST /learning/day-plans/me/:date/confirm` — `[authMiddleware, validateParams(dayPlanParams)]`. `confirmDayPlan({ participantId, date, actorId })` → 200.
+- `POST /learning/day-plans/me/:date/close` — `[authMiddleware, validateParams(dayPlanParams), validateBody(closeDayPlanBody)]`. Body: `{ actuals: [{ block_id, actual_minutes (0..1440) }] (max 50) }`. `closeDayPlan({ participantId, date, actuals, actorId })` → 200.
+- Zod-схемы (20): `idParams`, `directionParams`, `mentorParams`, `listCoursesQuery`, `createCourseBody`, `transferMentorBody`, `pttBody`, `routeBody`, `routeListQuery`, `refreshBody`, `moduleBody`, `integratorListQuery`, `integratorBody`, `menteeBody`, `dayPlanParams`, `dayBlockInput`, `upsertDayPlanBody`, `closeDayPlanBody`, `practiceIdParams`, `createPracticeBody`, `cancelPracticeBody`; + 1 inline (`history` query). |
+|↙ ПОТРЕБЛЯЕТ:
+- **C.0.31.02** learning/service — `listCourses`, `createCourseService`, `getCourse`, `enroll`, `completeByCourse`, `getDigitalMentor`, `transferToHuman`, `startPtt`, `getPtt`, `advancePttService`, `auditPtt`, `listRoutes`, `createRouteService`, `completeRouteService`, `getRouteQueue`, `startRefreshService`, `passModuleService`, `listIntegrators`, `assignIntegratorService`, `addIntegratorMenteeService`.
+- **D.2.01.69** learning/participant-day-plan (C.0.31.03) — `getDayPlan`, `upsertDayPlan`, `confirmDayPlan`, `closeDayPlan`, `listMyDayPlans`, `listVersions`.
+- **C.1.09.02** passport/teaching-practice — `createPractice`, `getById as getPractice`, `listMyPractices`, `giveConsent`, `submitPractice`, `completePractice`, `cancelPractice`.
+- **C.0.01.06** rights (core/rights.js) — `assertRight` (inline-проверка в self-service ветках).
+- **C.0.01.04** types — `UUID` (для `as UUID` в close-day-plan).
+- **L.0.01.03** validators — `uuidSchema`.
+- **A.1.99.01** auth — `authMiddleware`, `getAuthContext`.
+- **A.1.99.02** rights — `requireRight`.
+- **A.1.99.06** validation — `validateBody`, `validateParams`, `validateQuery`.
+- Внешние: fastify, zod. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- `registerLearningRoutes(app): Promise<void>` — регистрируется в A.1.00.01.
+- Курсы, цифровой наставник, ПТТ, когнитивные маршруты, рефреш/модули, интеграторы — F.4.02.09 `Learning.tsx`, F.4.02.10 `Mentor.tsx`, F.4.02.11 `Ptt.tsx`.
+- Task-practices — F.4.02.12 `Practices.tsx` (Этап 4).
+- Day-plans (`/learning/day-plans/me/*`) — F.4.02.13 `DayPlan.tsx` (план дня участника).
+- Тесты I.9.04.09 (learning), I.9.04.60 (day-plans, косвенно), I.9.04.77 (day-plan). |
 |Реализация:
-- **Локальные Zod (14)**: `idParams`, `directionParams`, `mentorParams`, `listCoursesQuery`, `createCourseBody`, `transferMentorBody`, `pttBody`, `routeBody`, `routeListQuery`, `refreshBody`, `moduleBody`, `integratorListQuery`, `integratorBody`, `menteeBody`.
-- **`writeLimit` — отсутствует**; все 13 POST без rate-limit.
-- **P2**: `transfer` — `if (b.mentee_id !== auth.participantId) await assertRight({...C, targetId: b.mentee_id});`.
-- **P3**: `ptt/:id/advance` — `requireRight('learning','C')`.
-- **P4**: `ptt/:id/audit` — `requireRight('learning','V')`.
-- **P5**: `refresh-courses` — `if (b.participant_id !== auth.participantId) await assertRight({...C, targetId: b.participant_id});`.
-- **P6**: `modules/basic-defense`/`modules/respect` — `assertRight` при чужом `participant_id`.
-- **P7**: `completeByCourse(req.params.id, auth.participantId)` — 2 аргумента.
-- Порядок: `/learning/courses` (GET) → `/learning/courses/:id` → POST `/learning/courses` → `/enroll` → `/complete` → `/digital-mentor` (GET) → `/transfer` → `/learning/ptt` (POST) → `/:id` → `/advance` → `/audit` → `/cognitive-routes` (GET) → POST `/cognitive-routes` → `/:id/complete` → `/queue/:direction_id` → `/refresh-courses` → `/modules/basic-defense` → `/modules/respect` → `/integration/mentors` (GET) → POST `/integration/mentors` → `/:id/mentees`.
-- Формат: `{ data, meta, audit_id }` (списки), спред + `audit_id` (одиночные).
+- **P7:** `completeByCourse(id, participantId)` — 2 аргумента (было 3 с дублем `participantId`).
+- **P2/P5/P6 (self-service)**: паттерн `if (b.participant_id !== auth.participantId) await assertRight({ participantId, resource: 'learning', action: 'C', targetId: b.participant_id })`. Применяется в `digital-mentor/transfer`, `refresh-courses`, `modules/basic-defense`, `modules/respect`.
+- **Day-plans**: `GET /me` → `listMyDayPlans`; `GET /me/history` — при `?date` — `getDayPlan` → 404 → `listVersions(plan.id)`; без `date` — `listMyDayPlans(participantId, 30)`; `GET /me/:date` — 404 если нет; `PUT /me/:date` — маппинг `task_id → taskId`, `task_practice_id → taskPracticeId`, `learning_goal_id → learningGoalId`, `teaching_assignment_id → teachingAssignmentId`, `planned_minutes → plannedMinutes` (поля с `!== undefined`, чтобы пробросить `null`); `confirm`/`close` — с `actorId`.
+- **Порядок регистрации**: `/learning/courses` → `:id` → POST courses → enroll → complete → digital-mentor → transfer → ptt → advance → audit → cognitive-routes → queue → refresh-courses → modules (basic-defense, respect) → integration/mentors → mentees → task-practices (POST → me → :id → consent/submit/complete/cancel) → day-plans (`/me` → `/me/history` → `/me/:date` GET → PUT → confirm → close).
+- **`assertRight`** — вызывается **внутри** хендлера, не как preHandler (условная логика); аудит пишется сервисом `assertRight`. |
 |Примечания:
-ЗАКРЫТО (v0.0.01 → v0.0.02): P1–P7.
-ОСТАЁТСЯ ТЕХДОЛГ:
-- **Rate-limit отсутствует** на 13 POST.
-- `uuidIdParams` не используется (локальные `idParams`/`directionParams`/`mentorParams`).
-- `enroll`/`complete` — self-service без `requireRight` (participantId из auth).
-- `completeByCourse` — `participantId` передаётся в `completeCourse` как `requesterId` (actorId = participantId; ок).
-- Сигнатуры чтения (`listCourses`, `getDigitalMentor`, `getPtt`, `listRoutes`, `getRouteQueue`, `listIntegrators`) — без `requesterId`.
-- 14 Zod-схем дублируются с generic-типизацией (Query/Body/Params).
-- `startPtt` не проверяет `PTT_MIN_INTERVAL_DAYS` (1825) — только `1..90`.
-ЗАЯВЛЕНО И НЕ РЕАЛИЗОВАНО: —
-СВЕРХ СТАРОЙ СПЕКИ: P1–P7, `assertRight` в transfer/refresh/modules, `requireRight('learning','C')` на ptt/advance, `requireRight('learning','V')` на ptt/audit.
-ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.48.
+СОЗДАН (новый блок).
+СВЕРХ СТАРОЙ СПЕКИ: **день-план участника (D.2.01.69)** — 6 новых эндпоинтов; **task-practices (C.1.09.02, Этап 4)** — 7 эндпоинтов; **self-service (P2/P5/P6)** — inline `assertRight`; **P3/P4** — advance=learning:C, audit=learning:V.
+СВЯЗЬ С C.0.31.02: 20 функций learning-сервиса.
+СВЯЗЬ С C.0.31.03 / D.2.01.69: 6 функций day-plan.
+СВЯЗЬ С C.1.09.02: 7 функций teaching-practice.
+СВЯЗЬ С C.0.01.06: `assertRight` — условная проверка в self-service.
+СВЯЗЬ С A.1.99.02: `requireRight` — на 8 мутациях (course create, PTT start, PTT advance, cognitive route create, route complete, integrator create, integrator mentee).
+ТЕХДОЛГ:
+- **Rate-limit отсутствует** — мутации (`POST /learning/courses`, `POST /learning/ptt`, `POST /cognitive-routes`, `POST /integration/mentors`, `POST /refresh-courses`, `POST /modules/*`, `POST /learning/task-practices/*`, `PUT /learning/day-plans/*`, `POST .../confirm`, `POST .../close`) без `writeLimit`. Отличие от A.1.06.01/A.1.07.01, где `api.write` навешан.
+- **`assertRight` в сервисном слое** — семантически это middleware-проверка, но реализована как `await` в хендлере; при исключении — 403 без `access_log`-middleware (сервис `assertRight` может писать или нет — не подтверждено).
+- **`/learning/task-practices/:id`** — без `requireRight`; любой авторизованный читает любую практику по UUID (PII — `expected_learning_result`, `teacher_id`/`learner_id`). Нужна модель прав (teacher/learner/ОТК).
+- **`/learning/task-practices` (POST)** — любой авторизованный может создать практику между **любыми** teacher/learner; нет проверки, что `auth.participantId` — teacher или learner. Нужна проверка «создатель — участник практики».
+- **`POST /learning/task-practices/:id/consent|submit|complete|cancel`** — проверка, что `auth.participantId` — участник практики (teacher/learner), не видна в контроллере; предположительно в C.1.09.02, но не задокументировано.
+- **`GET /cognitive-routes`** — без `requireRight`, без `auth.participantId`-фильтра; любой авторизованный видит все маршруты всех участников (PII).
+- **`GET /learning/courses`, `GET /learning/courses/:id`** — без прав; публичный каталог курсов. Приемлемо, если курсы — reference data; не задокументировано.
+- **`POST /learning/courses/:id/enroll` / `complete`** — self-service без проверки, что участник действительно enrolled или прошёл модули; семантика «enroll/completed» — на сервисе.
+- **`idParams` / `directionParams` / `mentorParams` / `practiceIdParams`** — 4 локальные схемы; в проекте уже есть `uuidIdParams` (L.0.01.03) — 7+ дубль.
+- **`POST /cognitive-routes/:id/complete` — `learning:E`** — «execute» для complete маршрута; семантика: `learning:E` — обычно редактирование, не завершение. Несогласованно с `POST /tasks/:id/complete` (в A.1.07.01 — `otc:C`).
+- **`cancelPracticeBody.reason (3..2000)`** vs **`returnBody.reason (1..500)`** (A.1.07.01) — разные конвенции.
+- **`dayBlockInput`** — 4 опциональных FK (`task_id`/`task_practice_id`/`learning_goal_id`/`teaching_assignment_id`); нет cross-validation «`kind='production'` → должен быть `task_id`» и т.п.; сервис должен разбирать.
+- **`closeDayPlanBody.actuals[i].actual_minutes (0..1440)`** — `0` допустим (блок не выполнялся); блок `skipped` без `actuals` — не проверяется.
+- **`block_id as UUID`** в `close` — `as UUID` — обход типизации.
+- **`GET /learning/day-plans/me/:date`** — 404 → `{ code: 'NOT_FOUND', message: 'План дня не найден' }` — свой формат ответа, не `AppError`; несогласованно с errorHandler из A.1.99.07.
+- **`POST /learning/day-plans/me/:date/confirm` / `close`** — без `validateBody` (`close` — с body, `confirm` — без); семантика `confirm` без body — ок, `close` — с `actuals`.
+- **`upsertDayPlanBody.blocks[i].status`** — `planned|in_progress|done|skipped` — 4 статуса; `done`/`skipped` в `upsert` — семантика «пересборка» vs «фактическое состояние» размыта (факт фиксируется `close`).
+- **`z.coerce.number()` для `duration_days`/`page`/`per_page`/`duration_days`** — принимает `'30'` как `30`; удобно для query, но для body — неявно.
+- **`modules: z.array(z.record(z.unknown())).default([])`** — модули курса без Zod-валидации структуры; сервис должен разбирать `unknown`.
+- **`createPracticeBody.competency_atom_id (/^CYB\.ATOM\.\d{4}$/)`** — жёсткий regex; для атомов другого домена (не CYB) — не пройдёт.
+- **`GET /integration/mentors`** — без прав; любой авторизованный видит список интеграторов; не PII, ок.
+- **`POST /modules/basic-defense` / `/modules/respect`** — module code захардкожен в URL (`basic_defense`, `respect`); новый модуль → новый эндпоинт.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.09 test-learning.ts (прямо); I.9.04.60 test-day-plans.ts (косвенно); I.9.04.77 test-day-plan.ts (day-plan цикл); I.9.09.05 test-passport-v2 (косвенно — teaching-practice); I.9.09.43 test-teaching-practice.ts (practice). |
 
 |A.1.32.01|API|REST|TypeScript|src/api/automation/controller.ts|C.0.32.02, C.0.32.01, C.0.01.06 (assertRight), C.0.01.01 (isRoleValid), L.0.01.03, A.1.99.01, A.1.99.02, A.1.99.06|v.0.0.02|Draft|I.6.15|
 |Описание: Контроллер Automation. **13 маршрутов** (1 GET queue + 4 POST decisions + 1 GET section + 3 POST sections + 4 GET operator + 1 POST cron). **`writeLimit`/`rateLimit` не импортируется — мутации без rate-limit** (техдолг). `uuidIdParams` **не используется** — локальный `idParams`; `operatorQuery = { operator_id }`; `combineQuery = { operator_id, role }`; `queueQuery = { operator_id? }`. Локально **9 Zod-схем**. **P1** (v0.0.02): импорт `assertRight` + `isRoleValid`. **P2**: `GET /automation/queue` — self-service для своей очереди, `automation:V` для чужой (через `assertRight`). **P3**: `GET /automation/sections/:id` — `requireRight('automation','V')`. **P4**: `combineQuery.role` — `refine(isRoleValid)`; 4 GET `/operator/*` получили `requireRight('automation','V')`. **P5**: шапка кода «12 → 13 эндпоинтов» (POST `/automation/sections` сверх спеки). Все мутации через `requireRight`; self-service нет (кроме чтения queue).
@@ -3157,7 +3229,7 @@
 - Локальные Zod: `contextParams` ({ context: enum(3) }), `widgetIdParams` ({ widget_id: uuid }), `renderQuery` ({ context?: enum(3), panel_id?: uuid }).
 - GET /panels/me: `listMyPanels` — учитывает `role_id IS NULL OR role_id IN (роли участника)` + `direction_id IS NULL OR direction_id = auth.directionId`.
 - GET /panels/me/context/:context: выбор по приоритету (exact → normal → first).
-- GET /panels/me/render: 
+- GET /panels/me/render:
 - Если `panel_id`: `allPanels.find(p => p.id === panel_id)` → null → 404.
 - Иначе — по контексту (exact → normal → first → null).
 - Если null → пустой ответ `{ panel: null, instances: [], widgets: [], widgetData: {}, missingEntities: [], failedEntities: [], available: [] }`.
@@ -3288,7 +3360,7 @@
 - **`logAccessDenied` экспортирован** (было private) — объектный API (`AccessDeniedParams`). Используется: внутри `requireRight` (автоматически при `!allowed`); снаружи — контроллеры с ручной проверкой прав.
 - **`AccessDeniedParams`** — новый интерфейс (было 6 позиционных параметров).
 - **`RightCheckOptions`** — интерфейс для `rightsMiddleware` (был в v0.0.02, но теперь явно).
-- **Комментарии-техдолги в шапке файла**: 
+- **Комментарии-техдолги в шапке файла**:
 - «TECHDEBT: requireRight хардкодит targetId из request.params.id» — частично решено 4-м параметром; для кастомных случаев — `rightsMiddleware`.
 - «TECHDEBT: logAccessDenied пишет напрямую в access_log (SQL), минуя audit-сервис (C.0.01.05)».
 - «NOTE: rightsMiddleware не логирует отказы в access_log — асимметрия с requireRight».
@@ -3692,14 +3764,15 @@
 - **Нет `BadRequestError`** — на 400 используется `ValidationError` (422) или `AppError`; семантическое расхождение (400 vs 422). |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.18 test-rate-limit.ts (косвенно — `RateLimitError`); I.9.04.25 test-regime-middleware.ts (`LockedError`/`RegimeConflictError`); I.9.04.32 test-recovery.ts (`AppError('NOTIFICATION_FAILED')`). |
 
-|C.0.01.03|CORE|Constants|TypeScript|src/core/constants.ts|C.0.01.04|v.0.0.1|Draft|-|
-|Описание: **Глобальные константы системы.** Единственный источник истины: точность, лимиты, сроки, интервалы, типы. Изменение значений — только через процедуру пересмотра Хартии. **14 групп констант:** точность (`PRECISION`, `BASIS_POINTS`), уровни ячеек (`MAX_LEVELS`), Потоки (`CAPSULE_MAX`, `WELCOME_PACK`, ставки возврата, отложенный Поток, резервы), приоритетные дедлайны (`PRIORITY_DEADLINES_MS`), кванты, мобилизация, режимы (Steel Bell, ПТТ, красный контур, инфо-блокада), Шлюз, конвергенция, Хартия (сроки пересмотра), Семантический Страж, диссидентские проекты, JWT TTL, списки типов для итерации (`FLOW_TYPES`, `REGIME_TYPES`), HTTP-коды. |
+|C.0.01.03|CORE|Constants|TypeScript|src/core/constants.ts|C.0.01.04|v.0.0.2|Draft|-|
+|Описание: **Глобальные константы системы.** Единственный источник истины: точность, лимиты, сроки, интервалы, типы. Изменение значений — только через процедуру пересмотра Хартии. **15 групп констант:** точность (`PRECISION`, `BASIS_POINTS`), уровни ячеек (`MAX_LEVELS`, **`MAX_TREE_DEPTH`** — новое), Потоки (`CAPSULE_MAX`, `WELCOME_PACK`, ставки возврата, отложенный Поток, резервы), приоритетные дедлайны (`PRIORITY_DEADLINES_MS`), кванты, мобилизация, режимы (Steel Bell, ПТТ, красный контур, инфо-блокада), Шлюз, конвергенция, Хартия (сроки пересмотра), Семантический Страж, диссидентские проекты, JWT TTL, **2 списка** (`FLOW_TYPES`, `REGIME_TYPES`), **`HTTP`** (14 кодов). |
 |Публичный API:
 - **Точность:** `PRECISION = 1e18`, `BASIS_POINTS = 10000`.
 - **Уровни:** `MAX_LEVELS = 11`.
+- **Глубина дерева:** `MAX_TREE_DEPTH = 10` — **новое**; лимит рекурсивного обхода (C.0.06.05, C.0.06.06), защита рекурсивных CTE; увеличение — только после нагрузочных испытаний (ТЗ §10.2).
 - **Потоки (I.1.6):** `CAPSULE_MAX = 180`, `WELCOME_PACK = 200`, `RETURN_RATE = 30`, `RETURN_RATE_GENTLE = 60`, `GENTLE_PERIOD_DAYS = 180`, `DEFERRED_FLOW_PCT = 7`, `FREEDOM_RESERVE_PCT = 2`, `PLANETARY_RESERVE_PCT = 3`.
-- **Дедлайны (I.1.4.1):** `PRIORITY_DEADLINES_MS: Record<Priority, number>` — critical: 60_000, high: 3_600_000, standard: 10_800_000, background: 86_400_000.
-- **Квант:** `QUANTUM_ACCELERATION = 10`.
+- **Дедлайны (I.1.4.1):** `PRIORITY_DEADLINES_MS: Readonly<Record<Priority, number>>` — critical: 60_000, high: 3_600_000, standard: 10_800_000, background: 86_400_000.
+- **Квант (I.2.3.1):** `QUANTUM_ACCELERATION = 10`.
 - **Мобилизация (I.1.8.11):** `MOBILIZATION_REFUSAL_MAX_PCT = 10`.
 - **Режимы (VI.1, VI.2):** `STEEL_BELL_MAX_DAYS = 90`, `PTT_MAX_DAYS = 90`, `PTT_MIN_INTERVAL_DAYS = 1825`, `RED_CIRCUIT_AUDIT_DAYS = 14`, `INFO_BLOCKADE_TIMEOUT_MIN = 60`, `INFO_BLOCKADE_SIGNAL_WINDOW_MIN = 180`.
 - **Шлюз (I.1.10.8):** `GATEWAY_DISSOLVE_REFERENDUM_PCT = 60`, `GATEWAY_DISSOLVE_MAX_YEARS = 50`, `GATEWAY_IMPORT_DEPENDENCY_PCT = 5`, `GATEWAY_IMPORT_DEPENDENCY_YEARS = 3`.
@@ -3707,41 +3780,52 @@
 - **Хартия:** `CORE_REVISION_YEARS = 25`, `CHARTER_REVISION_YEARS = 5`, `HORIZON_RULE_YEARS = 50`.
 - **Семантический Страж (I.4.6):** `SEMANTIC_ALARM_RESPONSE_HOURS = 3`, `SEMANTIC_VETO_DAYS = 3`.
 - **Диссидентские проекты (I.1.8.10):** `DISSIDENT_PETITION_PCT = 1`, `DISSIDENT_REPORT_INTERVAL_DAYS = 60`, `DISSIDENT_REVIEW_YEARS = 2`.
-- **JWT (I.1.4):** `JWT_ACCESS_TTL_SEC = 900` (15 мин), `JWT_REFRESH_TTL_SEC = 2_592_000` (30 дней).
-- **Списки для итерации:** `FLOW_TYPES: readonly FlowType[]` (6), `REGIME_TYPES: readonly RegimeType[]` (6).
-- **`HTTP`** — const-объект с 13 кодами (200/201/204/400/401/403/404/409/422/423/429/451/500/503). |
+- **JWT (I.1.4):** `JWT_ACCESS_TTL_SEC = 15 * 60` (900 с, 15 мин), `JWT_REFRESH_TTL_SEC = 30 * 24 * 3600` (2_592_000 с, 30 дней) — вычисляемые выражения (было: литералы `900` / `2_592_000`).
+- **Списки для итерации:** `FLOW_TYPES: readonly FlowType[]` (6: main, reflective, council, mentoring, creation, cross_direction), `REGIME_TYPES: readonly RegimeType[]` (6: red_circuit, steel_bell, ptt, info_blockade, quantum_acceleration, global_red_circuit).
+- **`HTTP`** — const-объект с **14 кодами**: `OK=200`, `CREATED=201`, `NO_CONTENT=204`, `BAD_REQUEST=400`, `UNAUTHORIZED=401`, `FORBIDDEN=403`, `NOT_FOUND=404`, `CONFLICT=409`, `UNPROCESSABLE=422`, `LOCKED=423`, `TOO_MANY=429`, `INFO_BLOCKADE=451`, `INTERNAL=500`, `SERVICE_UNAVAILABLE=503`. |
 |↙ ПОТРЕБЛЯЕТ:
 - **C.0.01.04** (types) — `Priority`, `FlowType`, `RegimeType`.
 - Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
 - **`WELCOME_PACK`** — C.0.02.02 (participants/service.ts — `grantWelcomePack`).
-- **`PRIORITY_DEADLINES_MS`** — C.0.07.02 (tasks/service.ts — при создании задачи), C.0.07.04 (overdue), C.0.08.* (reports), C.0.09.02 (OTC).
+- **`PRIORITY_DEADLINES_MS`** — C.0.07.02 (tasks/service.ts), C.0.07.04 (overdue), C.0.08.* (reports), C.0.09.02 (OTC).
 - **`JWT_ACCESS_TTL_SEC` / `JWT_REFRESH_TTL_SEC`** — S.0.01.01 (security/jwt.ts) — срок жизни access/refresh.
 - **`FLOW_TYPES` / `REGIME_TYPES`** — C.0.17.02 (regimes/service.ts), C.0.18.02 (balance/service.ts), C.0.99.* при валидации.
 - **`MAX_LEVELS`** — C.0.04.01 (cells/entity — `getSize`), C.0.04.02 (cells/service).
-- **`PTT_MIN_INTERVAL_DAYS` / `STEEL_BELL_MAX_DAYS` / `PTT_MAX_DAYS`** — C.0.17.02 (regimes/service.ts) — при активации режимов.
-- **`INFO_BLOCKADE_TIMEOUT_MIN` / `INFO_BLOCKADE_SIGNAL_WINDOW_MIN`** — C.0.24.02 (gateway/service.ts) — при проверке выхода из изоляции.
-- **`GATEWAY_*` / `CONVERGENCE_MAX_MONTHS` / `HORIZON_RULE_YEARS`** — C.0.24.02, C.0.28.02, C.0.35.02 (admin) — проверки при операциях.
+- **`MAX_TREE_DEPTH`** — C.0.06.05 (plans/tree.ts), C.0.06.06 (plans/oversight.ts) — лимит `WITH RECURSIVE`; заменяет hardcoded `depth < 10` (техдолг v0.0.11 в C.0.06.05/06).
+- **`PTT_MIN_INTERVAL_DAYS` / `STEEL_BELL_MAX_DAYS` / `PTT_MAX_DAYS`** — C.0.17.02 (regimes/service.ts).
+- **`INFO_BLOCKADE_TIMEOUT_MIN` / `INFO_BLOCKADE_SIGNAL_WINDOW_MIN`** — C.0.24.02 (gateway/service.ts).
+- **`GATEWAY_*` / `CONVERGENCE_MAX_MONTHS` / `HORIZON_RULE_YEARS`** — C.0.24.02, C.0.28.02, C.0.35.02 (admin).
 - **`HTTP`** — все контроллеры для `reply.code(HTTP.OK)` / `HTTP.CREATED` и т.д. |
 |Реализация:
 - Все константы — `export const` верхнего уровня; `PRIORITY_DEADLINES_MS: Readonly<Record<Priority, number>>` — типизированная запись; `FLOW_TYPES`/`REGIME_TYPES` — `readonly` массивы для `for...of`.
-- `HTTP` — `as const` для литеральных типов (`HTTP.OK` = `200`, не `number`). |
+- `HTTP` — `as const` для литеральных типов (`HTTP.OK` = `200`, не `number`).
+- **`MAX_TREE_DEPTH = 10`** — новая константа (group «Глубина дерева», между «Уровни» и «Потоки»).
+- `JWT_ACCESS_TTL_SEC = 15 * 60` — семантически 900, но выражение читается как «15 минут × 60»; `JWT_REFRESH_TTL_SEC = 30 * 24 * 3600` — «30 дней × 24 × 3600». Значения совпадают со старыми (900 / 2_592_000), отличие — только в способе записи. |
 |Примечания:
-РЕАЛИЗОВАНО: 14 групп констант + 2 списка + объект HTTP.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.11): **`HTTP`** — новый объект; раньше HTTP-коды писались числами в контроллерах. **`PRIORITY_DEADLINES_MS`** — вынесено в константы (было захардкожено в C.0.07.*).
-СВЯЗЬ С S.0.01.01 (jwt): `JWT_ACCESS_TTL_SEC`/`JWT_REFRESH_TTL_SEC` — единый источник для `issueTokens`/`rotateRefresh`.
-СВЯЗЬ С C.0.17.02 (regimes/service): `STEEL_BELL_MAX_DAYS`/`PTT_MAX_DAYS`/`PTT_MIN_INTERVAL_DAYS`/`RED_CIRCUIT_AUDIT_DAYS` — при активации режима.
-СВЯЗЬ С C.0.24.02 (gateway/service): `INFO_BLOCKADE_*`/`GATEWAY_*` — при проверке выхода из изоляции и роспуска Шлюза.
-СВЯЗЬ С C.0.02.02 (participants/service): `WELCOME_PACK = 200` — при `grantWelcomePack`.
-СВЯЗЬ С C.0.35.02 (admin/service): `CORE_REVISION_YEARS`/`CHARTER_REVISION_YEARS`/`HORIZON_RULE_YEARS` — для проверок «можно ли менять Хартию».
+РЕАЛИЗОВАНО: 15 групп констант (было 14) + 2 списка + `HTTP` (14 кодов).
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.1):
+- **`MAX_TREE_DEPTH = 10`** — новая константа; закрывает техдолг C.0.06.05 (hardcoded `depth < 10`) и C.0.06.06 (`rootOf` 12 итераций).
+- **`JWT_ACCESS_TTL_SEC` / `JWT_REFRESH_TTL_SEC`** — переписаны как выражения (`15 * 60` / `30 * 24 * 3600`); значения не изменились (900 / 2_592_000).
+- **`HTTP`** — подтверждено 14 кодов (было ошибочно «13» в старой спеке).
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С S.0.01.01 (jwt): `JWT_ACCESS_TTL_SEC`/`JWT_REFRESH_TTL_SEC` — единый источник.
+СВЯЗЬ С C.0.17.02 (regimes/service): `STEEL_BELL_MAX_DAYS`/`PTT_MAX_DAYS`/`PTT_MIN_INTERVAL_DAYS`/`RED_CIRCUIT_AUDIT_DAYS`.
+СВЯЗЬ С C.0.24.02 (gateway/service): `INFO_BLOCKADE_*`/`GATEWAY_*`.
+СВЯЗЬ С C.0.02.02 (participants/service): `WELCOME_PACK = 200`.
+СВЯЗЬ С C.0.35.02 (admin/service): `CORE_REVISION_YEARS`/`CHARTER_REVISION_YEARS`/`HORIZON_RULE_YEARS`.
+СВЯЗЬ С C.0.06.05/06 (plans/tree.ts, oversight.ts): `MAX_TREE_DEPTH` — лимит рекурсии (замена hardcoded).
 ТЕХДОЛГ:
 - **`PRECISION = 1e18`** — JS `number` не точно представляет 10^18 (max safe integer — 2^53 ≈ 9e15); при работе с большими числами — нужен `BigInt` или decimal-библиотека.
-- **`PRIORITY_DEADLINES_MS`** — literal-числа; при изменении приоритетов (добавление `emergency`) — надо править здесь и в `Priority` в C.0.01.04.
+- **`PRIORITY_DEADLINES_MS`** — literal-числа; при добавлении `emergency` — править здесь и в `Priority` (C.0.01.04).
 - **`FLOW_TYPES` / `REGIME_TYPES`** — дублируют типы в C.0.01.04; при добавлении нового типа — править в двух местах.
-- **`HTTP` — `as const`** — литеральные типы; если какой-то эндпоинт возвращает нестандартный код, придётся использовать число напрямую.
-- **`MAX_LEVELS = 11`** — согласовано с `getSize` в C.0.04.01; если поменяется — править в двух местах.
-- **Нет `SLA_HOURS`** — SLA для mentor_questions (4 часа) захардкожен в C.0.04.14 (`const SLA_HOURS = 4`), а не здесь. |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.02 test-balance.ts (косвенно — WELCOME_PACK, RETURN_RATE); I.9.04.17 test-regimes.ts (STEEL_BELL_MAX_DAYS, PTT_*); I.9.04.46 test-gateway.ts (GATEWAY_*); I.9.04.18 test-rate-limit.ts (HTTP.TOO_MANY). |
+- **`HTTP` — `as const`** — литеральные типы; нестандартный код — числом напрямую.
+- **`MAX_LEVELS = 11`** — согласовано с `getSize` (C.0.04.01); изменение — в двух местах.
+- **`MAX_TREE_DEPTH = 10`** — если в C.0.06.05/06 всё ещё hardcoded `10` (нужен grep), константа не применяется; ТЗ §10.2 — «после нагрузочных испытаний» (граница не валидируется на уровне типов).
+- **`JWT_*_TTL_SEC`** — выражения вычисляются при импорте; если нужен runtime-tunable TTL — придётся читать env (сейчас — константы).
+- **Нет `SLA_HOURS`** — SLA для `mentor_questions` (4 часа) захардкожен в C.0.04.14 (`const SLA_HOURS = 4`), а не здесь; SLA для ОТК — env `OTC_SLA_HOURS` (default 24) в C.0.09.02 — тоже не здесь.
+- **`RED_CIRCUIT_AUDIT_DAYS = 14`** — не используется в коде вне C.0.17.02; не проверено.
+|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.02 test-balance.ts (косвенно — WELCOME_PACK, RETURN_RATE); I.9.04.17 test-regimes.ts (STEEL_BELL_MAX_DAYS, PTT_*); I.9.04.46 test-gateway.ts (GATEWAY_*); I.9.04.18 test-rate-limit.ts (HTTP.TOO_MANY); I.9.04.59 test-tree-naryad (косвенно — MAX_TREE_DEPTH). |
 
 |C.0.01.04|CORE|Types|TypeScript|src/core/types.ts|—|v.0.0.1|Draft|-|
 |Описание: **Общие типы и интерфейсы.** Единый словарь состояний: **33 строковых литерала-типа** (без enum) — от `UUID`/`ISODateTime` до статусов задач/планов/сигналов/режимов. Соответствует разделам Хартии: сигналы (II.1), задачи (II.5), планы (II.4), блага (I.1.5), направления (I.4), участники (I.1.4), регистрация (D.1.01.01), потоки (I.1.6), мандаты (I.1.7), кванты (IV.3), общины (V.6), режимы (VI.1/VI.2), санкции (VII.2), жалобы (VII.2), жюри (III.3), психоэкология (I.4.12), коннект (II.3), арбитраж (II.3.7), всеобщий прогон (II.2), права (I.1.10). Универсальные обёртки — `Paginated<T>`, `ApiResponse<T>`. |
@@ -4216,67 +4300,83 @@
 - **`membersCount`** — денормализация; источник правды — триггер в БД (D.4.01.07), `createCell` всегда ставит 0. |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.03 test-cells.ts (косвенно); I.9.04.67 test-capacity-cells.ts (прямо). |
 
-|C.0.04.02|CORE|Cells|TypeScript|src/core/cells/service.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.04.01, L.0.01.01, L.0.01.08, L.0.01.09|v.0.0.2|Draft|-|
-|Описание: **Сервис ячеек.** Дерево N×5, состав, роли: чтение (list/getById/getMembers/getChildren/buildTree через WITH RECURSIVE), создание (`createCellService` с проверкой родителя: level+1 и то же направление), добавление/удаление участников (`addMemberService`/`removeMemberService` с проверкой размера, направления, «не в другой ячейке»). **Обновление `members_count` — триггер в БД** (D.4.01.07). **Кэш дерева** инвалидируется по цепочке предков через `WITH RECURSIVE` (B1, B4). **Техдолг v0.0.01 закрыт в v0.0.02:** B1 (инвалидация предков), B2 (направление участника = направление ячейки), B3 (родитель — то же направление), B4 (инвалидация при создании дочерней), B5 (buildTree через WITH RECURSIVE — 1 запрос вместо N+1), B6 (`rootsOnly` в listCells). |
+|C.0.04.02|CORE|Cells|TypeScript|src/core/cells/service.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.04.01, C.0.01.01, S.0.01.03, L.0.01.01, L.0.01.08, L.0.01.09|v.0.0.4|Draft|-|
+|Описание: **Сервис ячеек.** Дерево N×5, состав, роли: чтение (list/getById/getMembers/getChildren/buildTree через WITH RECURSIVE), создание (`createCellService` с проверкой родителя: level+1 и то же направление), добавление/удаление участников (`addMemberService`/`removeMemberService` с проверкой размера, направления, «не в другой ячейке»). **`members_count` — триггер в БД** (D.4.01.07). **Кэш дерева** инвалидируется по цепочке предков через `WITH RECURSIVE` (B1, B4). **Техдолг v0.0.01 закрыт в v0.0.02:** B1–B6. **v0.0.03:** `isCellCoordinator`/`isCellCoordinatorOrArchitect` (удалён дубль из других сервисов); `addMemberService` — запрет самоповышения (нельзя выдать себе `role_in_cell ≠ 'member'`). **v0.0.04:** проверка самоповышения вынесена в САМОЕ НАЧАЛО `addMemberService` (после `getById`; не тратим запросы на size/existing participant lookup, если запрос заведомо запрещён); семантика и сообщение не изменились. |
 |Публичный API:
 - `interface CellFilter { directionId?; level?; parentCellId?; rootsOnly? }`.
 - `listCells(filter): Promise<Cell[]>` — ORDER BY level DESC, number ASC; `rootsOnly` → только корни.
 - `getById(cellId): Promise<Cell>` — `NotFoundError`.
 - `getMembers(cellId): Promise<CellMember[]>` — только активные (`valid_to IS NULL`).
 - `getChildren(cellId): Promise<Cell[]>` — прямые потомки, ORDER BY number.
-- `buildTree(rootCellId): Promise<Cell[]>` — BFS, кэш `cell-tree:<rootId>` TTL 300s.
+- `buildTree(rootCellId): Promise<Cell[]>` — `WITH RECURSIVE`, кэш `cell-tree:<rootId>` TTL 300s, `NotFoundError` если корень не существует.
 - `interface CreateCellRequest { level; number; profile?; parentCellId?; directionId }`.
 - `createCellService(input, requesterId): Promise<Cell>` — валидация + INSERT + инвалидация + audit.
 - `interface AddMemberRequest { participantId; roleInCell? }`.
-- `addMemberService(cellId, input, requesterId): Promise<CellMember>` — проверки размера, направления, «не в другой ячейке», audit.
+- `addMemberService(cellId, input, requesterId): Promise<CellMember>` — **самоповышение → `ForbiddenError` (первая проверка)**; проверки размера, направления, «не в другой ячейке», audit.
 - `removeMemberService(cellId, participantId, requesterId): Promise<void>` — soft-delete (valid_to), UPDATE participants.cell_id, audit.
-- `invalidateCache(cellId?): Promise<void>` — публичная обёртка над `invalidateTreeAncestors`. |
+- `invalidateCache(cellId?): Promise<void>` — публичная обёртка над `invalidateTreeAncestors`.
+- **`isCellCoordinator(cellId, participantId): Promise<boolean>`** — **новое** (v0.0.03); SELECT активного членства с `role_in_cell = 'coordinator'`.
+- **`isCellCoordinatorOrArchitect(cellId, participantId): Promise<boolean>`** — **новое** (v0.0.03); `FIRST_ARCHITECT` → `true` (глобальное системное полномочие, как в `assertDirectionScope`), иначе — `isCellCoordinator`. |
 |↙ ПОТРЕБЛЯЕТ:
-- **C.0.01.02** (errors) — `NotFoundError`, `ConflictError`, `ValidationError`.
+- **C.0.01.02** (errors) — `NotFoundError`, `ConflictError`, **`ForbiddenError`**, `ValidationError`.
 - **C.0.01.04** (types) — `UUID`.
 - **C.0.01.05** (audit) — `logAction`.
 - **C.0.04.01** (cells/entity) — `createCell`, `getSize`, `Cell`, `CellRole`, `CellMember`.
+- **C.0.01.01** (roles) — **`Role`** (v0.0.03, для `isCellCoordinatorOrArchitect`).
+- **S.0.01.03** (rbac) — **`hasRole`** (v0.0.03, для проверки `FIRST_ARCHITECT`).
 - **L.0.01.01** (id) — `newUUID`.
 - **L.0.01.08** (redis) — `redis.del`, `redis.set`, `redis.get`.
 - **L.0.01.09** (db) — `query`, `queryOne`, `isUniqueViolation`.
 - Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- **`getById` / `getMembers`** — A.1.04.01 (cells/controller.ts); C.0.04.12 (readiness.ts) — `getCellReadiness` использует оба.
+- **`getById` / `getMembers`** — A.1.04.01 (cells/controller.ts); C.0.04.12 (readiness.ts).
 - **`listCells` / `buildTree`** — A.1.04.01: GET /cells, GET /cells/tree/:rootId.
 - **`createCellService`** — A.1.04.01: POST /cells.
 - **`addMemberService` / `removeMemberService`** — A.1.04.01: POST/DELETE /cells/:id/members.
 - **`getChildren`** — A.1.04.01; C.0.41.03 (cells/daily.ts — каскад по дереву).
-- **`invalidateCache`** — A.1.04.01 (admin-инвалидация), C.0.26.02 (constructor/service.ts — при перестройке плана). |
+- **`invalidateCache`** — A.1.04.01 (admin-инвалидация), C.0.26.02 (constructor/service.ts).
+- **`isCellCoordinator` / `isCellCoordinatorOrArchitect`** — **новое** (v0.0.03); потребители в C.0.41.03 (cells/daily.ts — проверка координатора при upsert наряда), C.0.41.04 (delegation.ts — проверка координатора при distribute), A.1.04.01 (косвенно). |
 |Реализация:
-- **`invalidateTreeAncestors` (B1/B4)** — `WITH RECURSIVE ancestors` вверх по `parent_cell_id`, depth ≤ 12; удаляет `cell-tree:<id>` для всех предков и для самой ячейки.
+- **`invalidateTreeAncestors` (B1/B4)** — `WITH RECURSIVE ancestors` вверх по `parent_cell_id`, depth ≤ 12; удаляет `cell-tree:<id>` для предков и для самой ячейки.
 - **`listCells`** — динамический WHERE (directionId/level/rootsOnly/parentCellId), ORDER BY level DESC, number ASC.
-- **`getById`** — SELECT по id, `NotFoundError` если нет.
-- **`getMembers`** — WHERE `cell_id=$1 AND valid_to IS NULL`, ORDER BY valid_from.
-- **`getChildren`** — WHERE `parent_cell_id=$1`, ORDER BY number.
 - **`buildTree` (B5)** — Redis cache → `WITH RECURSIVE tree` вниз по `parent_cell_id` → если пусто → `NotFoundError`; `redis.set('cell-tree:<id>', …, 'EX', 300)`.
 - **`createCellService`** — `createCell` (entity) → если `parentCellId` — `getById` родителя, проверка `parent.level === input.level + 1` (B3-1) и `parent.directionId === input.directionId` (B3-2) → INSERT (try/catch на UNIQUE) → `invalidateTreeAncestors(parentCellId)` (B4) → `logAction('cells.create')`.
-- **`addMemberService`** — `getById` + `getSize` → лимит → проверка «не в другой активной ячейке» → SELECT participant (`deleted_at IS NULL`) → **B2:** `participant.direction_id === cell.directionId` (иначе `ConflictError`) → INSERT cell_members → UPDATE participants.cell_id → `invalidateTreeAncestors(cellId)` (B1) → audit.
-- **`removeMemberService`** — SELECT активного членства → UPDATE `valid_to=now()` (soft-delete) → UPDATE participants.cell_id=NULL → `invalidateTreeAncestors(cellId)` → audit. |
+- **`addMemberService`** — `getById` → **`requestedRole = input.roleInCell ?? 'member'`** → **самоповышение:** если `input.participantId === requesterId && requestedRole !== 'member'` → `ForbiddenError('Нельзя назначить себе повышенную роль в ячейке', { cell_id, requested_role })` (**v0.0.04: первая проверка**) → `getSize` → лимит → проверка «не в другой активной ячейке» → SELECT participant (`deleted_at IS NULL`) → **B2:** `participant.direction_id === cell.directionId` → INSERT cell_members → UPDATE participants.cell_id → `invalidateTreeAncestors(cellId)` (B1) → audit.
+- **`removeMemberService`** — SELECT активного членства → UPDATE `valid_to=now()` → UPDATE participants.cell_id=NULL → `invalidateTreeAncestors(cellId)` → audit.
+- **`isCellCoordinator`** — SELECT id FROM cell_members WHERE `cell_id AND participant_id AND role_in_cell='coordinator' AND valid_to IS NULL`; `row !== null`.
+- **`isCellCoordinatorOrArchitect`** — `hasRole(participantId, FIRST_ARCHITECT)` → `true`; иначе `isCellCoordinator`. |
 |Примечания:
-РЕАЛИЗОВАНО: 10 функций, 3 интерфейса, 1 приватная функция (invalidateTreeAncestors).
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.01): **B1–B6** — все закрыты в v0.0.02.
-СВЯЗЬ С C.0.04.01 (entity): `createCell`, `getSize` — валидация и размер.
-СВЯЗЬ С D.4.01.07 (триггер БД): `members_count` обновляется триггером на INSERT/DELETE `cell_members`; сервис не пишет его вручную.
-СВЯЗЬ С C.0.04.12 (readiness): `getCellReadiness` → `getById` + `getMembers` + `getSize` для `requiredMembers`.
-СВЯЗЬ С C.0.04.13 (reassignment): при создании сигнала `cellId` валидируется через `queryOne` (не через `getById` — прямая проверка направления для экономии).
-СВЯЗЬ С C.0.41.03 (cells/daily.ts): каскад по `getChildren` для ежедневного плана.
+РЕАЛИЗОВАНО: 12 функций (было 10; +2 — `isCellCoordinator`, `isCellCoordinatorOrArchitect`), 3 интерфейса, 1 приватная (`invalidateTreeAncestors`).
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.2 → v0.0.4):
+- **v0.0.03:** `isCellCoordinator` / `isCellCoordinatorOrArchitect` — новые публичные функции (удалён дубль из других сервисов); `Role`/`hasRole` — новые импорты.
+- **v0.0.03:** `addMemberService` — запрет самоповышения (нельзя выдать себе `role_in_cell ≠ 'member'`; технический предохранитель; полная выборная процедура координатора — roadmap).
+- **v0.0.04:** проверка самоповышения вынесена в САМОЕ НАЧАЛО (после `getById`): права проверяются до ресурсов; не тратим запросы на size / existing membership / participant lookup, если запрос заведомо запрещён. Семантика и сообщение не изменились.
+- **`ForbiddenError`** — новый импорт (используется в самоповышении).
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.04.01 (entity): `createCell`, `getSize`.
+СВЯЗЬ С D.4.01.07 (триггер БД): `members_count` — триггер; сервис не пишет вручную.
+СВЯЗЬ С C.0.04.12 (readiness): `getById` + `getMembers` + `getSize`.
+СВЯЗЬ С C.0.41.03 (cells/daily.ts): `isCellCoordinatorOrArchitect` — проверка при upsertCellDailyPlan (v0.0.03+).
+СВЯЗЬ С C.0.41.04 (delegation.ts): `isCellCoordinator` — проверка при distributeCellDailyPlan.
+СВЯЗЬ С S.0.01.03 (rbac): `hasRole` — для `FIRST_ARCHITECT` в `isCellCoordinatorOrArchitect`.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **самоповышение запрещено** — технический предохранитель (v0.0.03), не отменяет `cell:C`-право на добавление других; координатор выдаётся извне (Совет/Архитектор) или через выборную процедуру (roadmap).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`isCellCoordinatorOrArchitect`** — Архитектор получает `true` по глобальному полномочию (как `assertDirectionScope` в C.0.07.02), **не становится** координатором ячейки.
 ТЕХДОЛГ:
 - **`role_in_cell` не проверяется на совместимость** с сервисом/направлением (например, `otc` в ячейке своего направления — нельзя; проверка не сделана).
 - **`updateCellService` / `deleteCellService`** — не реализованы (roadmap: PATCH/DELETE /cells/:id).
-- **`removeMemberService`** — soft-delete без транзакции: если UPDATE `cell_members` прошёл, а UPDATE `participants` упал — рассинхрон. Нужна транзакция.
-- **`addMemberService`** — INSERT + UPDATE `participants.cell_id` тоже без транзакции; при сбое второго — рассинхрон.
-- **`buildTree`** — кэш `cell-tree:<rootId>` инвалидируется только через `invalidateTreeAncestors` при добавлении/удалении в поддереве; при прямом UPDATE в БД кэш устаревает на 5 минут.
-- **`rootsOnly`** — несовместим с `parentCellId` (взаимоисключающие); если передать оба — `rootsOnly` побеждает, `parentCellId` игнорируется.
+- **Выборность координатора** — roadmap (v0.0.03); сейчас `coordinator` выдаётся `cell:C`-правом (с запретом самоповышения).
+- **`removeMemberService`** — soft-delete без транзакции: если UPDATE `cell_members` прошёл, а UPDATE `participants` упал — рассинхрон.
+- **`addMemberService`** — INSERT + UPDATE `participants.cell_id` без транзакции; при сбое второго — рассинхрон.
+- **`buildTree`** — кэш инвалидируется только через `invalidateTreeAncestors`; при прямом UPDATE в БД кэш устаревает на 5 минут.
+- **`rootsOnly`** — несовместим с `parentCellId`; если передать оба — `rootsOnly` побеждает, `parentCellId` игнорируется.
 - **`listCells`** — не пагинируется; для больших деревьев — риск.
 - **`getChildren`** — не кэшируется; при частых вызовах (C.0.41.03) — нагрузка.
-- **`createCellService` race** — `UNIQUE` на `(level, number, direction_id)` (или похожее) — источник; после `ConflictError` клиент должен повторить с другим number.
-- **`removeMemberService`** — не проверяет, что `cellId` и `participantId` соответствуют друг другу (SELECT по обоим — но если членства нет, 404 без указания, что не совпало). |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.03 test-cells.ts (прямо); I.9.04.67 test-capacity-cells.ts; I.9.04.68 test-reassignment.ts. |
+- **`createCellService` race** — `UNIQUE` на `(level, number, direction_id)`; после `ConflictError` клиент должен повторить с другим number.
+- **`removeMemberService`** — не проверяет, что `cellId` и `participantId` соответствуют друг другу (SELECT по обоим — если членства нет, 404 без указания, что не совпало).
+- **Самоповышение — только `role_in_cell ≠ 'member'`** — если участник уже `member` и пытается стать `member` (no-op) — разрешено; семантика «нельзя повышать себя» — точная.
+- **`isCellCoordinator`** — не кэшируется; для C.0.41.04 (distribute) — 1 SELECT на проверку; для частых вызовов — нагрузка.
+- **`isCellCoordinatorOrArchitect`** — `hasRole` — 1 SELECT + `isCellCoordinator` — 1 SELECT; для Архитектора — 1 SELECT (ранний return).
+|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.03 test-cells.ts (прямо); I.9.04.67 test-capacity-cells.ts; I.9.04.68 test-reassignment.ts; I.9.04.61 test-delegation.ts (косвенно — isCellCoordinator). |
 
 |C.0.04.10|CORE|Capacity|TypeScript|src/core/capacity/service.ts|C.0.01.04, L.0.01.09|v.0.0.1|Draft|-|
 |Описание: **Ёмкость: спрос на компетенции vs наличие людей.** Спрос — открытые задачи (`status <> 'accepted'`) с `required_competencies`; наличие — `participant_competencies` (уровень 1..5). Дефицит = `max(0, нужно − есть)`. Отчёт содержит `demand` (по задачам), `supply` (по людям), `rows` (слияние по компетенциям с `gap`), `totals`. Компетенции, которые есть у людей, но не нужны задачам, тоже попадают в `rows` (`tasks=0, gap=0`). Сортировка `rows` — по убыванию `gap`. |
@@ -4705,83 +4805,115 @@
 - **Нет `expiresAt`** — план может висеть в `in_progress` бесконечно; ограничение — через oversight/C.0.06.06. |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.22 test-tasks.ts (косвенно); I.9.04.57 test-plan-deviation.ts (прямо); I.9.04.59 test-tree-naryad.ts (PlanTree). |
 
-|C.0.06.02|CORE|Plans|TypeScript|src/core/plans/service.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.06.01, L.0.01.01, L.0.01.09, L.0.01.05, L.0.01.10|v.0.0.2|Draft|-|
-|Описание: **Сервис планов + дневные планы + версии.** CRUD: `listPlans`/`getById`/`createPlanService`; lifecycle: `approvePlanService`/`activatePlanService`/`stopPlanService` — атомарные переходы через `UPDATE ... WHERE status=... RETURNING` (B5); при создании — ретрай по `external_id` до 5 попыток (B6: `now` внутри цикла, чтобы не «съехать» через полночь); при `type='crisis'` требуется `criteria.scenario` (B-фикс — спека обещала, кода не было). **Дневные планы** (`D.1.06.02`): `getDailyPlan`/`listDailyPlans` (B5: `ANY(uuid[])` — 1 запрос вместо N+1), `upsertDailyPlan` в транзакции (B1) с проверкой направления задач (B2), `removeTaskFromDailyPlan` с NotFound (B3). **Прогресс плана** (`getPlanProgress`) считает задачи по `tasks.plan_id` ∪ `plan_tasks`. **Версии плана**: `listPlanVersions`, `createPlanVersion` (патч + инкремент `version` + snapshot в транзакции), `restorePlanVersion` (восстановление как новая версия). При создании — 2 уведомления (куратору + автору сигнала) через `notifySafely` (сбой доставки не отменяет создание). |
+|C.0.06.02|CORE|Plans|TypeScript|src/core/plans/service.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.06.01, D.2.01.71, L.0.01.01, L.0.01.05, L.0.01.09, L.0.01.10|v.0.0.3|Draft|-|
+|Описание: **Сервис планов + дневные планы + версии.** CRUD: `listPlans`/`getById`/`createPlanService`; lifecycle: `approvePlanService`/`activatePlanService`/`stopPlanService` — атомарные переходы через `UPDATE ... WHERE status=... RETURNING` (B5); при создании — ретрай по `external_id` до 5 попыток (B6: `now` внутри цикла, чтобы не «съехать» через полночь); при `type='crisis'` требуется `criteria.scenario` (B-фикс — спека обещала, кода не было). **Дневные планы** (`D.1.06.02`): `getDailyPlan`/`listDailyPlans` (B5: `ANY(uuid[])` — 1 запрос вместо N+1), `upsertDailyPlan` в транзакции (B1) с проверкой направления задач (B2) и **версионированием** (D.2.01.71: v1 «Создание (пустой)» / v2 «Формирование» при создании; «Состояние до изменения» / «Обновление» при UPDATE), `removeTaskFromDailyPlan` в транзакции (B3) с версиями «до удаления» / «Удаление задачи». **Прогресс плана** (`getPlanProgress`) — только `kind='deliverable'` (D.2.01.67: пакеты не единица работы). **Версии плана** (P1): `listPlanVersions`, `createPlanVersion` (патч + инкремент `version` + snapshot в транзакции), `restorePlanVersion` (восстановление как новая версия). **Версии дневного плана** (D.2.01.71): `listDailyPlanVersions`, `hasAnyDailyVersion`, `writeDailyPlanVersion`. При создании — 2 уведомления (куратору + автору сигнала) через `notifySafely` (сбой доставки не отменяет создание). |
 |Публичный API:
 - `interface PlanFilter { type?; status?; leadDirectionId?; signalId?; curatorId?; page?; perPage? }`.
 - `listPlans(filter): Promise<{ data: Plan[]; total: number }>` — пагинация ≤200, ORDER BY created_at DESC.
 - `getById(planId): Promise<Plan>` — NotFound.
 - `interface CreatePlanRequest { type; title; expectedResult; leadDirectionId; signalId?; curatorId?; cellId?; criteria?; checkpoints?; stopConditions? }`.
-- `createPlanService(input, requesterId): Promise<Plan>` — crisis-валидация, ретрай external_id (5 попыток), INSERT plans + INSERT plan_versions (ON CONFLICT DO NOTHING), audit, 2 уведомления.
+- `createPlanService(input, requesterId): Promise<Plan>` — crisis-валидация, ретрай external_id (5 попыток), INSERT plans (12 параметров, `cell_id` — `$12`), INSERT plan_versions (ON CONFLICT DO NOTHING), audit, 2 уведомления.
 - `approvePlanService(planId, requesterId): Promise<Plan>` — только `draft → approved`, atomic UPDATE + audit.
 - `activatePlanService(planId, requesterId): Promise<Plan>` — только `approved → in_progress`, atomic + audit.
 - `stopPlanService(planId, reason, requesterId): Promise<Plan>` — только `in_progress → cancelled`, atomic + audit (old/new status).
 - `interface DailyPlanTask { id; dailyPlanId; taskId; position; createdAt }`.
-- `interface DailyPlan { id; directionId; date; status; approvedBy; createdAt; tasks[] }`.
+- `interface DailyPlan { id; directionId; date; status: 'draft'\|'approved'\|'in_progress'\|'completed'; approvedBy; createdAt; tasks[] }`.
 - `getDailyPlan(directionId, date?): Promise<DailyPlan | null>` — по `(directionId, date)`, JOIN tasks, ORDER BY position.
 - `listDailyPlans(directionId?, date?): Promise<DailyPlan[]>` — LIMIT 100, 1 запрос на все задачи (B5).
-- `upsertDailyPlan(input): Promise<DailyPlan>` — транзакция (B1), дедуп taskIds, валидация направления (B2), DELETE+INSERT задач.
-- `removeTaskFromDailyPlan(planId, taskId, requesterId): Promise<void>` — NotFound если план/задача нет (B3).
+- `upsertDailyPlan(input): Promise<DailyPlan>` — `{ directionId, date, taskIds, approvedById }`; транзакция (B1), дедуп taskIds, валидация направления (B2), DELETE+INSERT задач, **версии** (D.2.01.71): при существующем — «Состояние до изменения»/«Исходное (до миграции)» → «Обновление»; при новом — v1 «Создание (пустой)» → v2 «Формирование».
+- `removeTaskFromDailyPlan(planId, taskId, requesterId): Promise<void>` — транзакция (B3 + D.2.01.71): `FOR UPDATE` плана → (при необходимости) версия «до удаления» → DELETE RETURNING → версия «Удаление задачи».
 - `interface PlanProgress { planId; total; done; inWork }`.
-- `getPlanProgress(planId): Promise<PlanProgress>` — UNION `tasks.plan_id` + `plan_tasks`.
+- `getPlanProgress(planId): Promise<PlanProgress>` — UNION `tasks.plan_id` + `plan_tasks`, **фильтр `kind='deliverable'`** (D.2.01.67).
 - `interface PlanVersion { version; snapshot; reason; createdAt }`.
 - `listPlanVersions(planId): Promise<PlanVersion[]>` — ORDER BY version DESC.
 - `createPlanVersion(planId, input, actorId): Promise<PlanVersion>` — транзакция (SELECT FOR UPDATE, UPDATE plan, INSERT version), audit.
-- `restorePlanVersion(planId, version, reason, actorId): Promise<PlanVersion>` — восстановление как новая версия. |
+- `restorePlanVersion(planId, version, reason, actorId): Promise<PlanVersion>` — восстановление как новая версия.
+- **`interface DailyPlanVersion { version; snapshot: DailyVersionSnapshot; reason: string \| null; createdAt; createdBy }`** — **новое** (D.2.01.71).
+- **`listDailyPlanVersions(directionId, date): Promise<DailyPlanVersion[]>`** — SELECT `id FROM daily_plans WHERE direction_id AND date` → если нет — `[]`; иначе SELECT versions ORDER BY version DESC.
+- **`hasAnyDailyVersion(client, planId): Promise<boolean>`** — `SELECT EXISTS(SELECT 1 FROM daily_plan_versions WHERE daily_plan_id = $1)`; `client` — урезанный `TxClient`.
+- **`writeDailyPlanVersion(client, planId, reason, actorId): Promise<number>`** — читает `task_id/position` + `status/approved_by` → собирает `DailyVersionSnapshot` → `COALESCE(MAX(version), 0) + 1` → INSERT `daily_plan_versions`; возвращает `version`.
+- `type TxClient` (private) — урезанный клиент для транзакций (только `query`).
+- `notifySafely` (private) — try/catch, `logger.warn` при сбое.
+- `insertPlanVersion` (private) — SELECT version + `row_to_json(p)::jsonb` → INSERT plan_versions ON CONFLICT DO NOTHING.
+- `rowToPlan` (private) — snake→camel.
+- `rowToDailyPlan` (private) — `Omit<DailyPlan, 'tasks'>`.
+- `rowToDailyTask` (private) — DailyTaskRow → DailyPlan['tasks'][number].
+- `const PLAN_COLUMNS` (private) — шаблон SELECT. |
 |↙ ПОТРЕБЛЯЕТ:
 - **C.0.01.02** (errors) — `NotFoundError`, `ConflictError`, `ValidationError`.
 - **C.0.01.04** (types) — `UUID`, `PlanType`, `PlanStatus`, `Priority`, `TaskStatus`, `ISODateTime`.
 - **C.0.01.05** (audit) — `logAction`.
 - **C.0.06.01** (plans/entity) — `createPlan`, `approvePlan`, `activatePlan`, `formatPlanExternalId`, `Plan`, `PlanCheckpoint`.
+- **D.2.01.71** (daily_plan_versions) — таблица версий дневного плана (v1/v2 при создании; v3/v4 при обновлении; v5/v6 при удалении).
 - **L.0.01.01** (id) — `newUUID`.
 - **L.0.01.05** (logger) — `logger.warn`.
 - **L.0.01.09** (db) — `query`, `queryOne`, `isUniqueViolation`, `transaction`.
 - **L.0.01.10** (notifications) — `send as sendNotification`.
 - Внешние: динамический `import('../signals/service.js')` — `getById as getSignal` (для уведомления автору сигнала). |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- **`listPlans` / `getById`** — A.1.06.01 (plans/controller.ts); C.0.06.03 (deviation.ts — `getById`, `listPlans`); C.0.06.06 (oversight.ts — использует plan-строки из БД напрямую, но `PlanRow` совпадает).
+- **`listPlans` / `getById`** — A.1.06.01 (plans/controller.ts); C.0.06.03 (deviation.ts — `getById`, `listPlans`); C.0.06.06 (oversight.ts — использует plan-строки из БД напрямую).
 - **`createPlanService` / `approvePlanService` / `activatePlanService` / `stopPlanService`** — A.1.06.01: POST /plans, POST /plans/:id/approve, /activate, /stop.
-- **`getDailyPlan` / `listDailyPlans` / `upsertDailyPlan` / `removeTaskFromDailyPlan`** — A.1.06.01: GET /plans/daily, PUT /plans/daily, DELETE /plans/daily/:planId/tasks/:taskId; C.0.04.15 (cards.ts) — `getCellDailyPlan` через `getDailyPlan`.
-- **`getPlanProgress`** — A.1.06.01: GET /plans/:id/progress.
-- **`listPlanVersions` / `createPlanVersion` / `restorePlanVersion`** — A.1.06.01: GET /plans/:id/versions, POST /plans/:id/versions, POST /plans/:id/versions/:version/restore. |
+- **`getDailyPlan` / `listDailyPlans` / `upsertDailyPlan` / `removeTaskFromDailyPlan`** — A.1.06.01: GET /daily-plans, GET /daily-plans/current, POST /daily-plans, DELETE /daily-plans/:id/tasks/:task_id; C.0.04.15 (cards.ts) — `getCellDailyPlan` через `getDailyPlan`.
+- **`getPlanProgress`** — A.1.06.01: GET /plans/:id/progress (roadmap; в текущей A.1.06.01 — fallback на SQL в тестах).
+- **`listPlanVersions` / `createPlanVersion` / `restorePlanVersion`** — A.1.06.01: GET /plans/:id/versions, POST /plans/:id/versions, POST /plans/:id/versions/:version/restore.
+- **`listDailyPlanVersions` / `hasAnyDailyVersion` / `writeDailyPlanVersion`** — A.1.06.01: GET /daily-plans/versions (D.2.01.71).
+- **`DailyPlan` / `DailyPlanVersion` / `PlanProgress` / `PlanVersion`** — A.1.06.01; F.4.02.99 (DailyPlan.tsx), F.4.02.31 (PlanTree.tsx). |
 |Реализация:
-- **`listPlans`** — пагинация + 5 фильтров + COUNT + SELECT `PLAN_COLUMNS` ORDER BY created_at DESC.
+- **`listPlans`** — пагинация ≤200, 5 фильтров (type/status/leadDirectionId/signalId/curatorId), COUNT + SELECT `PLAN_COLUMNS` ORDER BY created_at DESC.
 - **`getById`** — SELECT по id, NotFound.
-- **`createPlanService`** — crisis-валидация: `criteria.scenario` должен быть непустой строкой → ретрай (5 раз): `now` внутри цикла (B6), `MAX(SUBSTRING(external_id ...))` по `PLAN-<today>-%`, `nextSeq ≤ 999` → `formatPlanExternalId` → `createPlan` (entity) → INSERT plans (12 параметров + cell_id) → INSERT plan_versions (snapshot) → audit → notify куратору + notify автору сигнала (`getSignal` в try/catch) → return. При 23505 — `continue` (следующая попытка). После 5 попыток — `ConflictError`.
+- **`createPlanService`** — crisis-валидация (`criteria.scenario` — непустая строка) → ретрай (5 попыток): `now` внутри цикла (B6), `MAX(SUBSTRING(external_id ...))` по `PLAN-<today>-%`, `nextSeq ≤ 999` → `formatPlanExternalId` → `createPlan` (entity) → INSERT plans (12 параметров, `cell_id` — `$12`) → INSERT plan_versions (snapshot, ON CONFLICT DO NOTHING) → audit → notify куратору (`plan.curator_assigned`) + notify автору сигнала (`getSignal` в try/catch, `plan.created_from_signal`) → return. При 23505 — `continue`. После 5 попыток — `ConflictError`.
 - **`approvePlanService`** — `getById` → `status === 'draft'` (B4) → `approvePlan` (entity, side-effect free) → atomic UPDATE `status='approved', approved_by, approved_at, updated_at WHERE id AND status='draft' RETURNING id` (B5) → 0 rows → `ConflictError('План уже изменён параллельным запросом')` → audit.
-- **`activatePlanService`** — `status === 'approved'` (B4) → atomic UPDATE `WHERE status='approved'` → audit.
-- **`stopPlanService`** — `status === 'in_progress'` → atomic UPDATE `status='cancelled' WHERE status='in_progress'` → audit (old/new status).
+- **`activatePlanService`** — `status === 'approved'` → atomic UPDATE `WHERE status='approved'` → audit.
+- **`stopPlanService`** — `status === 'in_progress'` → atomic UPDATE `status='cancelled' WHERE status='in_progress'` → audit (old/new status); return `{...plan, status: 'cancelled', updatedAt}`.
 - **`getDailyPlan`** — SELECT по `(direction_id, date)` → null если нет → SELECT задач через `DAILY_TASK_SELECT` ORDER BY dpt.position, t.priority.
 - **`listDailyPlans`** — динамический WHERE + LIMIT 100 → taskRows для всех planIds через `ANY(uuid[])` (B5) → Map по `daily_plan_id`.
-- **`upsertDailyPlan`** — дедуп `taskIds` → валидация задач (все существуют, `direction_id === input.directionId`) (B2) → transaction: SELECT FOR UPDATE по `(direction_id, date)` → если есть UPDATE + DELETE tasks; иначе INSERT plan → INSERT tasks с position → `getDailyPlan` после транзакции → audit.
-- **`removeTaskFromDailyPlan`** — SELECT plan (NotFound если нет) → DELETE RETURNING id (NotFound если 0) → audit (B3).
-- **`getPlanProgress`** — `WITH plan_task_ids AS (tasks.plan_id UNION plan_tasks)` → COUNT + FILTER done/in_work.
+- **`upsertDailyPlan`** — дедуп `taskIds` → валидация задач (все существуют, `direction_id === input.directionId`) (B2) → **transaction:** `SELECT ... FOR UPDATE` по `(direction_id, date)` → если есть: (при `!hasAnyVersion` — v1 «Исходное состояние (до миграции)») → UPDATE status='approved' + DELETE tasks + INSERT tasks (position) → v(next) «Обновление дневного плана»; иначе: INSERT plan status='approved' → v1 «Создание дневного плана (пустой)» → INSERT tasks → v2 «Формирование дневного плана» → `getDailyPlan` после транзакции → audit.
+- **`removeTaskFromDailyPlan`** — **transaction:** `SELECT ... FOR UPDATE` плана → `!plan` → NotFound; (при `!hasAnyVersion` — v1 «Исходное состояние (до миграции)»); DELETE `daily_plan_tasks` RETURNING → 0 rows → NotFound; v(next) «Удаление задачи ...» → audit.
+- **`hasAnyDailyVersion`** — `SELECT EXISTS(SELECT 1 FROM daily_plan_versions WHERE daily_plan_id = $1)`; `client` — `TxClient`.
+- **`writeDailyPlanVersion`** — SELECT tasks (task_id, position) ORDER BY position → SELECT plan (status, approved_by) → `DailyVersionSnapshot` → `COALESCE(MAX(version), 0) + 1` → INSERT `daily_plan_versions` (JSONB snapshot, reason, created_by) → return version.
+- **`listDailyPlanVersions`** — SELECT `id FROM daily_plans WHERE direction_id AND date` → если нет — `[]`; иначе SELECT versions ORDER BY version DESC → `DailyPlanVersion[]`.
+- **`getPlanProgress`** — `WITH plan_task_ids AS (tasks.plan_id UNION plan_tasks)` + `kind='deliverable'` → COUNT + FILTER done/in_work.
 - **`listPlanVersions`** — SELECT ORDER BY version DESC.
 - **`insertPlanVersion`** (private) — SELECT version + `row_to_json(p)::jsonb` → INSERT plan_versions ON CONFLICT DO NOTHING.
 - **`createPlanVersion`** — валидация reason ≥5 → transaction: SELECT FOR UPDATE version → UPDATE plans с COALESCE (все поля patch) + `version = version + 1` → `insertPlanVersion` → audit → `listPlanVersions` → return first.
-- **`restorePlanVersion`** — SELECT snapshot → `createPlanVersion` с patch из snapshot (snake_case → camelCase: `expected_result` → `expectedResult`, `stop_conditions` → `stopConditions`). |
+- **`restorePlanVersion`** — SELECT snapshot → `createPlanVersion` с patch из snapshot (snake_case → camelCase: `expected_result → expectedResult`, `stop_conditions → stopConditions`); `reason.trim().length >= 5 ? reason : 'Восстановление v<version>'`.
+- **`notifySafely`** (private) — try/catch, `logger.warn` при сбое. |
 |Примечания:
-РЕАЛИЗОВАНО: 14 функций, 5 интерфейсов, 1 приватная (`insertPlanVersion`), 1 приватная (`notifySafely`).
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.01): **B1–B6 + T5 + crisis-валидация + PlanVersion + DailyPlan upsert в транзакции**. Раньше `upsertDailyPlan` был UPDATE→DELETE→INSERT без транзакции (B1), не проверял `direction_id` задач (B2), `removeTaskFromDailyPlan` был молчаливый no-op (B3). `approve/activate` не проверяли статус (B4), не были атомарны (B5), `createPlanService` не ретраил через полночь (B6). `listDailyPlans` делал N+1 (T5).
-СВЯЗЬ С C.0.06.01 (entity): `createPlan`, `approvePlan`, `activatePlan` — вся логика переходов в entity; сервис — оркестрация + БД + audit.
-СВЯЗЬ С C.0.06.03 (deviation.ts): `listDeviations` использует `listPlans({status: 'in_progress'})` + `getById` для каждого.
-СВЯЗЬ С C.0.04.15 (cards.ts): `getCellDailyPlan` (C.0.41.03) → `getDailyPlan` (C.0.06.02) — карточка ячейки содержит daily plan.
-СВЯЗЬ С C.0.07.02 (tasks/service.ts): `tasks.plan_id` — источник для `getPlanProgress`; `tasks.direction_id` — проверка в `upsertDailyPlan`.
-СВЯЗЬ С C.0.10.02 (signals/service.ts): динамический `getSignal` для уведомления автору сигнала при создании плана.
-СВЯЗЬ С A.1.06.01 (plans/controller.ts): ~15 эндпоинтов (CRUD + lifecycle + daily + progress + versions).
+РЕАЛИЗОВАНО: 18 публичных функций (было 14; +4 — `hasAnyDailyVersion`, `writeDailyPlanVersion`, `listDailyPlanVersions`, `listPlanVersions`), 5 публичных интерфейсов (`PlanFilter`, `CreatePlanRequest`, `DailyPlanTask`, `DailyPlan`, `PlanProgress`, `PlanVersion` — 6) + 1 публичный `DailyPlanVersion`; private: `PlanRow`, `DailyPlanRow`, `DailyTaskRow`, `DailyVersionSnapshot`, `TxClient`, `notifySafely`, `insertPlanVersion`, `rowToPlan`, `rowToDailyPlan`, `rowToDailyTask`, `PLAN_COLUMNS`, `DAILY_TASK_SELECT`.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.2 → v0.0.3):
+- **D.2.01.71 (v0.0.3) — версии дневного плана:** `upsertDailyPlan` — v1 «Создание (пустой)» + v2 «Формирование» при создании; «Состояние до изменения» + «Обновление» при UPDATE. `removeTaskFromDailyPlan` — транзакция + «до удаления» + «Удаление задачи». **Новые публичные функции:** `hasAnyDailyVersion`, `writeDailyPlanVersion`, `listDailyPlanVersions`.
+- **D.2.01.67 (v0.0.2) — `kind='deliverable'`:** `getPlanProgress` — UNION `tasks.plan_id` + `plan_tasks` + фильтр `kind='deliverable'` (пакеты не единица работы).
+- **B1–B6 + T5 + crisis-валидация + PlanVersion** — все закрыты в v0.0.2.
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.06.01 (entity): `createPlan`, `approvePlan`, `activatePlan`, `formatPlanExternalId` — вся логика переходов в entity; сервис — оркестрация + БД + audit.
+СВЯЗЬ С C.0.06.03 (deviation.ts): `listDeviations` использует `listPlans({ status: 'in_progress' })` + `getById`.
+СВЯЗЬ С C.0.04.15 (cards.ts): `getCellDailyPlan` → `getDailyPlan`.
+СВЯЗЬ С C.0.07.02 (tasks/service.ts): `tasks.plan_id` — источник для `getPlanProgress`; `tasks.direction_id` — проверка в `upsertDailyPlan`; `kind='deliverable'` — фильтр.
+СВЯЗЬ С C.0.10.02 (signals/service.ts): динамический `getSignal` для уведомления автору сигнала.
+СВЯЗЬ С A.1.06.01 (plans/controller.ts): ~21 эндпоинт (CRUD + lifecycle + deviation + branches + tree + oversight + versions + daily).
+СВЯЗЬ С D.2.01.71 (daily_plan_versions): `hasAnyDailyVersion`, `writeDailyPlanVersion`, `listDailyPlanVersions` — INSERT/SELECT.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **версионирование дневного плана (D.2.01.71)** — append-only; v1 фиксирует «точку 0» (пустой план при создании или «Исходное (до миграции)» при первом изменении существующего плана); каждое изменение — новая версия.
 ТЕХДОЛГ:
-- **`createPlanService` ретрай 5 раз** — при 999 планах в день бросает `ConflictError`; но между `MAX` и `INSERT` race возможен — ловится `isUniqueViolation` → retry.
-- **`cell_id` в `createPlanService`** — `input.cellId` передаётся, но в `CreatePlanRequest` нет поля `cellId` (есть только в SQL как `$12`). Нужно проверить, откуда берётся `input.cellId` — похоже, артефакт копипаста: в интерфейсе поля нет, но в SQL есть `$12 = input.cellId ?? null`. Если `input.cellId` undefined — `null`. Работает, но неявно.
-- **`approvePlanService`** — `approvePlan(plan, requesterId)` (entity) вызывается **до** атомарного UPDATE; если параллельный запрос успел сменить статус — atomic UPDATE вернёт 0 и `ConflictError`, но `updated` объект уже собран. Не баг (используется для return), но лишний вызов.
+- **`createPlanService` ретрай 5 раз** — при 999 планах в день бросает `ConflictError`; между `MAX` и `INSERT` race — ловится `isUniqueViolation` → retry.
+- **`cell_id` в `createPlanService`** — `input.cellId` передаётся как `$12` в SQL; в `CreatePlanRequest` поле есть; работает, но `cell_id` в SQL — `$12`, а `$9–$11` — JSONB (criteria/checkpoints/stop_conditions) — порядок параметров необычный (не «по колонкам», а `cell_id` в конце) — стилистическая аномалия.
+- **`approvePlanService`** — `approvePlan(plan, requesterId)` (entity) вызывается **до** атомарного UPDATE; если параллельный запрос успел сменить статус — atomic UPDATE вернёт 0 и `ConflictError`, но `updated` объект уже собран; лишний вызов, но не баг.
 - **`stopPlanService`** — не проверяет `reason` (может быть пустым); audit пишет как есть.
-- **`upsertDailyPlan`** — `DELETE + INSERT` всех задач — при параллельном чтении карточки ячейки (C.0.04.15) возможен кратковременный «пустой» план.
+- **`upsertDailyPlan`** — `DELETE + INSERT` всех задач — при параллельном чтении карточки ячейки (C.0.04.15) возможен кратковременный «пустой» план (в пределах транзакции — атомарно).
 - **`getPlanProgress`** — UNION двух источников (`tasks.plan_id` + `plan_tasks`) — если задача попала в оба, дедуплицируется UNION (не UNION ALL).
-- **`createPlanVersion`** — `version = version + 1` — optimistic-lock только через `SELECT FOR UPDATE`; параллельные версии блокируются.
-- **`insertPlanVersion`** — тип client — урезанный (только `query`), не полный pg.Client; работает, но TS-типизация хрупкая.
-- **`restorePlanVersion`** — snapshot берётся как `Record<string, unknown>`, приведение к typed — вручную (snake_case → camelCase); если поля в snapshot изменятся — восстановление упадёт молча.
-- **`notifySafely`** — глотает ошибки; при массовом сбое notifications — ничего не узнаем, только warn в логах.
-- **`getSignal` динамический import** — потенциальный circular dependency (C.0.06.02 ↔ C.0.10.02); работает, но лучше вынести в отдельный notification-service. |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.56 test-signal-plan.ts (прямо); I.9.04.57 test-plan-deviation.ts; I.9.04.70 test-plan-versions.ts; I.9.04.59 test-tree-naryad.ts. |
+- **`createPlanVersion`** — `version = version + 1` — optimistic-lock через `SELECT FOR UPDATE`; параллельные версии блокируются.
+- **`insertPlanVersion`** — тип `client` — урезанный (только `query`), не полный pg.Client; TS-типизация хрупкая.
+- **`restorePlanVersion`** — snapshot `Record<string, unknown>`, приведение к typed вручную (snake_case → camelCase); если поля в snapshot изменятся — восстановление упадёт молча (не хватит полей).
+- **`notifySafely`** — глотает ошибки; при массовом сбое notifications — только warn в логах.
+- **`getSignal` динамический import** — потенциальный circular dependency (C.0.06.02 ↔ C.0.10.02); работает, но лучше вынести в отдельный notification-service.
+- **`upsertDailyPlan` — `DAILY_TASK_SELECT`** — JOIN tasks; если задача удалена (FK CASCADE) — строка исчезнет; orphan в `daily_plan_tasks` — невозможен (CASCADE).
+- **`getDailyPlan` — `date ?? today`** — семантика «текущая дата по UTC» (не локальная); в `upsertDailyPlan` — `date` обязателен.
+- **`writeDailyPlanVersion` — `JSON.stringify(snapshot)`** — `snapshot` — object (`tasks[]`, `status`, `approvedBy`); CHECK `chk_daily_plan_snapshot_shape` (D.2.01.71).
+- **`hasAnyDailyVersion` — урезанный `TxClient`** — `client.query` принимает `params?: unknown[]`; типизация неполная.
+- **`createPlanService` — уведомления в try/catch** — 2 уведомления; при сбое одного — второе всё равно отправится (не блокирует); audit уже записан.
+- **`stopPlanService` — `oldValue: { status: 'in_progress' }`** — oldStatus захардкожен (был `in_progress` из проверки); если `plan.status` — другое (но проверка выше), рассинхрона нет.
+- **`listDailyPlans` — LIMIT 100** — без пагинации; для >100 планов — обрезается (roadmap).
+- **`upsertDailyPlan` — `approvedById`** — единственный approver; при параллельном upsert двумя approver — `FOR UPDATE` сериализует, последний выигрывает.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.56 test-signal-plan.ts (прямо); I.9.04.57 test-plan-deviation.ts; I.9.04.70 test-plan-versions.ts; I.9.04.59 test-tree-naryad.ts; **I.9.04.78 test-daily-plan-versions.ts** (версии — v1/v2/v3/v4/v5/v6); **I.9.04.79 test-full-cycle.ts** (Сценарий 8 — перепланирование: v1 пустой, v2 2 задачи, v3 2 задачи «before», v4 1 задача «after»). |
 
 |C.0.06.03|CORE|Plans|TypeScript|src/core/plans/deviation.ts|C.0.01.04, C.0.06.02, L.0.01.09|v.0.0.1|Draft|-|
 |Описание: **Отклонения плана.** Балансировка видит все индикаторы и именно она замечает, что один участок идёт быстрее другого, и поднимает сигнал направлению. `computeDeviation(planId)` считает: `total`/`done`/`overdue`/`expectedDone` (линейно от создания до последнего чекпоинта)/`diff` (done − expected)/`breached` (пройденные чекпоинты, к которым задачи не закрыты). Статус: `behind` (есть overdue или breached), `ahead` (diff > порог 20%), иначе `on_track`. `listDeviations` — по активным планам (`status='in_progress'`), сортировка «проблемные сверху». `hasRecentDeviationSignal` — защита от спама (есть ли свежий сигнал `[план:XXX]` за N часов). |
@@ -4863,13 +4995,14 @@
 - **`done`** — только `status='accepted'`, не `completed`/`submitted`; семантика согласована с C.0.06.03. |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.59 test-tree-naryad.ts (прямо — дерево + наряд); I.9.04.57 test-plan-deviation.ts (косвенно). |
 
-|C.0.06.05|CORE|Plans|TypeScript|src/core/plans/tree.ts|C.0.01.04, L.0.01.09|v.0.0.1|Draft|-|
-|Описание: **Дерево работ плана.** «Микрорайон» — не список домов, а дерево: дом → этаж → работы, в каждой ветке свои люди. Плоский список этого не показывает; `getPlanTree(planId)` отдаёт дерево: корни (parent_task_id IS NULL) + все потомки через `WITH RECURSIVE` (глубина ≤10), с участниками (assignedTo), флагом assignedTo.name/externalId. Агрегаты `total`/`done` считаются снизу вверх (post-order): задача считается, если accepted; всего = 1 + дети. |
+|C.0.06.05|CORE|Plans|TypeScript|src/core/plans/tree.ts|C.0.01.03, C.0.01.04, L.0.01.09|v.0.0.2|Draft|-|
+|Описание: **Дерево работ плана.** «Микрорайон» — не список домов, а дерево: дом → этаж → работы, в каждой ветке свои люди. Плоский список этого не показывает; `getPlanTree(planId)` отдаёт дерево: корни (parent_task_id IS NULL) + все потомки через `WITH RECURSIVE` (глубина ≤ **`MAX_TREE_DEPTH`** — константа C.0.01.03, было hardcoded `10`), с участниками (assignedTo), флагом assignedTo.name/externalId. **D.2.01.67:** узел знает свой `kind` (`package` | `deliverable`); агрегаты `total`/`done` считают **только `deliverable`** — пакет организационный контейнер, а не единица работы. `parent_task_id` — nullable для иерархии. |
 |Публичный API:
-- `interface WorkTreeNode { id; externalId; description; status; priority; deadline; assignedTo; total; done; children }`.
+- `interface WorkTreeNode { id; externalId; description; status; priority; kind: 'package' \| 'deliverable'; deadline; assignedTo: { id, name, externalId } \| null; total; done; children }`.
 - `interface PlanTree { planId; roots: WorkTreeNode[]; total; done }`.
-- `getPlanTree(planId): Promise<PlanTree>` — `WITH RECURSIVE` с depth ≤10, JOIN participants для assignedTo, построение дерева, агрегация снизу вверх. |
+- `getPlanTree(planId): Promise<PlanTree>` — `WITH RECURSIVE` с `depth < MAX_TREE_DEPTH`, JOIN participants для assignedTo, построение дерева, агрегация снизу вверх (только `deliverable`). |
 |↙ ПОТРЕБЛЯЕТ:
+- **C.0.01.03** (constants) — **`MAX_TREE_DEPTH`** (v0.0.2; было hardcoded `depth < 10`).
 - **C.0.01.04** (types) — `UUID`.
 - **L.0.01.09** (db) — `query`.
 - Внешние: нет. |
@@ -4877,81 +5010,99 @@
 - **`getPlanTree`** — A.1.06.01 (plans/controller.ts): GET /plans/:id/tree.
 - **`WorkTreeNode` / `PlanTree`** — F.4.02.31 (PlanTree.tsx), F.4.02.32 (Naryad.tsx). |
 |Реализация:
-- **`getPlanTree`** — `WITH RECURSIVE tree AS (SELECT tasks.*, 0 AS depth WHERE plan_id=$1 AND parent_task_id IS NULL UNION ALL SELECT c.*, depth+1 FROM tasks c JOIN tree ON c.parent_task_id = tree.id WHERE tree.depth < 10)` → SELECT tree.*, `p.name AS assigned_name, p.external_id AS assigned_external_id` LEFT JOIN participants → построение `byId: Map<string, WorkTreeNode>`, `parentOf: Map<string, string | null>` → для каждого: если parent в byId — push в parent.children; иначе — в roots → post-order `aggregate(node)`: `total=1+Σ child.total`, `done = (status==='accepted' ? 1 : 0) + Σ child.done` → totals по roots. |
+- **`getPlanTree`** — `WITH RECURSIVE tree AS (SELECT t.*, 0 AS depth WHERE plan_id=$1 AND parent_task_id IS NULL UNION ALL SELECT c.*, depth+1 FROM tasks c JOIN tree ON c.parent_task_id = tree.id WHERE depth < $2)` (**$2 = MAX_TREE_DEPTH**) → SELECT `tree.*, p.name AS assigned_name, p.external_id AS assigned_external_id` LEFT JOIN participants → `byId: Map<string, WorkTreeNode>`, `parentOf: Map<string, string | null>` → для каждого: если parent в byId — push в parent.children; иначе — в roots → post-order `aggregate(node)`: `total = (kind==='deliverable' ? 1 : 0) + Σ child.total`, `done = (kind==='deliverable' && status==='accepted' ? 1 : 0) + Σ child.done` → totals по roots. |
 |Примечания:
 РЕАЛИЗОВАНО: 1 функция, 2 интерфейса.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.11): **`assignedTo`** — объект `{id, name, externalId}` (было: только id). Причина: UI показывает имя исполнителя прямо в узле дерева.
-СВЯЗЬ С C.0.06.04 (branches): ветки — это плоский срез `total/done/overdue` по корням; tree — полная иерархия до листьев.
-СВЯЗЬ С C.0.07.02 (tasks/service.ts): `tasks.parent_task_id` — источник; depth ≤10 — защита от глубокой рекурсии.
-СВЯЗЬ С C.0.06.06 (oversight): oversight-дерево добавляет уровни `cell`/`person` поверх `branch`, tree — только задачи.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.1):
+- **`MAX_TREE_DEPTH`** — из C.0.01.03 (было hardcoded `depth < 10`); при изменении константы — дерево адаптируется автоматически.
+- **`kind: 'package' | 'deliverable'`** — новое поле в `WorkTreeNode`; UI различает пакет и единицу работы.
+- **Агрегаты только по `deliverable`** (D.2.01.67) — пакет не единица работы; `total`/`done` пакета = только его дети-deliverable.
+- **`assignedTo`** — объект `{id, name, externalId}` (было в v0.0.1: только id → расширено до v0.0.1, подтверждено).
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.01.03: `MAX_TREE_DEPTH = 10` — лимит рекурсии (заменяет hardcoded 10).
+СВЯЗЬ С C.0.06.04 (branches): ветки — плоский срез `total/done/overdue` по корням; tree — полная иерархия до листьев.
+СВЯЗЬ С C.0.06.06 (oversight): oversight добавляет уровни cell/person поверх branch; tree — только задачи.
+СВЯЗЬ С C.0.07.01 (entity): `Task.kind` — источник для `WorkTreeNode.kind`.
 ТЕХДОЛГ:
-- **`depth < 10`** — задачи глубже 10 уровней не попадут в дерево (молча); при реальной потребности — увеличить, но риск performance.
+- **`depth < MAX_TREE_DEPTH`** — задачи глубже константы не попадут в дерево (молча); увеличение — только после нагрузочных испытаний (ТЗ §10.2).
 - **`parent_task_id`** — если ссылается на задачу другого плана (некорректно, но возможно) — она не попадёт в дерево (корень — только с `plan_id = $1`).
 - **`aggregate` post-order** — для больших деревьев (1000+ узлов) рекурсия может переполнить стек; в Node по умолчанию ~10k — ок, но на грани.
 - **`byId` / `parentOf`** — дублируют данные (две Map); можно обойтись одной.
-- **`assignedTo.externalId`** — если в БД NULL (участник без externalId, что маловероятно), возвращается `''` — UI может показать пустоту.
-- **`roots`** — если plan_id плана пуст (нет задач) → пустые roots + total=0; `NotFoundError` не бросается (это валидно: пустой план).
-- **`status` / `priority`** — возвращаются как `string`, не enum (потеря типизации). |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.59 test-tree-naryad.ts (прямо). |
+- **`assignedTo.externalId`** — если в БД NULL, возвращается `''` — UI может показать пустоту; `name` — `'—'`.
+- **`roots`** — если plan_id плана пуст (нет задач) → пустые roots + total=0; `NotFoundError` не бросается (пустой план валиден).
+- **`status` / `priority`** — возвращаются как `string`, не enum (потеря типизации).
+- **`kind`** — new enum, но в `TreeRow` типизирован строго; безопасно.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.59 test-tree-naryad.ts (прямо). |
 
-|C.0.06.06|CORE|Plans|TypeScript|src/core/plans/oversight.ts|C.0.01.04, L.0.01.09|v.0.0.1|Draft|-|
-|Описание: **Дерево надзора для балансировки.** Балансировка видит не «плоский список отстающих планов», а дерево: **микрорайон (план) → дом (ветка) → ячейка → человек**. На каждом уровне: total/done/overdue/early, coordinator, signals. Совет направления смотрит то же дерево, поэтому может связаться с координатором ячейки или напрямую с исполнителем. `getOversightTree(directionId?)` — активные планы направления (LIMIT 50), с рекурсивной загрузкой задач и группировкой по исполнителям → ячейкам → веткам. `getSignalCountForPlan(planId)` — быстрый счётчик сигналов по плану. |
+|C.0.06.06|CORE|Plans|TypeScript|src/core/plans/oversight.ts|C.0.01.03, C.0.01.04, L.0.01.09|v.0.0.2|Draft|-|
+|Описание: **Дерево надзора для балансировки.** Балансировка видит не «плоский список отстающих планов», а дерево: **микрорайон (план) → дом (ветка) → ячейка → человек**. На каждом уровне: total/done/overdue/early, coordinator, signals. Совет направления смотрит то же дерево и может связаться с координатором ячейки или напрямую с исполнителем. `getOversightTree(directionId?)` — активные планы направления (LIMIT 50), рекурсивная загрузка задач (**`MAX_TREE_DEPTH`**), группировка по исполнителям → ячейкам → веткам. **D.2.01.67:** `TaskRow.kind` — узел знает kind; агрегаты `total/done/overdue/early` — **только `deliverable`** (пакеты не единица работы); `people` — по всем задачам (кто задействован, независимо от kind). `rootOf` — `for (i < MAX_TREE_DEPTH)` (было hardcoded 12). `getSignalCountForPlan(planId)` — быстрый счётчик сигналов. |
 |Публичный API:
 - `type OversightKind = 'plan' | 'branch' | 'cell' | 'person'`.
 - `interface OversightSignal { id; externalId; status; description; createdAt }`.
-- `interface OversightNode { kind; id; title; subtitle; coordinator; directionId; planId; total; done; overdue; early; people; signals; children }`.
+- `interface OversightNode { kind; id; title; subtitle; coordinator; directionId: UUID \| null; planId; total; done; overdue; early; people; signals; children }`.
 - `getOversightTree(directionId?): Promise<OversightNode[]>` — деревья по активным планам, вложенность plan → branch → cell → person.
-- `getSignalCountForPlan(planId): Promise<number>`. |
+- `getSignalCountForPlan(planId): Promise<number>` — COUNT сигналов по `subject_plan_id`, `status NOT IN ('completed','rejected')`. |
 |↙ ПОТРЕБЛЯЕТ:
+- **C.0.01.03** (constants) — **`MAX_TREE_DEPTH`** (v0.0.2; было hardcoded 12 в `rootOf` + 10 в `WITH RECURSIVE`).
 - **C.0.01.04** (types) — `UUID`.
 - **L.0.01.09** (db) — `query`, `queryOne`.
 - Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- **`getOversightTree`** — A.1.06.01 (plans/controller.ts): GET /plans/oversight?directionId=; F.4.02.31 (PlanTree.tsx), F.4.02.35 (CellsMap.tsx).
-- **`getSignalCountForPlan`** — C.0.06.03 (deviation.ts) или C.0.10.02 (signals/service.ts) для быстрой сводки сигналов по плану.
+- **`getOversightTree`** — A.1.06.01 (plans/controller.ts): GET /plans/oversight?lead_direction_id=; F.4.02.31 (PlanTree.tsx), F.4.02.35 (CellsMap.tsx).
+- **`getSignalCountForPlan`** — C.0.06.03 (deviation.ts) или C.0.10.02 (signals/service.ts) для быстрой сводки.
 - **`OversightNode` / `OversightSignal`** — F.4.02.31 (PlanTree.tsx) — рекурсивный рендер. |
 |Реализация:
-- **`loadPlanTasks`** — `WITH RECURSIVE tree AS (...)` глубиной ≤10, JOIN participants для `assigned_name`.
+- **`loadPlanTasks`** — `WITH RECURSIVE tree AS (...)` с `depth < MAX_TREE_DEPTH`, JOIN participants для `assigned_name`.
 - **`loadCellsForParticipants(ids)`** — SELECT `cm.participant_id, cm.cell_id, c.number, c.level, cm.role_in_cell, coordinator_name` через LEFT JOIN-подзапрос (координатор ячейки) WHERE `cm.valid_to IS NULL OR > now()`.
 - **`loadSignals(planId, taskIds, cellIds)`** — SELECT сигналов WHERE `status NOT IN ('completed','rejected')` AND (`subject_plan_id = $1` OR `subject_task_id = ANY($2)` OR `subject_cell_id = ANY($3)` OR `description LIKE '%[план:$1]%'`), LIMIT 200.
-- **`getOversightTree(directionId?)`** — SELECT активных планов (`status='in_progress'`) с JOIN participants (curator) + directions (number), LIMIT 50 → для каждого: `loadPlanTasks` → `byId` + `parentOf` + `rootOf` (12 итераций) → assigneeIds → `loadCellsForParticipants` → cellIds → `loadSignals` → `signalsFor(pred)` → `stat(tasks)` → группировка по корням (`roots`) → по ячейкам (`byCell`) → по людям (`byPerson`) → сборка `OversightNode` для plan/branch/cell/person. Unassigned задачи (без assigned_to) собираются в ветку «Без ячейки».
-- **`getSignalCountForPlan`** — COUNT сигналов по `subject_plan_id` с `status NOT IN ('completed','rejected')`. |
+- **`getOversightTree`** — SELECT активных планов (`status='in_progress'`) с JOIN participants (curator) + directions (number), LIMIT 50 → для каждого: `loadPlanTasks` → `byId` + `parentOf` + **`rootOf`** (for-loop до `MAX_TREE_DEPTH`) → assigneeIds → `loadCellsForParticipants` → cellIds → `loadSignals` → `stat(tasks)` (только deliverable для total/done/overdue/early; people — все) → группировка по корням (`roots`) → по ячейкам (`byCell`) → по людям (`byPerson`) → сборка `OversightNode` для plan/branch/cell/person. Unassigned задачи — узел «Без ячейки» с `id = "unassigned-<root.id>"`.
+- **`stat(list)`** — для `deliverable`: `workTotal += 1`; `accepted` → `done++`, `early++` если `updated_at <= deadline`; иначе если `deadline < now` → `overdue++`. `people` — Set по `assigned_to` для **всех** задач.
+- **`getSignalCountForPlan`** — COUNT сигналов по `subject_plan_id`, `status NOT IN ('completed','rejected')`. |
 |Примечания:
-РЕАЛИЗОВАНО: 5 функций (3 private), 3 интерфейса, 1 type.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.11): **`getOversightTree` / `getSignalCountForPlan` / вся иерархия plan→branch→cell→person** — новая логика. Раньше был плоский список планов с отклонениями; теперь — дерево надзора, чтобы балансировка видела координатора ячейки и конкретного исполнителя.
-СВЯЗЬ С C.0.06.03 (deviation.ts): `computeDeviation` — плоский список отклонений; oversight — дерево для UI; обе дополняют друг друга.
-СВЯЗЬ С C.0.06.04 (branches.ts): branch-уровень в oversight — тот же `root` (без child-задач), но с агрегатом по subtree.
-СВЯЗЬ С C.0.06.05 (tree.ts): `getPlanTree` — иерархия задач; oversight — иерархия supervision с ячейками/людьми.
-СВЯЗЬ С C.0.04.02 (cells/service): `cell_members.role_in_cell` — координатор ячейки; `cells.number`/`level` — заголовок узла.
-СВЯЗЬ С C.0.10.02 (signals/service): `signals.subject_plan_id`/`subject_task_id`/`subject_cell_id` — привязка сигналов к узлам дерева.
+РЕАЛИЗОВАНО: 5 функций (3 private: `loadPlanTasks`, `loadCellsForParticipants`, `loadSignals`), 3 интерфейса, 1 type.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.1):
+- **`MAX_TREE_DEPTH`** — из C.0.01.03 в `WITH RECURSIVE` и в `rootOf` (было: hardcoded 10 в SQL, 12 в `rootOf` — рассинхрон устранён).
+- **`TaskRow.kind: 'package' | 'deliverable'`** — новое поле.
+- **`stat()` считает `total/done/overdue/early` только по `deliverable`** (D.2.01.67) — пакеты не искажают прогресс.
+- **`people`** — по всем задачам (kind не важен) — семантика «кто задействован на уровне».
+- **`OversightNode.kind: OversightKind`** — подтверждено: `'plan' | 'branch' | 'cell' | 'person'`.
+- **`directionId: UUID | null`** — тип уточнён (`as UUID | null`); раньше был `UUID`.
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.01.03: `MAX_TREE_DEPTH` — лимит рекурсии и обхода родителя.
+СВЯЗЬ С C.0.06.03 (deviation.ts): `computeDeviation` — плоский список; oversight — дерево; дополняют.
+СВЯЗЬ С C.0.06.04 (branches.ts): branch-уровень — тот же `root` (без child), но с агрегатом subtree (только deliverable).
+СВЯЗЬ С C.0.06.05 (tree.ts): `getPlanTree` — иерархия задач; oversight — иерархия supervision.
+СВЯЗЬ С C.0.04.02 (cells/service): `cell_members.role_in_cell` — координатор; `cells.number`/`level` — заголовок.
+СВЯЗЬ С C.0.10.02 (signals/service): `signals.subject_plan_id`/`subject_task_id`/`subject_cell_id` — привязка.
 ТЕХДОЛГ:
-- **Производительность** — для плана с 100 задачами: 1 SELECT планов + 1 SELECT задач + 1 SELECT ячеек + 1 SELECT сигналов + N группировок. Для 50 планов — 200+ SELECT. Нужна пагинация или batch по `plans.id`.
-- **`loadSignals`** — `description LIKE '%[план:$1]%'` — substring-поиск, медленно; `ANY(uuid[])` для task/cell — быстро, но OR-цепочка может не оптимально плана.
-- **`rootOf`** — 12 итераций хардкод (глубина ≤10 + запас); при глубине >12 задача ошибочно попадёт в «свой» корень.
-- **`unassigned`** — задачи без исполнителя идут в узел «Без ячейки» с `id = "unassigned-<root.id>"` (псевдо-UUID); downstream должен знать, что это не настоящий cellId.
+- **Производительность** — для плана с 100 задачами: 1 SELECT планов + 1 SELECT задач + 1 SELECT ячеек + 1 SELECT сигналов + группировки. Для 50 планов — 200+ SELECT. Нужна пагинация/batch по `plans.id`.
+- **`loadSignals`** — `description LIKE '%[план:$1]%'` — substring; медленно, нужен GIN-индекс.
+- **`rootOf`** — `for (i < MAX_TREE_DEPTH)` — при глубине > MAX_TREE_DEPTH задача ошибочно попадёт в «свой» корень (граница не валидируется).
+- **`unassigned`** — `id = "unassigned-<root.id>"` (псевдо-UUID); downstream должен знать, что это не настоящий cellId.
 - **`OversightNode.id`** — `UUID` типа, но для `unassigned-*` это строка; type-safety нарушена.
 - **`early`** — `t.updated_at <= t.deadline`; если задача обновлена после accepted (комментарий), `updated_at > deadline` — early не засчитается.
 - **`people`** — count distinct `assigned_to` на уровне; для person-узла = 1, для cell/plan — разные.
-- **`loadCellsForParticipants`** — подзапрос для `coordinator_name` на каждую строку — N+1 по ячейкам; можно агрегировать в 1 запрос через LEFT JOIN.
-- **`stat(list)`** — считает `overdue` как `deadline < now && !accepted`; для branch-уровня — по всем задачам subtree; для plan — по всем.
+- **`loadCellsForParticipants`** — подзапрос для `coordinator_name` на каждую строку — N+1 по ячейкам; можно LEFT JOIN.
 - **`signalsFor`** — для person-узла `s.subject_task_id === personTasks[0]?.id` — только по первой задаче человека; остальные задачи не учитываются.
-- **`planStatus`** — в SQL-фильтре `status='in_progress'`; планы в `draft`/`approved`/`cancelled` не попадают в дерево.
-- **`direction_number`** — nullable; в subtitle `Направление №—` если null (не сломается, но визуально шумно). |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.59 test-tree-naryad.ts (косвенно); I.9.04.57 test-plan-deviation.ts (косвенно). |
+- **`stat`** — `overdue`/`early` — только для deliverable; для пакета с `deadline` — не считается; семантика ок (пакет не единица работы).
+- **`planStatus`** — SQL-фильтр `status='in_progress'`; draft/approved/cancelled не попадают.
+- **`direction_number`** — nullable; в subtitle `Направление №—` если null.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.59 test-tree-naryad.ts (косвенно); I.9.04.57 test-plan-deviation.ts (косвенно). |
 
-|C.0.07.01|CORE|Tasks|TypeScript|src/core/tasks/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.1|Draft|-|
-|Описание: **Доменная сущность Задача.** Чистые функции без БД: создание с автоматическим дедлайном из `PRIORITY_DEADLINES_MS` (critical=1мин, high=1час, standard=3часа, background=1сутки), переходы статусов (created→assigned→in_progress→submitted→accepted/returned), `isOverdue`, `formatTaskExternalId` (`ТИП-YYYY-MM-DD-NNN`, тип — 3 заглавные кириллицы, номер 0..999). **Направленный граф переходов** (6 статусов): `created` → только `assigned`; `assigned` → `in_progress` или обратно `created`; `in_progress` → `submitted`; `submitted` → `accepted`/`returned`; `returned` → `in_progress`; `accepted` — терминальный. `parentTaskId` — nullable для иерархии (ветки плана, дерево работ). `requiredCompetencies` — список требований (не FK). `location` — `{lat, lon}` nullable (GeoJSON в БД). |
+|C.0.07.01|CORE|Tasks|TypeScript|src/core/tasks/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.2|Draft|-|
+|Описание: **Доменная сущность Задача.** Чистые функции без БД: создание с автоматическим дедлайном из `PRIORITY_DEADLINES_MS` (critical=1мин, high=1час, standard=3часа, background=1сутки) **или явным `deadline`** (`undefined` → auto, `null` → без срока, ISO → конкретный), переходы статусов (created→assigned→in_progress→submitted→accepted/returned), `isOverdue`, `formatTaskExternalId` (`ТИП-YYYY-MM-DD-NNN`, тип — 3 заглавные кириллицы, номер 0..999). **Направленный граф переходов** (6 статусов): `created` → только `assigned`; `assigned` → `in_progress` или `created`; `in_progress` → `submitted`; `submitted` → `accepted`/`returned`; `returned` → `in_progress`; `accepted` — терминальный. **D.2.01.67:** `TaskKind = 'package' | 'deliverable'`; `Task` расширена полями `kind`, `expectedResult`, `plannedStartAt`, `estimatedMinutes`. `parentTaskId` — nullable для иерархии. `requiredCompetencies` — список требований. `location` — `{lat, lon}` nullable. |
 |Публичный API:
-- `interface Task` — 16 полей: id, externalId, planId, directionId, description, requiredCompetencies, location, priority, status, assignedTo, assignedBy, deadline, parentTaskId, createdAt, updatedAt.
-- `interface CreateTaskInput` — id, externalId, planId?, directionId, description, priority, requiredCompetencies?, location?, baseTime?.
+- `type TaskKind = 'package' | 'deliverable'`.
+- `interface Task` — 20 полей: id, externalId, planId, directionId, description, requiredCompetencies, location, priority, status, assignedTo, assignedBy, deadline, parentTaskId, **kind, expectedResult, plannedStartAt, estimatedMinutes**, createdAt, updatedAt.
+- `interface CreateTaskInput` — id, externalId, planId?, directionId, description, priority, requiredCompetencies?, location?, parentTaskId?, **kind?, expectedResult?, deadline? (ISODateTime | null), plannedStartAt?, estimatedMinutes?**, baseTime?.
 - `canTransition(from: TaskStatus, to: TaskStatus): boolean` — по `ALLOWED_TRANSITIONS`.
 - `getDeadlineForPriority(priority, baseTime?): ISODateTime` — `baseTime + PRIORITY_DEADLINES_MS[priority]`.
-- `createTask(input): Task` — валидация description, `deadline` через `getDeadlineForPriority`, `status='created'`, `assignedTo/assignedBy/parentTaskId=null`.
+- `createTask(input): Task` — валидация description, `deadline`: `undefined` → `getDeadlineForPriority`; `null` → без срока; ISO → как есть; `status='created'`, `assignedTo/assignedBy=null`, **`kind='deliverable'`** (default), `expectedResult`/`plannedStartAt`/`estimatedMinutes` — `null`.
 - `assignTask(t, participantId): Task` — `ConflictError` если `!canTransition(t.status, 'assigned')`.
 - `takeTask(t, participantId): Task` — `ConflictError` если `t.assignedTo !== participantId` или `!canTransition(_, 'in_progress')`.
 - `submitTask(t): Task` — `ConflictError` если нельзя.
 - `acceptTask(t): Task` — `ConflictError` если нельзя.
-- `returnTask(t, reason): Task` — `ConflictError` если нельзя; `reason` **игнорируется** (пишется в audit/BД вне entity).
+- `returnTask(t, _reason): Task` — `ConflictError` если нельзя; `_reason` **игнорируется** (пишется в audit/БД вне entity).
 - `isOverdue(t, now?): boolean` — `deadline < now && status ∉ {accepted, returned}`.
 - `formatTaskExternalId(type, date, sequence): string` — regex `^[А-Я]{3}$`, `0 ≤ sequence ≤ 999`. |
 |↙ ПОТРЕБЛЯЕТ:
@@ -4960,122 +5111,219 @@
 - **C.0.01.04** (types) — `UUID`, `ISODateTime`, `Priority`, `TaskStatus`.
 - Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- **`Task`** — C.0.07.02 (tasks/service.ts): тип возврата `getById`/`listTasks`/`listMyTasks`/`createTaskService` и все transitions; C.0.02.03 (onboarding): `Task` в `createWelcomeTask`; C.0.06.02 (plans/service): через `getPlanTree` в `WorkTreeNode` (косвенно, через C.0.06.05).
+- **`Task`** — C.0.07.02 (tasks/service.ts): тип возврата `getById`/`listTasks`/`listMyTasks`/`createTaskService` и все transitions; C.0.02.03 (onboarding); C.0.06.05/06 (kind для агрегатов).
+- **`TaskKind`** — C.0.07.02 (`createTaskService` — `kind` из body), C.0.06.02 (`getPlanProgress` — фильтр `kind='deliverable'`), C.0.06.03/04/05/06 (агрегаты только по deliverable).
 - **`CreateTaskInput`** — C.0.07.02 (`createTaskService`).
 - **`createTask`** — C.0.07.02 (`createTaskService` — сборка entity перед INSERT).
-- **`assignTask`/`takeTask`/`submitTask`/`acceptTask`/`returnTask`** — C.0.07.02: entity-validate перед atomic UPDATE.
-- **`canTransition`** — C.0.07.02 (для pre-check в `acceptTaskService`/`returnTaskService`); A.1.07.01 (tasks/controller.ts) — для UI-валидации переходов.
-- **`getDeadlineForPriority`** — C.0.07.02 (экспорт для совместимости), A.1.07.01 (при создании задачи).
-- **`isOverdue`** — C.0.07.04 (overdue), C.0.06.03 (deviation), C.0.06.04 (branches), C.0.06.06 (oversight).
+- **`assignTask`/`takeTask`/`submitTask`/`acceptTask`/`returnTask`** — C.0.07.02 (entity-validate перед atomic UPDATE).
+- **`canTransition`** — C.0.07.02 (pre-check в `acceptTaskService`/`returnTaskService`); A.1.07.01 — для UI-валидации переходов.
+- **`getDeadlineForPriority`** — C.0.07.02 (re-export для совместимости), A.1.07.01 (при создании задачи).
+- **`isOverdue`** — C.0.07.04 (overdue), C.0.06.03/04/06 (deviation/branches/oversight).
 - **`formatTaskExternalId`** — C.0.07.02 (`createTaskService` при генерации externalId). |
 |Реализация:
-- **`ALLOWED_TRANSITIONS`** — `Record<TaskStatus, readonly TaskStatus[]>`; `created: ['assigned']`, `assigned: ['in_progress', 'created']` (можно вернуть в created), `in_progress: ['submitted']`, `submitted: ['accepted', 'returned']`, `returned: ['in_progress']` (можно переоткрыть), `accepted: []` (терминальный).
-- **`createTask`** — валидация `description.trim()`; `now = new Date()`; `deadline = getDeadlineForPriority(priority, baseTime ?? now)`; `status='created'`, `assignedTo/assignedBy/parentTaskId=null`.
+- **`ALLOWED_TRANSITIONS`** — `Record<TaskStatus, readonly TaskStatus[]>`; `created: ['assigned']`, `assigned: ['in_progress', 'created']`, `in_progress: ['submitted']`, `submitted: ['accepted', 'returned']`, `returned: ['in_progress']`, `accepted: []`.
+- **`createTask`** — валидация `description.trim()`; `now = new Date()`; **`deadline = input.deadline === undefined ? getDeadlineForPriority(priority, baseTime ?? now) : input.deadline`**; `status='created'`, `assignedTo/assignedBy=null`, **`kind = input.kind ?? 'deliverable'`**, `expectedResult/plannedStartAt/estimatedMinutes` — `?? null`.
 - **Мутации** — каждая возвращает `{...t, status: newStatus, updatedAt: new Date().toISOString()}`.
-- **`isOverdue`** — `if (!t.deadline) return false; if (t.status === 'accepted' || t.status === 'returned') return false; return new Date(t.deadline).getTime() < now.getTime()`. `returned` — не считается просроченной (была сдана, но возвращена — это не вина исполнителя).
-- **`formatTaskExternalId`** — regex `^[А-Я]{3}$` (3 заглавные кириллицы), sequence 0..999, format `${type}-${YYYY-MM-DD}-${NNN}`. |
+- **`isOverdue`** — `if (!t.deadline) return false; if (t.status === 'accepted' || t.status === 'returned') return false; return new Date(t.deadline).getTime() < now.getTime()`. `returned` — не считается просроченной.
+- **`formatTaskExternalId`** — regex `^[А-Я]{3}$`, sequence 0..999, `${type}-${YYYY-MM-DD}-${NNN}`. |
 |Примечания:
-РЕАЛИЗОВАНО: 2 интерфейса, 10 функций.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.11): **`isOverdue` исключает `returned`** — новая логика; раньше возвращённая задача могла «просрочиваться» по дедлайну, хотя она была сдана в ОТК. **`formatTaskExternalId` regex** — жёсткая валидация типа (3 заглавные кириллицы).
-СВЯЗЬ С C.0.01.03 (constants): `PRIORITY_DEADLINES_MS` — источник дедлайнов по приоритету.
-СВЯЗЬ С C.0.07.02 (service): 6 функций-transitions используются в сервисе (entity-validate → atomic UPDATE).
-СВЯЗЬ С C.0.07.04 (overdue): `isOverdue` — критерий для `listUnsubmittedTasks` (плюс фильтр по статусу).
-СВЯЗЬ С C.0.06.05 (tree): `parentTaskId` — источник иерархии для `WorkTreeNode`.
+РЕАЛИЗОВАНО: 2 интерфейса + 1 type (`TaskKind`), 10 функций.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.1):
+- **D.2.01.67:** `TaskKind = 'package' | 'deliverable'`; `Task.kind`, `Task.expectedResult`, `Task.plannedStartAt`, `Task.estimatedMinutes` — новые поля.
+- **`CreateTaskInput`** — новые поля `parentTaskId`, `kind`, `expectedResult`, `deadline` (nullable), `plannedStartAt`, `estimatedMinutes`.
+- **`createTask`** — семантика `deadline`: `undefined` → auto по приоритету; `null` → без срока; ISO → явный срок.
+- **`createTask`** — `kind` default `'deliverable'`; если `'package'` — не считается в `getPlanProgress`/deviation/branches/oversight.
+- **`isOverdue` исключает `returned`** — унаследовано из v0.0.1.
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.01.03: `PRIORITY_DEADLINES_MS` — источник дедлайнов.
+СВЯЗЬ С C.0.07.02: 6 transitions (entity-validate → atomic UPDATE); `TaskKind` — проброс в `createTaskService`.
+СВЯЗЬ С C.0.06.02: `kind='deliverable'` — фильтр в `getPlanProgress`.
+СВЯЗЬ С C.0.06.03/04/05/06: `kind` — источник для агрегатов только по deliverable.
+СВЯЗЬ С C.0.07.04: `isOverdue` — критерий для `listUnsubmittedTasks`.
 ТЕХДОЛГ:
-- **`returnTask(t, reason)`** — `reason` игнорируется в entity; пишется в `otc_decisions.comment` + audit_log — вне entity. Семантически «return с причиной» — на уровне сервиса.
-- **`ALLOWED_TRANSITIONS.assigned` включает `created`** — можно «разназначить» задачу; но `assignTask` требует `from='created'` → после `assigned → created` задача снова доступна для назначения. Это осознанно (переназначение через возврат в created), но не задокументировано.
-- **`parentTaskId`** — всегда `null` в `createTask`; иерархия строится через отдельные вызовы (в C.0.07.02 нет метода для установки `parentTaskId` — только через `CREATE TABLE`/триггеры или updatePlanVersion).
-- **`formatTaskExternalId`** — только кириллица (А-Я); для латинских префиксов (например, `TASK`) — не пройдёт; в коде используется `'ЗДЧ'`.
-- **`getDeadlineForPriority`** — `baseTime ?? now` — для тестов можно передать `baseTime`; в проде — `now`.
-- **`requiredCompetencies: []`** — по умолчанию пустой массив (не `null`); семантика «без требований» vs «требования не указаны» — не различается. |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.22 test-tasks.ts (прямо); I.9.04.59 test-tree-naryad.ts (косвенно — parentTaskId). |
+- **`returnTask(t, _reason)`** — `_reason` игнорируется в entity; пишется в `otc_decisions.comment` + audit_log — вне entity.
+- **`ALLOWED_TRANSITIONS.assigned` включает `created`** — можно «разназначить»; но `assignTask` требует `from='created'` → после `assigned → created` задача снова доступна для назначения. Осознанно (переназначение), но не задокументировано.
+- **`parentTaskId`** — в `createTask` теперь пробрасывается (`input.parentTaskId ?? null`); ранее — всегда `null`. Иерархия строится через `createTaskService` (C.0.07.02).
+- **`kind`** — default `'deliverable'`; если клиент не указал — задача считается единицей работы. Для пакетов — явно `kind='package'`.
+- **`expectedResult`/`plannedStartAt`/`estimatedMinutes`** — `?? null`; семантика «не указано» vs «null» не различается.
+- **`formatTaskExternalId`** — только кириллица (А-Я); для латинских префиксов (`TASK`) — не пройдёт; в коде используется `'ЗДЧ'`.
+- **`getDeadlineForPriority`** — `baseTime ?? now`; в проде — `now`.
+- **`requiredCompetencies: []`** — по умолчанию пустой массив (не `null`); семантика «без требований» vs «требования не указаны» не различается.
+- **`deadline: null`** — `isOverdue` возвращает `false`; семантика «задача без срока» — ок.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.22 test-tasks.ts (прямо); I.9.04.59 test-tree-naryad.ts (косвенно — parentTaskId/kind). |
 
-|C.0.07.02|CORE|Tasks|TypeScript|src/core/tasks/service.ts|C.0.01.02, C.0.01.03, C.0.01.04, C.0.01.05, C.0.07.01, C.0.08.02, S.0.01.03, L.0.01.01, L.0.01.05, L.0.01.09, L.0.01.10, W.2.02.01|v.0.0.2|Draft|-|
-|Описание: **Сервис задач.** Создание, назначение, сдача, приёмка, возврат, пересмотр. **Direction scope** (`assertDirectionScope`): действие с задачей — только в своём направлении (Архитектор — исключение). **Приёмка (`acceptTaskService`) — единый путь P0:** отчёт с артефактом обязателен (P0.2), критерии ОТК проверяются (обязательные — подтвердить), решение + статус + начисление Потока — **в одной транзакции** (P0.3), `task_flow_awards` — атомарный клейм (P0.4, не даёт начислить дважды). **Пересмотр (`reopenTaskService`):** `accepted → in_progress`, обратная проводка Потока (−1), удаление клейма (повторная приёмка снова начислит ровно один). **I.2.12:** ОТК не принимает/не возвращает/не пересматривает свою работу. **WS-события** (W.2.02.01): assigned/statusChanged/submitted/accepted/returned. **Уведомления** — best-effort (`notifySafely`). **Техдолг v0.0.01 закрыт в v0.0.2:** B1 (submit — только assignedTo), B2/B3 (accept/return — I.2.12), B4/B5 (atomic UPDATE ... WHERE status=$orig RETURNING), B6 (plan.directionId === task.directionId), B7 (now внутри retry), B8 (planExists). **Остаётся:** assignTask — checkCompetencies не реализован; listTasks/getById — нет access control. |
+|C.0.07.02|CORE|Tasks|TypeScript|src/core/tasks/service.ts|C.0.01.01, C.0.01.02, C.0.01.04, C.0.01.05, C.0.01.06, C.0.07.01, C.0.07.03, C.0.08.02, C.1.08.01, C.1.09.02, C.1.10.01, S.0.01.03, W.2.02.01, L.0.01.01, L.0.01.05, L.0.01.09, L.0.01.10|v.0.0.3|Draft|-|
+|Описание: **Сервис задач.** Создание (расширенный `CreateTaskRequest` — D.2.01.67: kind, parentTaskId, expectedResult, deadline, plannedStartAt, estimatedMinutes), назначение (**+Matching C.1.10.01**), сдача, приёмка, возврат, пересмотр. **Direction scope** (`assertDirectionScope`): действие — только в своём направлении (FIRST_ARCHITECT — исключение). **Matching при assign (v0.0.03):** `no_match` → `ConflictError` (override невозможен); `partial` → требуется `AssignOptions.override { reason (≥10), risk?, accompanying?, training? }` + подтверждение `COUNCIL_MEMBER` (в своём направлении) или `FIRST_ARCHITECT` + `checkRight('task','A')`; `OTC`/`VERIFIER` override запрещён. Повторный `matchTask` перед UPDATE (race-protection). Audit `tasks.assign.override`; при отсутствии TaskProfile — audit `tasks.assign.no_profile` (legacy-путь). **Приёмка (`acceptTaskService`) — единый путь P0:** отчёт с артефактом обязателен (P0.2), **§7.5** — учитель не принимает ученика (v0.0.03), критерии ОТК проверяются, решение + статус + Поток — **в одной транзакции** (P0.3), `task_flow_awards` — атомарный клейм (P0.4). **Пересмотр (`reopenTaskService`):** `accepted → in_progress`, обратная проводка (−1), удаление клейма. **I.2.12** — ОТК не принимает/возвращает/пересматривает свою работу. **WS** — best-effort (try/catch вне транзакции). **Уведомления** — `notifySafely`. **B1–B8 v0.0.01 закрыты.** Остаётся: `assignTask` — `checkCompetencies` без TaskProfile; `listTasks`/`getById` — нет access control; `TASK_SELECT` — 2 correlated subquery. |
 |Публичный API:
 - `assertDirectionScope(participantId, directionId): Promise<void>` — `ForbiddenError` если не своё направление; FIRST_ARCHITECT — skip.
 - `interface TaskFilter { directionId?; status?; priority?; assignedTo?; planId?; page?; perPage? }`.
-- `listTasks(filter): Promise<{ data: Task[]; total: number }>` — пагинация ≤200, ORDER BY priority (critical→background), deadline NULLS LAST.
-- `getById(taskId): Promise<Task>` — `TaskWithRelations` (planTitle, planExpectedResult, assignerName, assignerExternalId, inDailyPlan, returnReason, returnedAt).
+- `listTasks(filter): Promise<{ data: Task[]; total: number }>` — пагинация ≤200, ORDER BY priority (critical→background), deadline NULLS LAST. Возвращает `TaskWithRelations` (private-расширение).
+- `getById(taskId): Promise<Task>` — `TaskWithRelations` (planTitle, planExpectedResult, assignerName, assignerExternalId, inDailyPlan, blockedByDependencies, returnReason, returnedAt, hasTaskProfile).
 - `listMyTasks(participantId): Promise<Task[]>` — активные (status ≠ accepted), ORDER BY returned-first, priority, deadline.
-- `interface CreateTaskRequest { directionId; description; priority; planId?; requiredCompetencies?; location? }`.
-- `createTaskService(input, requesterId): Promise<Task>` — direction scope + plan validation (B8) + retry externalId (5 попыток, B7) + audit.
-- `assignTaskService(taskId, participantId, requesterId): Promise<Task>` — direction scope для requester и assignee, entity-validate, atomic UPDATE, WS, notify.
-- `takeTaskService(taskId, participantId): Promise<Task>` — только assignee, atomic UPDATE, WS.
-- `submitTaskService(taskId, requesterId): Promise<Task>` — только assignee (B1), **отчёт с артефактом обязателен (P0.2)**, atomic UPDATE, WS, notify ОТК.
+- `interface CreateTaskRequest { directionId; description; priority; planId?; parentTaskId?; kind? ('package'|'deliverable'); expectedResult? (string|null); deadline? (string|null); plannedStartAt? (string|null); estimatedMinutes? (number|null); requiredCompetencies?; location? }`.
+- `createTaskService(input, requesterId): Promise<Task>` — `assertDirectionScope` + **kind-валидация** (deliverable требует `expectedResult`; package — нет) + plan validation (B8) + parent validation (package, same plan, same direction) + retry externalId (5 попыток, B7) + audit.
+- `assignTaskService(taskId, participantId, requesterId, options?): Promise<Task>` — getById + **package → ConflictError** + direction scope (requester + assignee) + entity-validate + **Matching (C.1.10.01)** + atomic UPDATE + WS + notify.
+- `takeTaskService(taskId, participantId): Promise<Task>` — assignee check + **package → ConflictError** + **blocking deps check** + entity-validate + atomic UPDATE + WS.
+- `submitTaskService(taskId, requesterId): Promise<Task>` — assignee check (B1) + **отчёт с артефактом обязателен (P0.2)** + entity-validate + atomic UPDATE + WS + notify ОТК.
 - `interface AcceptOptions { comment?; criteria?: Array<{id; passed; comment?}> }`.
-- `acceptTaskService(taskId, requesterId, options): Promise<Task>` — I.2.12 (B2), direction scope, отчёт с артефактом (P0.1), **обязательные критерии ОТК**, транзакция: otc_decisions + tasks + flow_transactions + task_flow_awards (P0.3/P0.4), audit, WS, notify.
-- `returnTaskService(taskId, reason, requesterId): Promise<Task>` — I.2.12 (B3), direction scope, atomic UPDATE, WS, notify.
-- `reopenTaskService(taskId, reason, requesterId): Promise<Task>` — `accepted → in_progress`, обратная проводка Потока (−1), DELETE task_flow_awards, транзакция, audit, WS, notify.
-- Re-export: `getDeadlineForPriority`. |
+- `acceptTaskService(taskId, requesterId, options): Promise<Task>` — I.2.12 (B2) + **§7.5 (isTeacherOfLearnerTask)** + direction scope + отчёт с артефактом (P0.1) + **обязательные критерии ОТК** + transaction: `otc_decisions` (INSERT если нет) + tasks accepted + `task_flow_awards` claim (P0.4) + `flow_transactions` (+1 main) — атомарно (P0.3) + WS + notify.
+- `returnTaskService(taskId, reason, requesterId): Promise<Task>` — I.2.12 (B3) + direction scope + entity-validate + atomic UPDATE + WS + notify.
+- `reopenTaskService(taskId, reason, requesterId): Promise<Task>` — `accepted → in_progress`, обратная проводка Потока (−1, source='otc_reopen'), DELETE task_flow_awards, транзакция + WS + notify.
+- Re-export: `getDeadlineForPriority`.
+- **`interface AssignOptions { override?: { reason (≥10); risk? ('low'|'medium'|'high'); accompanying? (≤2000); training? (≤2000) } }`** — **новое** (v0.0.03).
+- **`interface TaskWithRelations extends Task { planTitle; planExpectedResult; assignerName; assignerExternalId; inDailyPlan; blockedByDependencies; returnReason; returnedAt; hasTaskProfile }`** — **новое** (private; v0.0.03 — расширено). |
 |↙ ПОТРЕБЛЯЕТ:
-- **C.0.01.02** (errors) — `NotFoundError`, `ConflictError`, `ForbiddenError`.
-- **C.0.01.03** (constants) — через C.0.07.01 (`PRIORITY_DEADLINES_MS`).
+- **C.0.01.01** (roles) — `Role` (FIRST_ARCHITECT, COUNCIL_MEMBER, OTC, VERIFIER).
+- **C.0.01.02** (errors) — `NotFoundError`, `ConflictError`, `ForbiddenError`, `ValidationError`.
 - **C.0.01.04** (types) — `UUID`, `Priority`, `TaskStatus`.
 - **C.0.01.05** (audit) — `logAction`.
+- **C.0.01.06** (rights) — **`checkRight`** (v0.0.03, для `assertPartialOverrideAuthorized`).
 - **C.0.07.01** (tasks/entity) — `createTask`, `assignTask`, `takeTask`, `submitTask`, `acceptTask`, `returnTask`, `formatTaskExternalId`, `getDeadlineForPriority`, `Task`.
-- **C.0.08.02** (reports/service) — `listByTask` (для проверки артефакта при submit/accept).
-- **S.0.01.03** (rbac) — `hasRole` (в `assertDirectionScope` для FIRST_ARCHITECT).
+- **C.0.07.03** (tasks/dependencies) — **`getBlockingDependencies`** (v0.0.03, в `takeTaskService`).
+- **C.0.08.02** (reports/service) — `listByTask`.
+- **C.1.08.01** (passport/task-profile) — **`getTaskProfile`** (v0.0.03, для Matching).
+- **C.1.09.02** (passport/teaching-practice) — **`isTeacherOfLearnerTask`** (v0.0.03, §7.5).
+- **C.1.10.01** (passport/matching) — **`matchTask`** (v0.0.03, для assign).
+- **S.0.01.03** (rbac) — `hasRole`, **`getEffectiveRoles`** (v0.0.03).
+- **W.2.02.01** (ws/tasks) — `emitTaskAssigned`, `emitTaskStatusChanged`, `emitTaskSubmitted`, `emitTaskAccepted`, `emitTaskReturned`.
 - **L.0.01.01** (id) — `newUUID`.
-- **L.0.01.05** (logger) — `logger.warn` (notify-ошибки).
+- **L.0.01.05** (logger) — `logger.warn`.
 - **L.0.01.09** (db) — `query`, `queryOne`, `isUniqueViolation`, `transaction`.
 - **L.0.01.10** (notifications) — `send as sendNotification`, `sendToRole` (уведомление ОТК).
-- **W.2.02.01** (ws/tasks) — `emitTaskAssigned`, `emitTaskStatusChanged`, `emitTaskSubmitted`, `emitTaskAccepted`, `emitTaskReturned`.
 - Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- **`assertDirectionScope`** — A.1.07.01 (tasks/controller.ts) и другие сервисы, работающие с задачами (C.0.08.02 — reports).
-- **`listTasks`/`getById`/`listMyTasks`** — A.1.07.01: GET /tasks, GET /tasks/:id, GET /tasks/my. C.0.06.02 (plans) — через `getPlanProgress` (косвенно), C.0.06.05 (tree) — через `parentTaskId`-выборку (напрямую в SQL).
-- **`createTaskService`** — A.1.07.01: POST /tasks; C.0.02.03 (onboarding) — `createWelcomeTask`.
-- **`assignTaskService`** — A.1.07.01: POST /tasks/:id/assign; C.0.02.03 (onboarding) — назначение welcome-задачи.
+- **`assertDirectionScope`** — A.1.07.01 (tasks/controller.ts); C.0.08.02 (reports), C.0.09.02 (OTC).
+- **`listTasks`/`getById`/`listMyTasks`** — A.1.07.01: GET /tasks, GET /tasks/:id, GET /tasks/my.
+- **`createTaskService`** — A.1.07.01: POST /tasks; C.0.02.03 (onboarding) — `createWelcomeTask`; **C.0.06.05/06** — через `kind` (агрегаты только deliverable).
+- **`assignTaskService`** — A.1.07.01: POST /tasks/:id/assign; C.0.02.03 (onboarding); **C.1.10.01** — обратная связь Matching (partial → override, no_match → запрет).
 - **`takeTaskService`/`submitTaskService`** — A.1.07.01: POST /tasks/:id/take, POST /tasks/:id/submit.
-- **`acceptTaskService`** — A.1.07.01: POST /tasks/:id/accept (ОТК); A.1.09.01 (otc/controller) — через `otc_decisions`.
+- **`acceptTaskService`** — A.1.07.01: POST /tasks/:id/accept; **C.0.09.02** (OTC) — `decide`/`crisisDecide` вызывают единый путь приёмки.
 - **`returnTaskService`** — A.1.07.01: POST /tasks/:id/return (ОТК).
 - **`reopenTaskService`** — A.1.07.01: POST /tasks/:id/reopen; A.1.35.01 (admin).
-- **WS-события** — W.2.02.01 (ws/tasks) — фронт получает real-time обновления.
+- **WS-события** — W.2.02.01 (ws/tasks) — real-time.
 - **`TaskWithRelations`** (private) — расширяет `Task` для UI (F.4.02.03 Tasks.tsx). |
 |Реализация:
 - **`assertDirectionScope`** — `hasRole(FIRST_ARCHITECT)` → return; иначе SELECT `direction_id` из participants → NotFound → `ForbiddenError`; если не совпало — `ForbiddenError('Действие вне вашего направления')`.
-- **`TASK_SELECT`** — большой SELECT с LEFT JOIN plans/participants(assigner)/daily_plans/daily_plan_tasks + 2 correlated subquery (return_reason, returned_at) через `otc_decisions JOIN reports`.
+- **`notifySafely`** (private) — try/catch, `logger.warn` при сбое.
+- **`assertOverrideReason`** (private) — `reason.trim().length < 10` → `ValidationError`.
+- **`assertPartialOverrideAuthorized`** (private) — `getEffectiveRoles` → `COUNCIL_MEMBER`/`FIRST_ARCHITECT`; иначе `ForbiddenError`; `checkRight({ resource:'task', action:'A', targetId })` → `!allowed` → `ForbiddenError`; `check.matchedRole === COUNCIL_MEMBER` → `assertDirectionScope(requester, taskDirectionId)`; `OTC`/`VERIFIER` — `ForbiddenError` (не их функция).
+- **`TASK_SELECT`** — большой SELECT с LEFT JOIN plans/participants(assigner)/daily_plans/daily_plan_tasks + `has_task_profile` + `blocked_by_dependencies` + 2 correlated subquery (`return_reason`, `returned_at`) через `otc_decisions JOIN reports`.
 - **`listTasks`** — пагинация ≤200, 5 фильтров, ORDER BY priority CASE + deadline NULLS LAST.
-- **`getById`** — SELECT по id, NotFound.
-- **`listMyTasks`** — `assigned_to = $1 AND status <> 'accepted'`, ORDER BY returned-first (CASE WHEN status='returned' THEN 0 ELSE 1 END) + priority + deadline.
-- **`createTaskService`** — `assertDirectionScope` → если `planId` — SELECT `plans.lead_direction_id` (NotFound если нет), сверка `plan.directionId === input.directionId` (B8/B6) → retry (5 попыток): `now` внутри цикла (B7), `MAX(SUBSTRING(external_id ...))` по `ЗДЧ-<today>-%`, `nextSeq ≤ 999`, `formatTaskExternalId` → `createTask` (entity) → INSERT (12 params + `location` через `ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography` если есть) → audit → `getById`. При 23505 — `continue`.
-- **`assignTaskService`** — `getById` → `assertDirectionScope` для requester и assignee → `assignTask(task, participantId)` (entity-validate) → atomic `UPDATE ... WHERE status=$orig RETURNING` (B4) → 0 rows → `ConflictError` → audit → `getById` → `emitTaskAssigned` → `notifySafely`.
-- **`takeTaskService`** — `getById` → `task.assignedTo !== participantId` → `ForbiddenError` → `takeTask` (entity) → atomic UPDATE → audit → `emitTaskStatusChanged`.
-- **`submitTaskService`** — `getById` → `task.assignedTo !== requesterId` → `ForbiddenError` (B1) → `listByTask` (reports) → проверка хотя бы одного `artifactUrl` (P0.2) → если нет — `ConflictError` → `submitTask` (entity) → atomic UPDATE → audit → `emitTaskSubmitted` → `sendToRole(Role.OTC, …)` (best-effort).
-- **`acceptTaskService`** — `getById` → `task.assignedTo === requesterId` → `ForbiddenError` (B2/I.2.12) → `acceptTask` (entity) → `assertDirectionScope` → `listByTask` → find report с `artifactUrl` (P0.1) → если нет — `ConflictError` → SELECT `otc_criteria` (`active AND (direction_id = $1 OR direction_id IS NULL)` ORDER BY `direction_id NULLS LAST`) → проверка обязательных критериев (item.required !== false) — все должны быть `passed=true` в `options.criteria` → если нет — `ConflictError` с `{missing}` → `criteriaSnapshot` (JSON `{version, title, items, results}`) → **transaction:** SELECT FOR UPDATE task (status='submitted' иначе `ConflictError`), SELECT existing `otc_decisions` по report_id (если нет — INSERT с `criteria_version`, `criteria_snapshot`), UPDATE tasks status='accepted', INSERT `task_flow_awards` ON CONFLICT DO NOTHING RETURNING (P0.4), если claim успешен — INSERT `flow_transactions` (+1 main, source='otc', task_id) → audit → `emitTaskAccepted` → `notifySafely` assignee.
-- **`returnTaskService`** — `getById` → `task.assignedTo === requesterId` → `ForbiddenError` (B3/I.2.12) → `assertDirectionScope` → `returnTask(task, reason)` (entity) → atomic UPDATE status='returned' WHERE status=$orig → 0 rows → `ConflictError` → audit → `emitTaskReturned` → `notifySafely` assignee.
+- **`getById`** — SELECT по id → `TaskWithRelations`, NotFound.
+- **`listMyTasks`** — `assigned_to = $1 AND status <> 'accepted'`, ORDER BY returned-first + priority + deadline.
+- **`createTaskService`** — `assertDirectionScope` → kind-валидация (deliverable требует `expectedResult`; `estimatedMinutes > 0` если задан) → plan validation (B8, `plan.lead_direction_id === input.directionId`) → parent validation (package, same plan, same direction) → retry (5 попыток): `now` внутри цикла (B7), `MAX(SUBSTRING(...))` по `ЗДЧ-<today>-%`, `nextSeq ≤ 999`, `formatTaskExternalId` → `createTask` (entity) → INSERT tasks (15 params + `location` через `ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography` если есть) → audit → `getById`. При 23505 — `continue`.
+- **`assignTaskService`** — `getById` → package → `ConflictError` → `assertDirectionScope` (requester + assignee) → `assignTask` (entity-validate) → `getTaskProfile` → если профиль есть: `matchTask` → `no_match` → `ConflictError`; `partial` → require `options.override` → `assertOverrideReason` → `assertPartialOverrideAuthorized` → re-`matchTask` (race-protection) → `logAction('tasks.assign.override')`; если профиля нет → `logAction('tasks.assign.no_profile')` → atomic `UPDATE ... WHERE status=$orig RETURNING` → 0 rows → `ConflictError` → audit `tasks.assign` → `getById` → `emitTaskAssigned` → `notifySafely` assignee.
+- **`takeTaskService`** — `getById` → assignee check → **package → ConflictError** → `getBlockingDependencies` → blocking.length > 0 → `ConflictError({ blockedBy })` → `takeTask` (entity) → atomic UPDATE → audit → `emitTaskStatusChanged`.
+- **`submitTaskService`** — `getById` → assignee check (B1) → `listByTask` → проверка `artifactUrl` (P0.2) → `submitTask` (entity) → atomic UPDATE → audit → `emitTaskSubmitted` → `sendToRole(Role.OTC, ...)` (try/catch best-effort).
+- **`acceptTaskService`** — `getById` → I.2.12 (`task.assignedTo === requesterId` → ForbiddenError) → **§7.5 (`isTeacherOfLearnerTask` → ForbiddenError)** → `acceptTask` (entity) → `assertDirectionScope` → `listByTask` → find report с `artifactUrl` (P0.1) → если нет → `ConflictError` → SELECT `otc_criteria` (`active AND (direction_id = $1 OR direction_id IS NULL)` ORDER BY `direction_id NULLS LAST`) → проверка обязательных критериев (item.required !== false → passed) → если missing → `ConflictError` → `criteriaSnapshot` (JSON `{version, title, items, results}`) → **transaction:** SELECT FOR UPDATE task (status='submitted' иначе `ConflictError`), SELECT existing `otc_decisions` по report_id (если нет — INSERT с `criteria_version`, `criteria_snapshot`), UPDATE tasks status='accepted', INSERT `task_flow_awards` ON CONFLICT DO NOTHING RETURNING (P0.4), если claim успешен — INSERT `flow_transactions` (+1 main, source='otc', task_id) → audit → `emitTaskAccepted` → `notifySafely` assignee.
+- **`returnTaskService`** — `getById` → I.2.12 (B3) → `assertDirectionScope` → `returnTask(task, reason)` (entity) → atomic UPDATE status='returned' WHERE status=$orig → 0 rows → `ConflictError` → audit → `emitTaskReturned` → `notifySafely` assignee.
 - **`reopenTaskService`** — `getById` → `status !== 'accepted'` → `ConflictError` → `assignedTo === requesterId` → `ForbiddenError` → `assertDirectionScope` → **transaction:** SELECT FOR UPDATE (status='accepted' иначе `ConflictError`), UPDATE tasks `status='in_progress', reopened_count+1, last_reopen_reason, last_reopened_at`, `DELETE task_flow_awards RETURNING participant_id`, если удалён — INSERT `flow_transactions` (-1, source='otc_reopen') → audit → `emitTaskStatusChanged(..., 'accepted')` (old status) → `notifySafely` assignee. |
 |Примечания:
-РЕАЛИЗОВАНО: 12 публичных функций + 1 экспорт (`getDeadlineForPriority`), 3 интерфейса (1 private `TaskRow`, 1 private `TaskWithRelations`).
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.01): **B1–B8** — все закрыты. **P0.1–P0.5** — «правила ОТК»: артефакт обязателен, критерии проверяются, транзакция атомарна, `task_flow_awards`-клейм. **`reopenTaskService`** — новый метод (пересмотр), обратная проводка Потока. **`assertDirectionScope`** — P0.5 (направление-скоуп).
-СВЯЗЬ С C.0.07.01 (entity): 6 transitions — entity-validate перед atomic UPDATE (даёт понятную ошибку для invalid state; atomic UPDATE — для race).
+РЕАЛИЗОВАНО: 12 публичных функций + 1 re-export (`getDeadlineForPriority`), 4 интерфейса (1 private `TaskRow`, 1 private `TaskWithRelations`, `AssignOptions`, `AcceptOptions`), 3 private (`notifySafely`, `assertOverrideReason`, `assertPartialOverrideAuthorized`), 1 type (`toWsPayload` — private).
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.2):
+- **C.1.10.01 (v0.0.03):** `assignTaskService` проверяет Matching: `no_match` → запрет (override невозможен); `partial` → требует `AssignOptions.override` + подтверждение COUNCIL_MEMBER/FIRST_ARCHITECT + `checkRight('task','A')`; `OTC`/`VERIFIER` override запрещён; audit `tasks.assign.override`; при отсутствии TaskProfile — audit `tasks.assign.no_profile`.
+- **Повторный `matchTask`** перед UPDATE — race-protection.
+- **D.2.01.67:** `CreateTaskRequest` расширен — `parentTaskId`, `kind`, `expectedResult`, `deadline`, `plannedStartAt`, `estimatedMinutes`. `createTaskService` валидирует: deliverable требует `expectedResult`, `estimatedMinutes > 0` если задан; parent — package, same plan, same direction.
+- **`takeTaskService`** — новые проверки: package → ConflictError; `getBlockingDependencies` → ConflictError (blockedByDependencies).
+- **`acceptTaskService`** — **§7.5** (`isTeacherOfLearnerTask`); расширенный `AcceptOptions.criteria`; критерии из `otc_criteria`; `criteriaSnapshot`; транзакция (P0.3); `task_flow_awards` claim (P0.4).
+- **`submitTaskService`** — `listByTask` → `artifactUrl` (P0.2); `sendToRole(Role.OTC, ...)` (best-effort).
+- **`TASK_SELECT`** — расширен: `kind`, `expected_result`, `planned_start_at`, `estimated_minutes`, `has_task_profile`, `blocked_by_dependencies`.
+- **`listTasks`/`getById`** — возвращают `TaskWithRelations` (private-расширение; добавлены `inDailyPlan`, `blockedByDependencies`, `hasTaskProfile`).
+- **`listMyTasks`** — возвращает `TaskWithRelations`.
+- **Новые private:** `toWsPayload`, `notifySafely`, `assertOverrideReason`, `assertPartialOverrideAuthorized`.
+- **Новые импорты:** `checkRight`, `getEffectiveRoles`, `isTeacherOfLearnerTask`, `getBlockingDependencies`, `matchTask`, `getTaskProfile`, `Role` (COUNCIL_MEMBER, OTC, VERIFIER), `task_dependencies`.
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.07.01 (entity): 6 transitions — entity-validate перед atomic UPDATE.
+СВЯЗЬ С C.0.07.03 (dependencies): `getBlockingDependencies` — в `takeTaskService`.
 СВЯЗЬ С C.0.08.02 (reports/service): `listByTask` — проверка артефакта при submit/accept.
-СВЯЗЬ С W.2.02.01 (ws/tasks): 5 emit-функций — real-time обновления в UI.
-СВЯЗЬ С C.0.02.03 (onboarding): `createTaskService` + `assignTaskService` — для welcome-задачи (requiredCompetencies: ['онбординг']).
-СВЯЗЬ С C.0.06.02 (plans/service): `getPlanProgress` считает задачи через `tasks.plan_id` (использует created через `createTaskService`); `tasks.parent_task_id` — для `getPlanTree`/`getPlanBranches`.
-СВЯЗЬ С S.0.01.03 (rbac): `hasRole` — проверка FIRST_ARCHITECT в `assertDirectionScope`.
-СВЯЗЬ С A.1.07.01 (tasks/controller): ~12 эндпоинтов (list/get/listMy/create/assign/take/submit/accept/return/reopen).
-СВЯЗЬ С A.1.09.01 (otc/controller): `acceptTaskService` пишет `otc_decisions` — источник для ОТК-статистики.
+СВЯЗЬ С C.0.09.02 (OTC): `acceptTaskService`/`returnTaskService` — единый путь приёмки; `decide`/`crisisDecide` вызывают.
+СВЯЗЬ С C.1.08.01 (task-profile): `getTaskProfile` — для Matching.
+СВЯЗЬ С C.1.09.02 (teaching-practice): `isTeacherOfLearnerTask` — §7.5 в accept.
+СВЯЗЬ С C.1.10.01 (matching): `matchTask` — assign; обратная связь partial/no_match.
+СВЯЗЬ С S.0.01.03 (rbac): `hasRole` (FIRST_ARCHITECT в `assertDirectionScope`); `getEffectiveRoles` (COUNCIL_MEMBER/FIRST_ARCHITECT в `assertPartialOverrideAuthorized`).
+СВЯЗЬ С W.2.02.01 (ws/tasks): 5 emit-функций — real-time.
+СВЯЗЬ С A.1.07.01 (tasks/controller): 15 эндпоинтов (list/my/overdue/scan/dependencies/get/create/assign/take/submit/accept/return/reopen).
 ТЕХДОЛГ:
-- **`assignTaskService`** — `checkCompetencies` не реализован (TODO в коде): `required_competencies` сохраняется, но не сверяется с `participant_competencies` при назначении; правило «назначить можно только если у участника есть компетенция» — не работает.
-- **`listTasks`/`getById` — нет access control** — любой авторизованный может прочитать задачу другого направления; `assertDirectionScope` вызывается только в мутациях. Список/чтение — открыто.
-- **`TASK_SELECT` — 2 correlated subquery** (return_reason, returned_at) — по 1 подзапросу на строку; для 200 задач — 400 подзапросов. Нужен LEFT JOIN LATERAL или отдельный запрос для otc_decisions.
-- **`acceptTaskService` — SELECT existing `otc_decisions`** — не проверяет, что существующее решение имеет `verdict='accepted'`; если report был возвращён (`verdict='returned'`), а потом ОТК-приёмка пытается принять — существующее решение найдётся, новое не создастся, статус задачи изменится на accepted, но `otc_decisions.verdict` останется 'returned'. Рассинхрон.
-- **`acceptTaskService` — criteria.version mismatch** — если `otc_criteria` менялись между submit и accept, `criteriaSnapshot` сохранит актуальную версию, но сравнение с `options.criteria` идёт по `id`; если id критериев изменились — старые id в options не сматчатся.
-- **`criteriaSnapshot`** — `criteria.items` берётся из БД (items — JSONB); если `items` — не array, `missing` пуст (все критерии считаются пройденными); валидация `Array.isArray` есть, но `required !== false` на не-array вернёт пустой фильтр → нет missing.
-- **`reopenTaskService` — `emitTaskStatusChanged(..., 'accepted')`** — oldStatus='accepted' (был), newStatus='in_progress'; payload из `getById` (после UPDATE) — уже in_progress; семантика oldStatus в событии — корректна, но название (`emitTaskStatusChanged`) не намекает на transition.
-- **`listMyTasks` — ORDER BY returned-first** — задачи с `returned` всплывают наверх; но `returned` в `ALLOWED_TRANSITIONS` уже может быть снова `in_progress`; UI должен различать «свежий возврат» от «в работе».
-- **`notifySafely`** — глотает ошибки; при массовом сбое notifications — только warn в логах.
-- **`emitXxx`** — если WS-сервер недоступен, emitter может бросить; в коде нет try/catch вокруг `emitTaskAssigned`/... — WS-сбой уронит операцию после успешного INSERT (транзакция уже закоммичена, но клиент получит 500).
-- **`assertDirectionScope` — FIRST_ARCHITECT** — единственное исключение; другие «глобальные» роли (COUNCIL_MEMBER, VERIFIER) — не исключение, работают только в своём направлении.
-- **`createTaskService` — TASK_TYPE = 'ЗДЧ'** — хардкод; для разных типов задач (например, «инцидент») — отдельные префиксы не предусмотрены.
-- **`acceptTaskService` — `criteria?.version ?? 1`** — если критериев нет в БД, `criteria_version = 1` (дефолт), но `criteriaSnapshot = null`; семантика «нет критериев» vs «версия 1» — размыта.
-- **`task_flow_awards`** — одно начисление на задачу; при пересмотре (-1) и повторной приёмке (+1) — итог 1; но если пересмотр был, а повторной приёмки не было — итог 0 (задача снова в работе, но Поток не начислен).
-- **`flow_transactions` source='otc_reopen'** — новая категория; в C.0.18.02 (balance/service) её надо учитывать при подсчёте.
-- **`transaction` + `emitTask*`** — emit после транзакции (правильно), но если emit упадёт — клиент получит 500, хотя данные уже сохранены; retry не делает emit повторно.
-- **`criteria_snapshot`** — не маскируется; если критерии содержат PII — попадёт в audit_log как есть. |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.22 test-tasks.ts (прямо); I.9.04.71 test-cards.ts (косвенно — задачи в карточке); I.9.04.14 test-otc-two.ts (accept + otc_decisions); I.9.04.65 test-invariants.ts (задачи через C.0.07.02). |
+- **`assignTaskService`** — `checkCompetencies` без TaskProfile не реализован (legacy-путь; audit `no_profile` фиксирует отсутствие проверки).
+- **`listTasks`/`getById` — нет access control** — любой авторизованный читает задачу другого направления.
+- **`TASK_SELECT` — 2 correlated subquery** (`return_reason`, `returned_at`) — по 1 подзапросу на строку; для 200 задач — 400 подзапросов.
+- **`acceptTaskService` — SELECT existing `otc_decisions`** — не проверяет `verdict='accepted'`; если report был возвращён (`verdict='returned'`), а потом accept — существующее решение найдётся, новое не создастся, статус задачи изменится на accepted, но `otc_decisions.verdict` останется 'returned'. Рассинхрон.
+- **`acceptTaskService` — criteria.version mismatch** — если `otc_criteria` менялись между submit и accept, `criteriaSnapshot` сохранит актуальную версию, но сравнение с `options.criteria` идёт по `id`.
+- **`criteriaSnapshot`** — `criteria.items` берётся из БД (items — JSONB); если `items` — не array, `missing` пуст.
+- **`reopenTaskService — emitTaskStatusChanged(..., 'accepted')`** — oldStatus='accepted', newStatus='in_progress'; payload из `getById` (после UPDATE) — уже in_progress.
+- **`listMyTasks — ORDER BY returned-first`** — `returned` задачи всплывают наверх; UI должен различать «свежий возврат» от «в работе».
+- **`notifySafely`** — глотает ошибки; при массовом сбое notifications — только warn.
+- **`emitXxx`** — если WS-сервер недоступен, emitter может бросить; в коде нет try/catch вокруг `emitTaskAssigned`/... — WS-сбой уронит операцию после успешного INSERT (транзакция закоммичена, но клиент получит 500).
+- **`assertDirectionScope — FIRST_ARCHITECT`** — единственное исключение; COUNCIL_MEMBER/VERIFIER работают только в своём направлении.
+- **`createTaskService — TASK_TYPE = 'ЗДЧ'`** — хардкод; для «инцидента» — отдельный префикс не предусмотрен.
+- **`acceptTaskService — criteria?.version ?? 1`** — если критериев нет, `criteria_version = 1`, но `criteriaSnapshot = null`; семантика размыта.
+- **`task_flow_awards`** — одно начисление на задачу; при пересмотре (-1) и повторной приёмке (+1) — итог 1; если пересмотр был, а повторной приёмки не было — итог 0.
+- **`flow_transactions source='otc_reopen'`** — новая категория; в C.0.18.02 (balance/service) надо учитывать.
+- **`transaction + emitTask*`** — emit после транзакции (правильно), но при падении emit — клиент получит 500, данные сохранены; retry не делает emit повторно.
+- **`criteria_snapshot`** — не маскируется; PII может попасть в audit_log.
+- **`parentTaskId`** — валидация parent: package, same plan, same direction; если `parentTaskId` не задан, `planId` не проверяется на «родитель без плана» (только FK).
+- **`assignTaskService` — package → ConflictError** — семантика: пакет — не единица работы, не назначается; назначайте дочерние deliverable.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.22 test-tasks.ts (прямо); I.9.04.71 test-cards.ts (косвенно); I.9.04.14 test-otc-two.ts (accept + otc_decisions); I.9.04.65 test-invariants.ts; I.9.04.13 test-otc; I.9.04.05 test-connections; I.9.04.24 test-verification. |
+
+|C.0.07.03|CORE|Tasks|TypeScript|src/core/tasks/dependencies.ts|C.0.01.02, C.0.01.04, C.0.01.05, L.0.01.01, L.0.01.09|v.0.0.1|Draft|-|
+|Описание: **Зависимости задач.** Иерархия (`parent_task_id`) и зависимости (`task_dependencies`) — разные вещи; здесь — только зависимости. Проверка циклов — рекурсивным CTE в транзакции с блокировкой строк (защита от параллельного создания цикла). **Инварианты:** нельзя зависеть от себя (CHECK в БД + проверка в сервисе); нельзя создать дубликат (UNIQUE `uq_dep_pair` в БД + 409 в сервисе); нельзя создать цикл (проверка сервисом); завершение предшествующей задачи не завершает зависимую — блокировка снимается, но работа остаётся за исполнителем. **3 функции чтения** (`listDependencies`, `getBlockingDependencies`, `isBlockedByDependencies`) + **2 мутации** (`addDependency`, `removeDependency`). Мутации — транзакционные; `addDependency` — `SELECT ... FOR UPDATE` обеих задач + рекурсивный CTE-цикл + `INSERT RETURNING`; `removeDependency` — `DELETE RETURNING` (NotFound если нет). Audit — `tasks.dependency.add` / `tasks.dependency.remove`. |
+|Публичный API:
+- `type DependencyType = 'blocks'`.
+- `interface TaskDependency { id: UUID; taskId: UUID; dependsOnTaskId: UUID; dependencyType: DependencyType; createdBy: UUID; createdAt: string }`.
+- `interface BlockingDependency { dependencyId: UUID; taskId: UUID; externalId: string; description: string; status: string }`.
+- `listDependencies(taskId): Promise<TaskDependency[]>` — SELECT по `task_id`, ORDER BY created_at.
+- `getBlockingDependencies(taskId): Promise<BlockingDependency[]>` — SELECT `task_dependencies JOIN tasks (dep)` WHERE `td.task_id = $1 AND td.dependency_type = 'blocks' AND dep.status <> 'accepted'`, ORDER BY `dep.external_id`.
+- `isBlockedByDependencies(taskId): Promise<boolean>` — `EXISTS(...)` — быстрый предикат (для `takeTask`).
+- `addDependency(input): Promise<TaskDependency>` — `{ taskId, dependsOnTaskId, dependencyType? ('blocks'), requesterId }`. Валидация `taskId !== dependsOnTaskId` (ValidationError). Транзакция: `SELECT id FROM tasks WHERE id = ANY(...) FOR UPDATE` (обе задачи) → если найдено ≠ 2 — NotFound (с перечислением missing) → рекурсивный CTE `reach` от `dependsOnTaskId`: проверка `EXISTS(target = taskId)` → если да — `ConflictError('Добавление зависимости создаёт цикл')` → `INSERT ... RETURNING` → при `23505` + `constraint='uq_dep_pair'` — `ConflictError('Зависимость уже существует')`. Audit `tasks.dependency.add` (после транзакции) → return dep.
+- `removeDependency(input): Promise<void>` — `{ taskId, dependencyId, requesterId }`. `DELETE FROM task_dependencies WHERE id AND task_id RETURNING depends_on_task_id` → 0 rows — `NotFoundError`. Audit `tasks.dependency.remove`.
+- Приватная: `rowToDependency(r)` — маппинг snake→camel.
+- Внутренние: `interface DependencyRow { id; task_id; depends_on_task_id; dependency_type; created_by; created_at }`. |
+|↙ ПОТРЕБЛЯЕТ:
+- **C.0.01.02** (errors) — `ConflictError`, `NotFoundError`, `ValidationError`.
+- **C.0.01.04** (types) — `UUID`.
+- **C.0.01.05** (audit) — `logAction`.
+- **L.0.01.01** (id) — `newUUID`.
+- **L.0.01.09** (db) — `query`, `queryOne`, `transaction`.
+- Таблицы БД: `task_dependencies` (UNIQUE `uq_dep_pair`), `tasks` (id, external_id, description, status).
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`listDependencies` / `getBlockingDependencies`** — A.1.07.01 (tasks/controller.ts): GET /tasks/:id/dependencies (возвращает `blockedByDependencies: blocking.length > 0`, `blocking`).
+- **`addDependency`** — A.1.07.01: POST /tasks/:id/dependencies.
+- **`removeDependency`** — A.1.07.01: DELETE /tasks/:id/dependencies/:dep_id.
+- **`getBlockingDependencies`** — **C.0.07.02** (`takeTaskService` — `blocking.length > 0` → `ConflictError({ blockedBy: blocking })`).
+- **`isBlockedByDependencies`** — roadmap (сейчас не вызывается из C.0.07.02; используется `getBlockingDependencies`).
+- **`TaskDependency` / `BlockingDependency`** — A.1.07.01; F.4.02.31 (PlanTree.tsx — блокировки), F.4.02.03 (Tasks.tsx). |
+|Реализация:
+- **`listDependencies`** — `SELECT id, task_id, depends_on_task_id, dependency_type, created_by, created_at FROM task_dependencies WHERE task_id = $1 ORDER BY created_at` → `rows.map(rowToDependency)`.
+- **`getBlockingDependencies`** — `SELECT td.id AS dependency_id, dep.id, dep.external_id, dep.description, dep.status FROM task_dependencies td JOIN tasks dep ON dep.id = td.depends_on_task_id WHERE td.task_id = $1 AND td.dependency_type = 'blocks' AND dep.status <> 'accepted' ORDER BY dep.external_id` → map в `BlockingDependency`.
+- **`isBlockedByDependencies`** — `SELECT EXISTS(...) AS blocked` → `row?.blocked ?? false`.
+- **`addDependency`** — `taskId === dependsOnTaskId` → `ValidationError`; `type = input.dependencyType ?? 'blocks'`; `transaction(async client => ...)`: `SELECT id FROM tasks WHERE id = ANY($1::uuid[]) FOR UPDATE` → `exists.rows.length !== 2` → NotFound (missing); CTE `reach`: `WITH RECURSIVE reach AS (SELECT depends_on_task_id AS target FROM task_dependencies WHERE task_id = $1 UNION SELECT td.depends_on_task_id FROM task_dependencies td JOIN reach r ON td.task_id = r.target) SELECT EXISTS(...) AS has_path` (начинаем с `dependsOnTaskId`, ищем путь до `taskId`) → `has_path` → `ConflictError`; `INSERT ... RETURNING id, task_id, depends_on_task_id, dependency_type, created_by, created_at`; catch `23505` + `uq_dep_pair` → `ConflictError('Зависимость уже существует')`. **`.then`** после транзакции — `logAction('tasks.dependency.add')` → return dep.
+- **`removeDependency`** — `DELETE FROM task_dependencies WHERE id = $1 AND task_id = $2 RETURNING depends_on_task_id` → 0 rows → `NotFoundError`; `logAction('tasks.dependency.remove', oldValue: { depends_on_task_id })`.
+- **`rowToDependency`** (private) — `id`, `taskId`, `dependsOnTaskId`, `dependencyType`, `createdBy`, `createdAt` (`created_at.toISOString()`). |
+|Примечания:
+СОЗДАН (новый блок; ранее упоминался в C.0.07.02 (deps: `getBlockingDependencies`) и A.1.07.01 (provides: 3 endpoints), но блока не было).
+СВЕРХ СТАРОЙ СПЕКИ: **`addDependency` — транзакция с `FOR UPDATE` обеих задач** (защита от гонки при параллельном добавлении); **цикл-детект** — рекурсивный CTE `reach` от `dependsOnTaskId` к `taskId` (если путь есть — добавление создаст цикл); **`UNIQUE uq_dep_pair` + маппинг 23505 → 409** (`ConflictError('Зависимость уже существует')`); **`isBlockedByDependencies`** — публичный быстрый предикат (не используется в C.0.07.02 — там `getBlockingDependencies`); **audit после транзакции** (`.then`).
+СВЯЗЬ С C.0.07.02 (tasks/service): `getBlockingDependencies` — в `takeTaskService` (blocking.length > 0 → ConflictError); семантика «задача заблокирована незакрытыми зависимостями».
+СВЯЗЬ С C.0.07.01 (tasks/entity): `parent_task_id` — иерархия; `task_dependencies` — зависимости; не смешиваются.
+СВЯЗЬ С A.1.07.01 (tasks/controller): 3 эндпоинта (`GET/POST/DELETE /tasks/:id/dependencies`); `dependencyParams = uuidIdParams.extend({ dep_id: uuidSchema })`; `addDependencyBody = { depends_on_task_id: uuidSchema, dependency_type? ('blocks') }`.
+СВЯЗЬ С D.4.01.* (schema): `uq_dep_pair` — UNIQUE-constraint на `(task_id, depends_on_task_id)`; CHECK на «не себя».
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Циклы запрещены** — рекурсивный CTE + блокировка; параллельное добавление, образующее цикл, отсекается (оба потока видят `FOR UPDATE`, один ждёт, второй видит уже созданную зависимость).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Завершение предшествующей задачи не завершает зависимую** — блокировка снимается (`dep.status <> 'accepted'` — критерий), работа остаётся за исполнителем.
+ТЕХДОЛГ:
+- **`addDependency` — `.then` после транзакции** — если `logAction` упадёт, транзакция уже закоммичена, `addDependency` пробросит исключение → клиент получит 500, хотя зависимость создана; семантика «audit — часть операции» — спорно; retry не делает rollback.
+- **`removeDependency` — без транзакции** — `DELETE RETURNING` + `logAction` отдельно; при сбое audit — зависимость уже удалена (аналогично выше).
+- **`removeDependency` — не проверяет `dependency_type='blocks'`** — удаляет любую запись по `(id, task_id)`; семантика «удалить зависимость по id» — ок; но если в будущем появятся другие типы — семантика «удаляет всё» может быть неожиданной.
+- **`addDependency` — `FOR UPDATE` обеих задач** — блокировка строк `tasks`; для параллельных добавлений A→B и B→A — сериализуются (одна ждёт), цикл отсекается. Но если добавляют A→B и B→C (не цикл) — блокировки независимы, ок.
+- **CTE `reach` — UNION (не UNION ALL)** — дедупликация; защита от бесконечной рекурсии при уже существующем цикле в БД (если БД испорчена) — неявная.
+- **`isBlockedByDependencies` — public, но не используется в C.0.07.02** — там `getBlockingDependencies` (возвращает список); семантика «быстрый предикат» — roadmap (для UI-проверки).
+- **`getBlockingDependencies` — `dep.status <> 'accepted'`** — `returned`/`submitted`/`in_progress`/`assigned`/`created` — все считаются блокирующими; семантика «предшествующая должна быть accepted» — согласовано с C.0.07.02 (в `takeTaskService`).
+- **`addDependency` — `DependencyType = 'blocks'`** — единственный тип; для «related»/«follows» — roadmap.
+- **`listDependencies` — без фильтра по типу** — возвращает все; семантика «все зависимости задачи» — ок.
+- **`addDependency` — валидация `taskId !== dependsOnTaskId`** — дублирует CHECK в БД; семантика «сначала сервис, потом БД» — ок (понятная ошибка).
+- **`task_dependencies.created_by`** — `requesterId`; при удалении зависимости `created_by` не проверяется — любой с правом `task:C` может удалить чужую; семантика «право `task:C` — глобальное в направлении» — унаследовано из A.1.07.01.
+- **`addDependency` — `description`/`external_id` не валидируются** — `dependsOnTaskId` может быть из другого направления; проверка направления — на уровне контроллера (A.1.07.01) через `assertDirectionScope` (только для `task:C`); сервис не проверяет cross-direction зависимость — roadmap.
+- **`addDependency` — audit `entityId: input.taskId`** — зависит от семантики: зависимость создана на `taskId`, `depends_on_task_id` — в `newValue`; ок.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.05 test-connections.ts (косвенно — зависимости), I.9.04.22 test-tasks.ts (косвенно — через `takeTaskService` + `getBlockingDependencies`). |
 
 |C.0.07.04|CORE|Tasks|TypeScript|src/core/tasks/overdue.ts|C.0.01.04, L.0.01.09|v.0.0.1|Draft|-|
 |Описание: **Просроченные задачи, не сданные в ОТК.** «Отчёт не сдан — работа не проверена» — это не вина ОТК, а разрыв в контуре: задача идёт по сроку, но исполнитель не передал её на проверку. Такой разрыв должен видеть не только куратор направления, но и балансировка. Критерий: **срок истёк, статус `created`/`assigned`/`in_progress`** (работа либо не начата, либо не доведена до `submitted`). ОТК тут ни при чём — ему нечего проверять, пока отчёт не сдан. `hasRecentOverdueSignal` — защита от спама (маркер `[просрочка:<directionId>]` в description сигнала, свежесть N часов). |
@@ -5236,33 +5484,35 @@
 - **`createDecision.comment`** — `string | null`; null допустим (ОТК без комментария); семантика «принять без объяснения» — возможна. |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.13 test-otc.ts (прямо); I.9.04.14 test-otc-two.ts (crisis_protocol + апелляции). |
 
-|C.0.09.02|CORE|OTC|TypeScript|src/core/otc/service.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.07.02, C.0.08.02, C.0.09.01, L.0.01.05, L.0.01.09, L.0.01.10, W.2.03.01|v.0.0.2|Draft|-|
-|Описание: **Сервис ОТК.** Приёмка, возврат, кризисный протокол, апелляции, статистика. **I.2.12 без исключений** — ОТК не проверяет свою работу (B1: убран Architect-override). **`acceptTaskService`/`returnTaskService` из C.0.07.02** — единый путь приёмки (артефакт + критерии + транзакция + начисление Потока). **Кризисный протокол** (`crisisDecide`): только для `priority='critical'`; I.2.12-проверка (B2), `assignedTo === null` → ConflictError (B3). **Апелляции:** identity-check → ForbiddenError (B5); кризисный протокол не подлежит (I.2.9.1в). **SLA** — `OTC_SLA_HOURS = env['OTC_SLA_HOURS'] ?? 24`; `getSla` — очередь/просрочка/среднее ожидание; `escalateOverdue` — cron-эскалация с `otc_escalations` (ровно 1 раз на задачу). **WS-эмиссии** — best-effort (try/catch, B7): decisionMade / crisisDecisionMade / appealFiled / queueUpdated. **Уведомления** ОТК/Совету направления — best-effort. **Активные критерии** (`getActiveCriteria`): направление + глобальные (ORDER BY direction_id NULLS LAST); `assertCriteria` — обязательные должны быть confirmed. |
+|C.0.09.02|CORE|OTC|TypeScript|src/core/otc/service.ts|C.0.01.01, C.0.01.02, C.0.01.04, C.0.01.05, C.0.07.02, C.0.08.02, C.0.09.01, C.1.09.02, L.0.01.05, L.0.01.09, L.0.01.10, W.2.03.01|v.0.0.3|Draft|-|
+|Описание: **Сервис ОТК.** Приёмка, возврат, кризисный протокол, апелляции, статистика. **I.2.12 без исключений** — ОТК не проверяет свою работу (B1: убран Architect-override; I.2.12 → ForbiddenError). **§7.5 (v0.0.03)** — учитель не принимает результат ученика, которому помогал: `decide`/`crisisDecide` дополнительно проверяют `isTeacherOfLearnerTask(otcId, taskId)` после I.2.12, до `assertDirectionScope`. **`acceptTaskService`/`returnTaskService` из C.0.07.02** — единый путь приёмки (артефакт + критерии + транзакция + начисление Потока). **Кризисный протокол** (`crisisDecide`): только `priority='critical'`; I.2.12 (B2), `assignedTo === null` → ConflictError (B3), §7.5. **Апелляции:** identity-check → ForbiddenError (B5); кризисный протокол не подлежит (I.2.9.1в). **SLA** — `OTC_SLA_HOURS = env['OTC_SLA_HOURS'] ?? 24`; `getSla` — очередь/просрочка/среднее ожидание; `escalateOverdue` — cron-эскалация с `otc_escalations` (ровно 1 раз на задачу). **WS-эмиссии** — best-effort (try/catch, B7): decisionMade/crisisDecisionMade/appealFiled/queueUpdated. **Уведомления** ОТК/Совету направления — best-effort. **Активные критерии** (`getActiveCriteria`): направление + глобальные (ORDER BY direction_id NULLS LAST); `assertCriteria` — обязательные должны быть confirmed. **ОСТАЁТСЯ ТЕХДОЛГ:** B4 (INSERT решения + accept/return не в одной транзакции), B6 (фиктивный OtcDecision в canBeAppealed), B8 (`avgCheckHours` — всегда null). |
 |Публичный API:
 - `interface OtcQueueItem { reportId; taskId; taskExternalId; taskDescription; directionId; authorId; authorName; type; comment; mediaUrl; artifactUrl; geolocation; createdAt; hoursWaiting; overdue }`.
-- `getQueue(directionId?): Promise<OtcQueueItem[]>` — задачи `submitted`, ORDER BY priority + created_at ASC, LIMIT 100.
+- `getQueue(directionId?): Promise<OtcQueueItem[]>` — задачи `submitted`, ORDER BY priority + created_at ASC, LIMIT 100; `hoursWaiting = round(EPOCH/3600)`; `overdue = hoursWaiting > OTC_SLA_HOURS`.
 - `interface CriteriaResult { id; passed; comment? }`.
 - `interface DecideRequest { reportId; verdict; comment?; criteria? }`.
-- `interface OtcCriteria { version; title; items }`.
-- `getActiveCriteria(directionId?): Promise<OtcCriteria | null>`.
-- `getSla(directionId?): Promise<{slaHours; pending; overdue; avgWaitingHours}>`.
-- `escalateOverdue(directionId?): Promise<{escalated: number}>` — cron, LIMIT 100, идемпотентен (otc_escalations).
-- `decide(input, otcId): Promise<OtcDecision>` — B1 (I.2.12, 403), direction scope, критерии, INSERT decisions, accept/return, audit, WS.
+- `interface OtcCriteria { version; title; items: Array<{id; title; required?}> }`.
+- `getActiveCriteria(directionId?): Promise<OtcCriteria | null>` — SELECT `active AND (direction_id=$1 OR direction_id IS NULL)` ORDER BY direction_id NULLS LAST LIMIT 1.
+- `getSla(directionId?): Promise<{slaHours; pending; overdue; avgWaitingHours}>` — COUNT + COUNT FILTER (overdue) + AVG(EXTRACT); `avgWaitingHours` — round(1 decimal).
+- `escalateOverdue(directionId?): Promise<{escalated: number}>` — cron, LIMIT 100, идемпотентен (`otc_escalations` ON CONFLICT DO NOTHING), уведомление COUNCIL_MEMBER (try/catch best-effort).
+- `decide(input, otcId): Promise<OtcDecision>` — B1 (I.2.12, 403), **§7.5 (isTeacherOfLearnerTask)**, direction scope, критерии, INSERT decisions (**B4 не закрыт**), accept/return, audit, WS (B7).
 - `interface CrisisDecideRequest { reportId; functionalityOk; safetyOk; comment? }`.
-- `crisisDecide(input, otcId): Promise<OtcDecision>` — priority='critical', B2 (I.2.12), B3 (assignedTo≠null), INSERT decisions, accept/return, audit, WS.
-- `appeal(decisionId, participantId, reason): Promise<OtcAppeal>` — identity (403, B5), active-appeal check, INSERT appeals, audit, WS, notify ОТК.
+- `crisisDecide(input, otcId): Promise<OtcDecision>` — priority='critical', B2 (I.2.12), **§7.5**, B3 (assignedTo≠null), INSERT decisions (**B4 не закрыт**), accept/return, audit, WS (B7).
+- `appeal(decisionId, participantId, reason): Promise<OtcAppeal>` — identity (403, B5), active-appeal check, **B6 (фиктивный OtcDecision в canBeAppealed)**, INSERT appeals, audit, WS (B7), notify ОТК (best-effort).
 - `getAppeal(appealId): Promise<OtcAppeal>` — NotFound.
 - `listAppealsByDecision(decisionId): Promise<OtcAppeal[]>` — ORDER BY created_at DESC.
 - `interface OtcStats { totalDecisions; accepted; returned; crisisProtocol; avgCheckHours }`.
-- `getStats(directionId?): Promise<OtcStats>` — `avgCheckHours` **всегда null** (B8 TODO).
+- `getStats(directionId?): Promise<OtcStats>` — COUNT + FILTER; `avgCheckHours` **всегда null** (B8 TODO).
 - Константа: `OTC_SLA_HOURS = Number(process.env['OTC_SLA_HOURS'] ?? 24)`. |
 |↙ ПОТРЕБЛЯЕТ:
+- **C.0.01.01** (roles) — `Role` (COUNCIL_MEMBER, OTC).
 - **C.0.01.02** (errors) — `NotFoundError`, `ConflictError`, `ForbiddenError`.
 - **C.0.01.04** (types) — `UUID`.
 - **C.0.01.05** (audit) — `logAction`.
-- **C.0.07.02** (tasks/service) — `getById as getTaskById`, `acceptTaskService`, `returnTaskService`, `assertDirectionScope`.
+- **C.0.07.02** (tasks/service) — `getById as getTaskById`, `acceptTaskService`, `returnTaskService`, **`assertDirectionScope`**.
 - **C.0.08.02** (reports/service) — `getById as getReportById`.
 - **C.0.09.01** (otc/entity) — `createDecision`, `createCrisisDecision`, `createAppeal`, `canBeAppealed`, `OtcDecision`, `OtcVerdict`, `OtcAppeal`, `OtcAppealStatus`.
+- **C.1.09.02** (passport/teaching-practice) — **`isTeacherOfLearnerTask`** (v0.0.03, §7.5).
 - **L.0.01.05** (logger) — `logger.warn`.
 - **L.0.01.09** (db) — `query`, `queryOne`.
 - **L.0.01.10** (notifications) — `sendToRole`.
@@ -5272,55 +5522,60 @@
 |↘ ПРЕДОСТАВЛЯЕТ:
 - **`getQueue` / `getSla` / `getStats`** — A.1.09.01 (otc/controller.ts): GET /otc/queue, GET /otc/sla, GET /otc/stats; F.4.02.98 (Otc.tsx) — дашборд ОТК.
 - **`getActiveCriteria`** — A.1.09.01: GET /otc/criteria.
-- **`escalateOverdue`** — cron (в перспективе I.9.07.* / I.3.05.*): периодический проход эскалации.
+- **`escalateOverdue`** — cron (I.9.07.* / I.3.05.*): периодический проход эскалации.
 - **`decide`** — A.1.09.01: POST /otc/decide; `decide` **внутри** вызывает `acceptTaskService`/`returnTaskService` из C.0.07.02 — двойной путь приёмки (прямой через C.0.07.02 и через ОТК).
 - **`crisisDecide`** — A.1.09.01: POST /otc/crisis-decide.
 - **`appeal` / `getAppeal` / `listAppealsByDecision`** — A.1.09.01: POST /otc/appeals, GET /otc/appeals/:id, GET /otc/decisions/:id/appeals.
 - **WS-эмиссии** — W.2.03.01 (ws/otc): decisionMade/crisisDecisionMade/appealFiled/queueUpdated. |
 |Реализация:
-- **`getQueue`** — SELECT reports JOIN tasks JOIN participants WHERE `t.status='submitted'` (опционально `direction_id=$1`), ORDER BY priority (critical→standard→background) + created_at ASC, LIMIT 100; `hoursWaiting = round(EXTRACT(EPOCH FROM now - created_at) / 3600)`; `overdue = hoursWaiting > OTC_SLA_HOURS`.
+- **`getQueue`** — SELECT reports JOIN tasks JOIN participants WHERE `t.status='submitted'` (опционально `direction_id=$1`), ORDER BY priority + created_at ASC, LIMIT 100; `hoursWaiting = Math.round(...)`; `overdue = parseFloat(hours_waiting) > OTC_SLA_HOURS`.
 - **`getActiveCriteria`** — SELECT version/title/items FROM `otc_criteria` WHERE `active AND (direction_id=$1 OR direction_id IS NULL)` ORDER BY `direction_id NULLS LAST` LIMIT 1; `items` — массив с проверкой `Array.isArray`.
 - **`getSla`** — COUNT + COUNT FILTER (overdue) + AVG(EXTRACT) по `reports JOIN tasks WHERE t.status='submitted'`.
-- **`assertCriteria`** — если `!active || items.length === 0` — return; `passed = Map(results.map(r => [r.id, r.passed]))`; `missing = active.items.filter(required !== false).filter(item => passed.get(item.id) !== true).map(item => item.title)`; если `missing.length > 0` — `ConflictError` с `{missing}`.
-- **`escalateOverdue`** — SELECT reports JOIN tasks WHERE `status='submitted' AND r.created_at < now() - SLA` AND `NOT EXISTS otc_escalations` LIMIT 100 → для каждой: INSERT otc_escalations ON CONFLICT DO NOTHING + `sendToRole(COUNCIL_MEMBER, ...)` (try/catch — best-effort) → `{escalated: rows.length}`.
-- **`decide`** — `getReportById` → `getTaskById` → `task.status !== 'submitted'` → 409 → **B1:** `task.assignedTo === otcId` → 403 (I.2.12) → `assertDirectionScope(otcId, task.directionId)` → `getActiveCriteria` → `assertCriteria` → `createDecision` → INSERT `otc_decisions` (с `criteria_snapshot` если есть) → если verdict ∈ {accepted, crisis_protocol} — `acceptTaskService(report.taskId, otcId)`, иначе — `returnTaskService(report.taskId, comment ?? 'Возвращено ОТК', otcId)` → audit → try/catch WS: `emitDecisionMade` + `emitQueueUpdated` (пересчёт getQueue) → return entity.
-- **`crisisDecide`** — `getReportById` → `getTaskById` → `task.priority !== 'critical'` → 409 → `task.status !== 'submitted'` → 409 → **B3:** `!task.assignedTo` → 409 → **B2:** `task.assignedTo === otcId` → 403 (I.2.12) → `createCrisisDecision` → INSERT `otc_decisions` → если crisis_protocol — `acceptTaskService`, иначе — `returnTaskService` → audit → try/catch WS: `emitCrisisDecisionMade` + `emitQueueUpdated`.
-- **`appeal`** — `queryOne` с JOIN reports + tasks (id, crisis_protocol, report_id, task_id, task_direction_id, report_participant_id) → **B5:** `report_participant_id !== participantId` → 403 (только автор) → SELECT active appeal по decision_id (`status IN ('filed','reviewed')`) → **B6 TODO:** `canBeAppealed` с фиктивным `OtcDecision` (только `crisisProtocol` и `hasActiveAppeal` имеют значение) → `createAppeal` → INSERT `otc_appeals` → audit → try/catch WS: `emitAppealFiled` → try/catch `sendToRole(OTC, ...)` → return entity.
+- **`assertCriteria`** (private) — если `!active || items.length === 0` — return; `passed = Map(results.map(r => [r.id, r.passed]))`; `missing = active.items.filter(required !== false).filter(item => passed.get(item.id) !== true).map(item => item.title)`; если `missing.length > 0` — `ConflictError` с `{missing}`.
+- **`escalateOverdue`** — SELECT reports JOIN tasks WHERE `status='submitted' AND r.created_at < now() - SLA` AND `NOT EXISTS otc_escalations` LIMIT 100 → для каждой: INSERT otc_escalations ON CONFLICT DO NOTHING + `sendToRole(COUNCIL_MEMBER as never, ...)` (try/catch — best-effort) → `{escalated: rows.length}`.
+- **`decide`** — `getReportById` → `getTaskById` → `task.status !== 'submitted'` → 409 → **B1:** `task.assignedTo === otcId` → 403 (I.2.12) → **§7.5:** `isTeacherOfLearnerTask(otcId, report.taskId)` → 403 → `assertDirectionScope(otcId, task.directionId)` → `getActiveCriteria` → `assertCriteria` → `createDecision` → INSERT `otc_decisions` (с `criteria_snapshot` если есть; **B4: не в одной транзакции**) → если verdict ∈ {accepted, crisis_protocol} — `acceptTaskService(report.taskId, otcId)`, иначе — `returnTaskService(report.taskId, comment ?? 'Возвращено ОТК', otcId)` → audit → try/catch WS: `emitDecisionMade` + `emitQueueUpdated` (пересчёт getQueue) → return entity.
+- **`crisisDecide`** — `getReportById` → `getTaskById` → `task.priority !== 'critical'` → 409 → `task.status !== 'submitted'` → 409 → **B3:** `!task.assignedTo` → 409 → **B2:** `task.assignedTo === otcId` → 403 (I.2.12) → **§7.5:** `isTeacherOfLearnerTask` → 403 → `createCrisisDecision` → INSERT `otc_decisions` (**B4: не в одной транзакции**) → если crisis_protocol — `acceptTaskService`, иначе — `returnTaskService` → audit → try/catch WS: `emitCrisisDecisionMade` + `emitQueueUpdated`.
+- **`appeal`** — `queryOne` с JOIN reports + tasks (id, crisis_protocol, report_id, task_id, task_direction_id, report_participant_id) → **B5:** `report_participant_id !== participantId` → 403 (только автор) → SELECT active appeal по decision_id (`status IN ('filed','reviewed')`) → **B6:** `canBeAppealed` с фиктивным `OtcDecision` (только `crisisProtocol` и `hasActiveAppeal` имеют значение) → `createAppeal` → INSERT `otc_appeals` → audit → try/catch WS: `emitAppealFiled` → try/catch `sendToRole(OTC, ...)` → return entity.
 - **`getAppeal`** — SELECT по id, NotFound.
 - **`listAppealsByDecision`** — SELECT ORDER BY created_at DESC.
 - **`getStats`** — COUNT + FILTER по verdict (accepted/returned/crisis_protocol) по `otc_decisions` с опциональным JOIN reports JOIN tasks (direction); `avgCheckHours` — TODO (B8), всегда null. |
 |Примечания:
 РЕАЛИЗОВАНО: 12 публичных функций + 1 приватная (`assertCriteria`), 5 интерфейсов, 1 константа.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.01): **B1** — убран Architect-override (I.2.12 без исключений); I.2.12 → ForbiddenError (403). **B2** — I.2.12 в `crisisDecide`. **B3** — `assignedTo === null` → понятный ConflictError. **B5** — identity → ForbiddenError. **B7** — WS-эмиссии best-effort. **`getSla` / `escalateOverdue` / `getActiveCriteria` / `assertCriteria`** — новые (SLA enforcement + критерии ОТК).
-СВЯЗЬ С C.0.07.02 (tasks/service): `decide`/`crisisDecide` используют `acceptTaskService`/`returnTaskService` — единый путь приёмки (артефакт + критерии + транзакция + Поток). Дубль «проверка артефакта» — в C.0.07.02 и C.0.09.02 (P0.2 vs assertCriteria); семантически разные (артефакт — обязателен, критерии — из otc_criteria).
-СВЯЗЬ С C.0.08.02 (reports/service): `getReportById` — источник report/taskId для decide/crisisDecide/appeal.
-СВЯЗЬ С C.0.09.01 (otc/entity): `createDecision`/`createCrisisDecision`/`createAppeal`/`canBeAppealed` — вся логика вердикта/апелляции в entity.
-СВЯЗЬ С W.2.03.01 (ws/otc): 4 emit-функции — real-time обновления в UI ОТК.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.2):
+- **§7.5 (v0.0.03):** `decide`/`crisisDecide` дополнительно проверяют `isTeacherOfLearnerTask(otcId, taskId)` — учитель не принимает ученика; после I.2.12, до `assertDirectionScope`; симметрично в acceptTaskService (C.0.07.02).
+- **`isTeacherOfLearnerTask`** — новый импорт (C.1.09.02).
+- **B1–B3, B5, B7** — подтверждены (закрыты в v0.0.02).
+- **B4, B6, B8** — не закрыты (техдолг).
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.07.02 (tasks/service): `decide`/`crisisDecide` используют `acceptTaskService`/`returnTaskService` — единый путь приёмки.
+СВЯЗЬ С C.0.08.02 (reports/service): `getReportById` — источник report/taskId.
+СВЯЗЬ С C.0.09.01 (otc/entity): `createDecision`/`createCrisisDecision`/`createAppeal`/`canBeAppealed` — вся логика вердикта/апелляции.
+СВЯЗЬ С C.1.09.02 (teaching-practice): `isTeacherOfLearnerTask` — §7.5.
+СВЯЗЬ С W.2.03.01 (ws/otc): 4 emit-функции — real-time.
 СВЯЗЬ С C.0.01.03 (constants): `OTC_SLA_HOURS` — env, дефолт 24 часа (не в constants.ts, но рядом по смыслу).
 ТЕХДОЛГ:
-- **B4 (НЕ закрыт): INSERT решения + accept/return — не в одной транзакции.** При сбое шага 2 (`acceptTaskService`/`returnTaskService`) — решение в БД, задача в `submitted` (рассинхрон). Нужна общая транзакция, но `acceptTaskService`/`returnTaskService` работают с `query` напрямую; рефакторинг сервисов или передача client.
-- **B6 (НЕ закрыт): `appeal` передаёт фиктивный `OtcDecision`** в `canBeAppealed` — `otcId=''`, `verdict='returned'/'crisis_protocol'`, `comment=null`, `criteriaVersion=1`, `createdAt=''`. Проверка работает только по `crisisProtocol` + `hasActiveAppeal`, но сигнатура требует полный объект. Требуется `canBeAppealed({ crisisProtocol, hasActiveAppeal })` в C.0.09.01.
+- **B4 (НЕ закрыт): INSERT решения + accept/return — не в одной транзакции.** При сбое шага 2 (`acceptTaskService`/`returnTaskService`) — решение в БД, задача в `submitted` (рассинхрон).
+- **B6 (НЕ закрыт): `appeal` передаёт фиктивный `OtcDecision`** в `canBeAppealed`; проверка работает только по `crisisProtocol` + `hasActiveAppeal`, но сигнатура требует полный объект.
 - **B8 (НЕ закрыт): `getStats().avgCheckHours` — всегда null.** Нужен `AVG(EXTRACT(EPOCH FROM (d.created_at - r.created_at)) / 3600)` с JOIN reports.
-- **`decide` вызывает `acceptTaskService`** — который **снова** делает `listByTask` и проверку `artifactUrl`; для кризисного протокола (`crisis_protocol`) — тоже; семантически «принять без артефакта» нельзя, но в кризисе это может быть оправдано (артефакт может появиться позже). Расхождение с I.2.9.1в не задокументировано.
-- **`decide` / `crisisDecide` — `if (task.assignedTo) { }`** — пустые блоки (TODO-заглушки); не ясно, что должно быть (уведомление исполнителю? аудит?); сейчас — no-op.
+- **`decide` вызывает `acceptTaskService`** — который **снова** делает `listByTask` и проверку `artifactUrl`; для кризисного протокола — тоже.
+- **`decide` / `crisisDecide` — `if (task.assignedTo) { }`** — пустые блоки (TODO-заглушки); не ясно, что должно быть (уведомление? аудит?); сейчас — no-op.
 - **`getQueue` — LIMIT 100** — без пагинации; для крупных ОТК — обрезается.
-- **`getQueue` — `hoursWaiting` = `Math.round`** — округление до часов; для «5 минут назад» → 0 часов (визуально «только что», но неотличимо от «10 минут»).
-- **`escalateOverdue` — `LIMIT 100`** за прогон; при большом количестве просрочек — несколько прогонов.
-- **`escalateOverdue` — `sendToRole(COUNCIL_MEMBER as never, ...)`** — `as never` — обход типизации; `sendToRole` ожидает `Role`, но `COUNCIL_MEMBER` — из `Role` enum; приведение через `as never` маскирует реальную ошибку типов (если `sendToRole` сигнатура изменится — не заметим).
-- **`canBeAppealed` для accepted-решений** — возможно (I.2.13 не запрещает); семантика «оспорить принятую задачу» — на усмотрение бизнеса.
-- **`appeal` — `reason` ≤ 5000** — проверка в entity; но `newValue.reason.slice(0, 200)` в audit — усечение (200 символов); полная причина в `otc_appeals.reason`.
-- **`decide` — `criteria_snapshot`** — `JSON.stringify({ ...criteria, results })` — если `criteria` большой (много items), snapshot может быть большим; БД-колонка должна быть JSONB.
-- **`decide`/`crisisDecide` — `criteria?.version ?? entity.criteriaVersion`** — если критериев нет, `entity.criteriaVersion` = 1 (из `createDecision` дефолт); семантически «версия 1» vs «нет критериев» — размыто.
-- **`crisisDecide` — `task.priority !== 'critical'`** — жёсткое требование; задача `high` не может быть кризисной, даже если ситуация кризисная. Правило I.2.9.1 — только для `critical`.
-- **`decide` — двойной accept (OTС + прямой в C.0.07.02)** — если ОТК вызвал `decide`, а потом кто-то ещё раз попробует `acceptTaskService` напрямую (через A.1.07.01) — второй вызов упадёт (задача уже accepted), но `otc_decisions` уже есть; рассинхрон.
-- **`getStats` — `joinDir` условный** — если `directionId` передан, JOIN есть; иначе — без JOIN (все решения, все направления); логика WHERE корректна, но `params.length` при пустом фильтре = 0, `where = ''`.
-- **`getStats` — `avgCheckHours: null`** — UI должен либо скрывать, либо показывать «—»; контракт не задокументирован.
-- **`OTC_SLA_HOURS`** — `Number(...)`, если env задан как `'24h'` → NaN; валидация env — на уровне `parseEnv` в server.
-- **`getActiveCriteria`** — `ORDER BY direction_id NULLS LAST` — сначала направленческие, потом глобальные; если есть оба, направленческий приоритетнее.
-- **`assertCriteria`** — `item.required !== false` — семантика «по умолчанию required»; явный `required: false` — опциональный.
-- **`appeal` — `sendToRole(OTC, ...)`** — уведомление **всем** ОТК направления, не конкретному; для персональной апелляции — избыточно, но best-effort.
-- **`decide` — WS-emit после транзакции (не в try/catch транзакции)** — если WS упадёт — warning, но данные уже в БД; клиент ОТК получит ответ, но real-time UI других ОТК — нет. | |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.13 test-otc.ts (прямо); I.9.04.14 test-otc-two.ts (кризис + апелляции); I.9.04.35 test-webhooks.ts (косвенно); I.9.04.22 test-tasks.ts (косвенно — через acceptTaskService). |
+- **`getQueue` — `hoursWaiting` = `Math.round`** — округление до часов; «5 минут назад» → 0 часов.
+- **`escalateOverdue` — `LIMIT 100`** за прогон.
+- **`escalateOverdue` — `sendToRole(COUNCIL_MEMBER as never, ...)`** — `as never` — обход типизации.
+- **`canBeAppealed` для accepted-решений** — возможно (I.2.13 не запрещает); семантика на усмотрение бизнеса.
+- **`appeal` — `reason` ≤ 5000** — проверка в entity; в audit — усечение (200 символов).
+- **`decide` — `criteria_snapshot`** — `JSON.stringify({ ...criteria, results })` — если `criteria` большой, snapshot большой.
+- **`decide`/`crisisDecide` — `criteria?.version ?? entity.criteriaVersion`** — если критериев нет, `entity.criteriaVersion` = 1; семантика «версия 1» vs «нет критериев» размыта.
+- **`crisisDecide` — `task.priority !== 'critical'`** — жёсткое требование; задача `high` не может быть кризисной.
+- **`decide` — двойной accept (OTC + прямой в C.0.07.02)** — если ОТК вызвал `decide`, а потом кто-то ещё раз попробует `acceptTaskService` напрямую — второй вызов упадёт; `otc_decisions` уже есть; рассинхрон.
+- **`getStats` — `avgCheckHours: null`** — UI должен скрывать/показывать «—».
+- **`OTC_SLA_HOURS`** — `Number(...)`; если env `'24h'` → NaN; валидация env — на уровне `parseEnv` в server.
+- **`getActiveCriteria`** — `ORDER BY direction_id NULLS LAST` — направленческие приоритетнее глобальных.
+- **`assertCriteria`** — `item.required !== false` — семантика «по умолчанию required».
+- **`appeal` — `sendToRole(OTC, ...)`** — уведомление **всем** ОТК направления, не конкретному.
+- **`decide` — WS-emit после транзакции (не в try/catch транзакции)** — если WS упадёт — warning, но данные уже в БД. |
+|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.13 test-otc.ts (прямо); I.9.04.14 test-otc-two.ts (кризис + апелляции); I.9.04.35 test-webhooks.ts (косвенно); I.9.04.22 test-tasks.ts (косвенно — через acceptTaskService); I.9.09.05 test-passport-v2 (косвенно — §7.5). |
 
 |C.0.10.01|CORE|Signals|TypeScript|src/core/signals/entity.ts|C.0.01.02, C.0.01.03, C.0.01.04|v.0.0.1|Draft|-|
 |Описание: **Доменная сущность Сигнал + Ответ.** Сигнал — инициатива участника (need/problem/idea/failure), идёт по маршруту `new → run → connect → plan → completed/rejected`. **Лимит итераций 3** (clarify-петля); при достижении — эскалация. **«Отсутствие ответа — не согласие» (I.2.3):** каждый сигнал требует явных ответов направлений (support/object/clarify/amend/no_influence). Инициатор может указать `directions[]` (аудиторию) и `leadDirectionId` (ведущее направление). **Субъект:** сигнал может быть привязан к плану (`subjectPlanId`), задаче (`subjectTaskId`) или ячейке (`subjectCellId`) — для сигналов «в контексте». `SignalResponse` — типизированный ответ направления с обоснованием, данными, следствиями, нуждами. `validateResponse` — обоснование обязательно для любого ответа; для `clarify` нужны `data`. |
@@ -8726,6 +8981,77 @@
 - **Нет уведомлений** — о завершении / назначении — не уведомляется; roadmap. |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.50 test-learning.ts (прямо); I.9.04.55 test-journey.ts (косвенно — маршруты); I.9.04.39 test-experiments.ts (косвенно — модули/маршруты). |
 
+|C.0.31.03|CORE|Learning|TypeScript|src/core/learning/participant-day-plan.ts|C.0.01.02, C.0.01.04, C.0.01.05, D.2.01.68, D.2.01.69, L.0.01.01, L.0.01.09|v.0.0.1|Draft|I.9.04.77, D.2.01.69|
+|Описание: **Персональный план дня.** ТЗ §9: план на локальную дату, `timezone`, доступное время, блоки разных типов (`production`/`learning`/`teaching`/`other`). **Плановое время (`plannedMinutes`) отделено от фактического (`actualMinutes`)**: фактическое фиксируется только при `close()` — это подтверждённое событие (ТЗ §9.4). **Версии:** append-only. Каждое изменение содержимого (PUT) создаёт новую версию. Соглашение: `v1` — пустой план при создании, `v2+` — состояние после каждого PUT (аналогично `cell_daily_plan_versions`, D.2.01.68). **Переходы статусов:** `draft → confirmed` (`confirm`); `confirmed → closed` (`close`); `draft → closed` запрещено; `closed` — финал (PUT, confirm запрещены); **PUT на `confirmed` возвращает план в `draft`** (требует повторного confirm). **Проверки:** `availableMinutes` 1..1440; `plannedMinutes` > 0; сумма `plannedMinutes` ≤ `availableMinutes`; `kind='production'` требует `taskId`; задача не может быть в нескольких блоках одного дня. |
+|Публичный API:
+- `type ActivityKind = 'production' | 'learning' | 'teaching' | 'other'`.
+- `type DayPlanStatus = 'draft' | 'confirmed' | 'closed'`.
+- `type BlockStatus = 'planned' | 'in_progress' | 'done' | 'skipped'`.
+- `interface ParticipantDayBlock { id; kind; taskId; taskPracticeId; learningGoalId; teachingAssignmentId; plannedMinutes; actualMinutes; position; status; comment }`.
+- `interface ParticipantDayPlan { id; participantId; date; timezone; availableMinutes; status; version; blocks; createdAt; updatedAt }`.
+- `interface DayBlockInput { kind; taskId?; taskPracticeId?; learningGoalId?; teachingAssignmentId?; plannedMinutes; status?; comment? }`.
+- `interface DayBlockVersionRow { id; kind; task_id; task_practice_id; learning_goal_id; teaching_assignment_id; planned_minutes; actual_minutes; position; status; comment }`.
+- `interface DayPlanVersion { version; snapshot: VersionSnapshot; reason; createdAt; createdBy }`.
+- `interface CloseBlockActual { blockId; actualMinutes }`.
+- `getDayPlan(participantId, date): Promise<ParticipantDayPlan | null>` — `null`, если плана нет; `assertDate`.
+- `getOrCreateDayPlan(participantId, date, timezone, availableMinutes, actorId): Promise<ParticipantDayPlan>` — идемпотентное создание; v1 «Создание плана (пустой)».
+- `upsertDayPlan(input): Promise<ParticipantDayPlan>` — `{ participantId, date, timezone, availableMinutes, blocks, reason?, actorId }`. Валидация даты/таймзоны/минут/блоков. Транзакция: `FOR UPDATE` существующего плана → `closed` → ConflictError; снимок «до» (если истории нет) → DELETE блоков → INSERT блоков → UPDATE шапки (`status` — `draft`, если был `confirmed`) → v(next) «Обновление плана» (reason).
+- `confirmDayPlan(input): Promise<ParticipantDayPlan>` — `{ participantId, date, actorId }`. Транзакция: `FOR UPDATE` → `draft → confirmed`; идемпотентно при `confirmed`; `draft → confirmed` + v(next) «Подтверждение плана».
+- `closeDayPlan(input): Promise<ParticipantDayPlan>` — `{ participantId, date, actuals: CloseBlockActual[], actorId }`. Транзакция: `FOR UPDATE` → `confirmed → closed`; проверка `blockId` принадлежит плану и `actualMinutes` (целое ≥ 0); UPDATE блоков (`actual_minutes`, `status='done'`) → UPDATE шапки (`status='closed'`) → v(next) «Закрытие плана (фактические минуты)».
+- `listVersions(planId): Promise<DayPlanVersion[]>` — ORDER BY version DESC.
+- `listMyDayPlans(participantId, limit = 30): Promise<Array<Omit<ParticipantDayPlan, 'blocks'>>>` — ORDER BY date DESC, LIMIT ≤200.
+- `interface VersionSnapshot { availableMinutes; blocks[]; status }` (private). |
+|↙ ПОТРЕБЛЯЕТ:
+- **C.0.01.02** (errors) — `ConflictError`, `NotFoundError`, `ValidationError`.
+- **C.0.01.04** (types) — `UUID`, `ISODateTime`.
+- **C.0.01.05** (audit) — `logAction`.
+- **D.2.01.68** (cell_daily_plan_versions) — аналогичная схема версионирования (соглашение).
+- **D.2.01.69** (participant_day_plans) — таблицы `participant_day_plans`, `participant_day_blocks`, `participant_day_plan_versions`.
+- **L.0.01.01** (id) — `newUUID`.
+- **L.0.01.09** (db) — `query`, `queryOne`, `transaction`.
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`getDayPlan` / `upsertDayPlan` / `confirmDayPlan` / `closeDayPlan` / `listVersions` / `listMyDayPlans`** — A.1.31.01 (learning/controller.ts): `GET /learning/day-plans/me/:date`, `PUT /learning/day-plans/me/:date`, `POST /learning/day-plans/me/:date/confirm`, `POST /learning/day-plans/me/:date/close`, `GET /learning/day-plans/me/history`, `GET /learning/day-plans/me`.
+- **`getOrCreateDayPlan`** — A.1.31.01 (косвенно, через `upsertDayPlan` — fallback при отсутствии).
+- **`ParticipantDayPlan` / `ParticipantDayBlock` / `DayPlanVersion` / `DayBlockInput`** — A.1.31.01; F.4.02.13 (DayPlan.tsx).
+- **`CloseBlockActual`** — A.1.31.01 (`closeDayPlanBody`).
+- **Тесты:** I.9.04.77 (полный цикл day-plan), I.9.04.79 (Сценарий 5). |
+|Реализация:
+- **`loadBlocks(planId)`** (private) — SELECT `participant_day_blocks` WHERE `day_plan_id` ORDER BY `position, created_at`.
+- **`rowToPlan(row)`** (private) — читает блоки через `loadBlocks`; `date` — нормализация (`string` → как есть; `Date` → `toISOString().slice(0,10)`).
+- **`hasAnyVersion` / `writeVersion`** (private) — аналог D.2.01.68; `writeVersion` собирает `VersionSnapshot` (`availableMinutes`, `blocks[]` с snake→camel, `status`) → `COALESCE(MAX(version), 0) + 1` → INSERT `participant_day_plan_versions`.
+- **`assertDate` / `assertTimezone` / `assertAvailableMinutes`** (private) — валидация.
+- **`validateBlocks`** (private) — `plannedMinutes > 0`; `kind='production'` требует `taskId`; `seenTaskIds` — задача не в нескольких блоках; `total > availableMinutes` → `ConflictError({ total, availableMinutes })`.
+- **`getDayPlan`** — SELECT по `(participant_id, date)`; `null` если нет.
+- **`getOrCreateDayPlan`** — `getDayPlan` → если есть — return; транзакция: INSERT `ON CONFLICT (participant_id, date) DO NOTHING` → SELECT id → если `id === planId` — `writeVersion('Создание плана (пустой)')`; audit.
+- **`upsertDayPlan`** — `assertDate` / `assertTimezone` / `assertAvailableMinutes` / `validateBlocks`; транзакция: `FOR UPDATE` (если есть) → `closed` → `ConflictError('План закрыт — изменения запрещены')`; `hasAnyVersion` → если нет — v1 «Исходное состояние (до миграции)»; `DELETE participant_day_blocks`; `newStatus = previousStatus === 'confirmed' ? 'draft' : previousStatus`; UPDATE шапки (`timezone`, `available_minutes`, `status`, `updated_at`); иначе INSERT шапки (`draft`, `version=1`) + v1 «Создание плана (пустой)»; INSERT блоков (`position = i`, `status ?? 'planned'`); v(next) «Обновление плана» (`reason ?? 'Обновление плана'`); audit.
+- **`confirmDayPlan`** — транзакция: `FOR UPDATE` → `!row` → NotFound; `confirmed` → return (идемпотентно); `!== 'draft'` → ConflictError; `hasAnyVersion` → если нет — v1; UPDATE `status='confirmed'`; v(next) «Подтверждение плана»; audit.
+- **`closeDayPlan`** — транзакция: `FOR UPDATE` → `!row` → NotFound; `closed` → ConflictError('План уже закрыт'); `!== 'confirmed'` → ConflictError(`Закрыть можно только подтверждённый план`, `{ current_status }`); `blockIds` → `allowed` Set; для каждого `actuals`: `!allowed.has(blockId)` → ValidationError; `actualMinutes` не целое или <0 → ValidationError; `hasAnyVersion` → если нет — v1; UPDATE блоков (`actual_minutes`, `status='done'`); UPDATE шапки (`status='closed'`); v(next) «Закрытие плана (фактические минуты)»; audit.
+- **`listVersions`** — SELECT `participant_day_plan_versions` ORDER BY version DESC.
+- **`listMyDayPlans`** — SELECT шапок WHERE `participant_id` ORDER BY date DESC LIMIT `safeLimit = clamp(1, 200)`; без блоков (`Omit<..., 'blocks'>`). |
+|Примечания:
+СОЗДАН (новый блок; файл — `src/core/learning/participant-day-plan.ts`, ID `C.0.31.03`; связан с миграцией D.2.01.69).
+СВЕРХ СТАРОЙ СПЕКИ: полный цикл day-plan: `draft` → `confirmed` → `closed`; **PUT на `confirmed` возвращает `draft`**; `close` только из `confirmed`; `closed` — финал; **версии** (v1 «пустой» / v2 «сформированный» / v3+ при изменениях; «Исходное состояние (до миграции)» — при первом изменении существующего плана).
+СВЯЗЬ С A.1.31.01: 6 эндпоинтов (`GET`, `PUT`, `confirm`, `close`, `history`, `listMy`).
+СВЯЗЬ С D.2.01.69: таблицы `participant_day_plans` / `participant_day_blocks` / `participant_day_plan_versions`; `UNIQUE (participant_id, date)`; CHECK `chk_pdb_production_task` (production требует `task_id`) — сервис дублирует проверку.
+СВЯЗЬ С D.2.01.68: аналогичная схема версионирования (`writeVersion` / `hasAnyVersion`).
+СВЯЗЬ С C.0.01.05 (audit): `day_plan.create`, `day_plan.upsert`, `day_plan.confirm`, `day_plan.close`.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **PUT на `confirmed` → `draft`** — план можно пересобрать после confirm, но не после close; требует повторного confirm.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`actual_minutes` — только через `close`** (ТЗ §9.4) — фактическое время фиксируется подтверждённым событием.
+ТЕХДОЛГ:
+- **`version` в шапке vs `MAX(version)` в версиях** — потенциальный рассинхрон, если писать версии, не инкрементя шапку; в сервисе `version` шапки не обновляется при `upsert`/`confirm`/`close` (остаётся `1`), но `writeVersion` возвращает корректный номер; семантика `version` шапки — «начальная версия», не текущая; roadmap — синхронизировать.
+- **`participant_day_blocks.task_practice_id` / `learning_goal_id` / `teaching_assignment_id`** — без FK (D.2.01.69); orphan при удалении ссылок.
+- **`getOrCreateDayPlan`** — идемпотентное создание; `ON CONFLICT DO NOTHING` + перечитывание; если параллельный запрос создал — `writeVersion` не вызывается (v1 пишет только создатель).
+- **`listMyDayPlans`** — без блоков (для списка); `limit ≤ 200`.
+- **`closeDayPlan` — блоки без `actuals`** — остаются `status='planned'`/`in_progress` (не `done`); семантика «факт зафиксирован только для перечисленных блоков» — ок, но UI должен знать.
+- **`assertAvailableMinutes`** — `1..1440`; сумма `plannedMinutes` ≤ `availableMinutes` — на уровне сервиса.
+- **`writeVersion`** — `JSON.stringify(snapshot)` → `$4::jsonb`; `snapshot` — object (`availableMinutes`, `blocks`, `status`), CHECK `chk_pdpv_snapshot_shape` в D.2.01.69.
+- **`getDayPlan` — `assertDate`** — формат `YYYY-MM-DD`; иначе ValidationError.
+- **`upsertDayPlan` — `previousStatus`** — `confirmed → draft`; `draft → draft`; `closed` → 409.
+- **`confirmDayPlan` — идемпотентно** — повторный `confirm` на `confirmed` — 200; `!== 'draft'` — ConflictError.
+- **`closeDayPlan` — `blockId` проверка** — `allowed` Set; чужой `blockId` → ValidationError.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.77 (полный цикл: 404, PUT пустой → draft + v1/v2, PUT 3 блока, сумма > available → 409, production без task_id → 400/422, confirm → confirmed, PUT на confirmed → draft, close без confirm → 409, close с actuals → closed + actualMinutes=150 + status=done, PUT на closed → 409, history → ≥4 версии по убыванию); I.9.04.79 (Сценарий 5). |
+
 |C.0.32.01|CORE|Automation|TypeScript|src/core/automation/entity.ts|C.0.01.01, C.0.01.02, C.0.01.04|v.0.0.1|Draft|-|
 |Описание: **Доменная сущность Автоматизации.** 3 сущности: `AutomationDecision` (решение ИИ с `aiRecommendation`/`deadline`/`status`), `AutomationSection` (участок направления с `operatorId`/`enabled`/`disableReason`), `OperatorAudit` (аудит оператора — `approvalRate`/`errorCount`/`status`). **Хартия I.6.15:** `OPERATOR` — стаж ≥2 года + аттестация ИИ (I.6.15.1); мандат 6 мес., не более 2 сроков (I.6.15.2); утверждает/отклоняет типовые запросы ИИ (I.6.15.3); не совмещает с Советом, ОТК, Балансировкой, Хранителем, наставником, координатором (I.6.15.4); обязан фиксировать причину отклонения (I.6.15.5); может отключить автоматизацию в любой момент (I.6.15.6). **III.1.13а** — доля утверждений > 95% за 3 мес. → аудит; **III.1.13б** — ошибки > 3/мес → отстранение. **`canCombineWith`** — читает `getConflicts(Role.OPERATOR)` из C.0.01.01 (не дублирует список). **`auditOperator`** — `approvalRate = approved / total`; `deriveAuditStatus`: `removed > audit_required > ok`. |
 |Публичный API:
@@ -10014,102 +10340,140 @@
 - **`cancelJob` — NotFound для не-bulk** — семантика «не существует» — ок для anti-enumeration. |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.43 test-bulk.ts (прямо); I.9.07.04 worker/handlers/bulk.ts (косвенно); I.9.04.10 test-idempotency.ts (косвенно — enqueue); I.9.04.26 test-admin.ts (косвенно — `getEffectiveRoles`). |
 
-|C.0.41.03|CORE|Cells|TypeScript|src/core/cells/daily.ts|C.0.01.02, C.0.01.04, C.0.01.05, L.0.01.01, L.0.01.09|v.0.0.1|Draft|-|
-|Описание: **Наряд ячейки.** Наряд приходит на ячейку, координатор распределяет задачи по людям. **Иерархия ячеек** (`parent_cell_id`) даёт «нарастающую» схему: координатор над пятью ячейками распределяет по ячейкам, а те — по людям. **Границы ответственности:** состав наряда (какие задачи) определяет координатор ячейки; **назначить задачу можно только участнику этой ячейки** (иначе это уже не наряд ячейки, а перекладывание работы на чужих людей); назначение ставит `tasks.assigned_to`, поэтому задача сразу появляется в «Моих задачах» исполнителя и в его панели. **4 публичные функции:** `getCellDailyPlan` (план на дату; `status='absent'` если нет); `upsertCellDailyPlan` (транзакция: SELECT FOR UPDATE + DELETE + INSERT; проверки: ячейка существует, direction_id ≠ null, задачи не пусты и ≤50, все задачи существуют и в направлении ячейки); `assignCellDailyTask` (назначить задачу нарядa участнику — проверка `cell_members` + UPDATE `cell_daily_plan_tasks.assigned_to` + UPDATE `tasks.assigned_to/by`); `listCellPlanCandidates` (задачи направления с `status IN ('created','assigned','in_progress')` ORDER BY status + deadline LIMIT 200). |
+|C.0.41.03|CORE|Cells|TypeScript|src/core/cells/daily.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.04.02, D.2.01.68, L.0.01.01, L.0.01.09|v.0.0.1|Draft|-|
+|Описание: **Наряд ячейки.** Наряд приходит на ячейку, координатор распределяет задачи по людям. Иерархия ячеек (`parent_cell_id`) даёт «нарастающую» схему. **Границы ответственности:** состав наряда определяет координатор; назначать можно только участнику этой ячейки; назначение ставит `tasks.assigned_to` → задача сразу в «Моих задачах». **D.2.01.67:** пакеты (`kind='package'`) **не входят в наряд** — организационные контейнеры. **Версионирование:** `upsertCellDailyPlan` — транзакция: `FOR UPDATE` плана → снимок в `cell_daily_plan_versions` → DELETE+INSERT в `cell_daily_plan_tasks`; при создании — v1 (пустой) + v2 (сформированный); при обновлении — «Исходное состояние» (если истории нет) + «Обновление». `assignCellDailyTask` — транзакция: `FOR UPDATE` задачи и наряда → проверки (kind, status, direction, participant ∈ cell) → UPDATE `cell_daily_plan_tasks` + UPDATE `tasks` атомарно. `upsert`/`assign` требуют **координатора ячейки (или FIRST_ARCHITECT)** через `isCellCoordinatorOrArchitect` (C.0.04.02). |
 |Публичный API:
 - `interface CellDailyTask { taskId; externalId; description; status; priority; deadline; assignedTo; assignedName }`.
-- `interface CellDailyPlanView { planId: UUID \| null; cellId; date; status; tasks[] }`.
-- `getCellDailyPlan(cellId, date): Promise<CellDailyPlanView>` — если нет плана — `{planId:null, status:'absent', tasks:[]}`; иначе — JOIN tasks + participants (assigned_name), ORDER BY cpt.position, t.external_id.
-- `upsertCellDailyPlan(input): Promise<CellDailyPlanView>` — проверки: cell exists (`NotFoundError`), `cell.direction_id ≠ null` (409), `uniqueTaskIds.length > 0` (422), `≤50` (422), все задачи существуют и `direction_id === cell.direction_id`; транзакция: SELECT `cell_daily_plans WHERE cell_id AND date FOR UPDATE`; если есть — UPDATE `approved_by, status='approved'` + DELETE tasks; иначе — INSERT; для каждой задачи — INSERT `cell_daily_plan_tasks (position)`.
-- `assignCellDailyTask(input): Promise<CellDailyPlanView>` — `getPlanRow` (NotFound); `cell_members` активен для `(cellId, participantId)` (403); UPDATE `cell_daily_plan_tasks.assigned_to` RETURNING (NotFound если 0); UPDATE `tasks.assigned_to/by`; audit.
-- `listCellPlanCandidates(cellId): Promise<Array<{id; externalId; description; status}>>` — `cell.direction_id` (null → []); SELECT `tasks WHERE direction_id AND status IN (...)` ORDER BY status CASE + deadline NULLS LAST LIMIT 200. |
+- `interface CellDailyPlanView { planId: UUID \| null; cellId; date; status; tasks: CellDailyTask[] }`.
+- `getCellDailyPlan(cellId, date): Promise<CellDailyPlanView>` — если плана нет — `{ planId: null, cellId, date, status: 'absent', tasks: [] }`; иначе SELECT `cell_daily_plan_tasks JOIN tasks LEFT JOIN participants` ORDER BY `cpt.position, t.external_id`.
+- `interface VersionSnapshot { tasks: Array<{ taskId; position; assignedTo; delegatedToCellId }>; status; approvedBy }`.
+- `type TxClient = { query: <R>(text, params?) => Promise<{ rows: R[]; rowCount: number \| null }> }` — урезанный клиент для транзакций.
+- `hasAnyVersion(client, planId): Promise<boolean>` — `SELECT EXISTS(SELECT 1 FROM cell_daily_plan_versions ...)`.
+- `writeVersion(client, planId, reason, actorId): Promise<number>` — читает `task_id/position/assigned_to/delegated_to_cell_id` + `status/approved_by` → собирает `VersionSnapshot` → `COALESCE(MAX(version), 0) + 1` → INSERT `cell_daily_plan_versions`; возвращает `version`.
+- `interface CellPlanVersion { version; snapshot: VersionSnapshot; reason: string \| null; createdAt; createdBy }`.
+- `listCellPlanVersions(cellId, date): Promise<CellPlanVersion[]>` — SELECT по plan_id ORDER BY version DESC; если плана нет — `[]`.
+- `upsertCellDailyPlan(input): Promise<CellDailyPlanView>` — `{ cellId, date, taskIds (≤50), approvedById, reason? }`; `isCellCoordinatorOrArchitect` (иначе ForbiddenError); валидация ячейки (`direction_id ≠ null`); дедуп taskIds; валидация задач (найдены, `direction_id === cell.direction_id`, `kind !== 'package'`); **transaction:** `FOR UPDATE` плана → если есть: (при отсутствии истории) v1 «Исходное (до миграции)» → UPDATE status='approved' + DELETE tasks + INSERT tasks → v(next) «Обновление» (reason); иначе: INSERT plan status='approved' → v1 «Создание (пустой)» → INSERT tasks → v2 «Формирование»; audit; return `getCellDailyPlan`.
+- `assignCellDailyTask(input): Promise<CellDailyPlanView>` — `{ cellId, date, taskId, participantId, requesterId }`; проверка плана; `isCellCoordinatorOrArchitect`; участник ∈ cell (`cell_members` active); **transaction:** `FOR UPDATE` task (package → ConflictError; status='submitted'/'accepted' → ConflictError; status='in_progress' → ConflictError — прямое переназначение запрещено) → `FOR UPDATE` plan → (при отсутствии истории) v1 «Исходное (до миграции)» → UPDATE `cell_daily_plan_tasks.assigned_to` (0 rows → NotFound) → UPDATE tasks (`assigned_to`, `assigned_by`, `status = created→assigned, assigned→assigned, ...`) → v(next) «Назначение задачи ...»; audit; return `getCellDailyPlan`.
+- `listCellPlanCandidates(cellId): Promise<Array<{id; externalId; description; status}>>` — задачи направления ячейки со status IN ('created','assigned','in_progress') и `kind='deliverable'`, ORDER BY status (in_progress→assigned→created) + deadline NULLS LAST, LIMIT 200. |
 |↙ ПОТРЕБЛЯЕТ:
 - **C.0.01.02** (errors) — `ConflictError`, `ForbiddenError`, `NotFoundError`, `ValidationError`.
 - **C.0.01.04** (types) — `UUID`.
 - **C.0.01.05** (audit) — `logAction`.
+- **C.0.04.02** (cells/service) — `isCellCoordinatorOrArchitect`.
+- **D.2.01.68** (cell_daily_plan_versions) — таблица версий наряда ячейки; `hasAnyVersion` / `writeVersion`.
 - **L.0.01.01** (id) — `newUUID`.
 - **L.0.01.09** (db) — `query`, `queryOne`, `transaction`.
 - Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- **`getCellDailyPlan`** — A.1.04.01 (cells/controller.ts): GET /cells/:id/daily-plan/:date; **C.0.04.15** (cards.ts) — `dailyPlan` в `CellCard`; **C.0.41.04** (delegation.ts) — `distributeCellDailyPlan` (проверка parent), `getDelegationTree`.
-- **`upsertCellDailyPlan`** — A.1.04.01: PUT /cells/:id/daily-plan/:date; **C.0.06.02** (plans/service) — параллельный upsert в `daily_plans` (разные таблицы — `daily_plans` для направления, `cell_daily_plans` для ячейки).
-- **`assignCellDailyTask`** — A.1.04.01: POST /cells/:id/daily-plan/:date/assign.
+- **`getCellDailyPlan`** — A.1.04.01: GET /cells/:id/daily-plan; **C.0.41.04** (delegation.ts) — `getCellDailyPlan` при distribute.
+- **`upsertCellDailyPlan`** — A.1.04.01: POST /cells/:id/daily-plan.
+- **`assignCellDailyTask`** — A.1.04.01: POST /cells/:id/daily-plan/:task_id/assign.
 - **`listCellPlanCandidates`** — A.1.04.01: GET /cells/:id/daily-plan/candidates.
-- **`CellDailyPlanView` / `CellDailyTask`** — A.1.04.01; **C.0.04.15** (cards.ts). |
+- **`listCellPlanVersions`** — A.1.04.01: GET /cells/:id/daily-plan/versions.
+- **`hasAnyVersion` / `writeVersion`** — публичные, используются `C.0.41.04` (delegation.ts) в транзакции distribute.
+- **`CellDailyPlanView` / `CellDailyTask` / `CellPlanVersion` / `VersionSnapshot`** — A.1.04.01; **C.0.41.04** (`DelegationResult.parent/children` — `CellDailyPlanView`).
+- **`TxClient`** — A.1.04.01 (косвенно), C.0.41.04 (для транзакции distribute). |
 |Реализация:
-- **`getPlanRow(cellId, date)`** (private) — SELECT FROM `cell_daily_plans`.
-- **`getCellDailyPlan`** — `getPlanRow`; если null — `{planId:null, status:'absent', tasks:[]}`; иначе SELECT `cell_daily_plan_tasks JOIN tasks LEFT JOIN participants`; map в `CellDailyTask`.
-- **`upsertCellDailyPlan`** — `cell` (NotFound); `!cell.direction_id` → 409; `uniqueTaskIds.length === 0` → 422; `>50` → 422; SELECT tasks `ANY($1)`; `missing` → NotFound; `direction_id !== cell.direction_id` → 409; транзакция: SELECT FOR UPDATE `cell_daily_plans`; UPDATE (если есть) + DELETE tasks; или INSERT; для каждой — INSERT `cell_daily_plan_tasks (position)`; audit; return `getCellDailyPlan`.
-- **`assignCellDailyTask`** — `getPlanRow` (NotFound); SELECT `cell_members` (active); если нет — 403; UPDATE `cell_daily_plan_tasks.assigned_to` (NotFound если 0); UPDATE `tasks.assigned_to/by`; audit; return `getCellDailyPlan`.
-- **`listCellPlanCandidates`** — `cell.direction_id` (null → []); SELECT tasks ORDER BY status CASE + deadline NULLS LAST LIMIT 200. |
+- **`getCellDailyPlan`** — `getPlanRow` → если null — `{ status: 'absent', tasks: [] }`; иначе SELECT `t.id, t.external_id, t.description, t.status, t.priority, t.deadline, cpt.assigned_to, p.name AS assigned_name` FROM `cell_daily_plan_tasks cpt JOIN tasks t LEFT JOIN participants p` WHERE `cpt.plan_id = $1` ORDER BY `cpt.position, t.external_id`; парсинг `deadline` через `.toISOString()`.
+- **`hasAnyVersion`** — `SELECT EXISTS(SELECT 1 FROM cell_daily_plan_versions WHERE plan_id = $1)`.
+- **`writeVersion`** — SELECT tasks (task_id/position/assigned_to/delegated_to_cell_id) ORDER BY position → SELECT plan (status/approved_by) → `VersionSnapshot` → `COALESCE(MAX(version), 0) + 1` → INSERT `cell_daily_plan_versions` (JSONB snapshot, reason, created_by) → return `version`.
+- **`listCellPlanVersions`** — `getPlanRow` → если null — `[]`; иначе SELECT versions ORDER BY version DESC.
+- **`upsertCellDailyPlan`** — `isCellCoordinatorOrArchitect` → `cell.direction_id` (null → ConflictError) → дедуп `taskIds` → пустой → ValidationError → >50 → ValidationError → SELECT tasks (id, direction_id, kind) → missing → NotFound; direction mismatch → Conflict; kind='package' → Conflict → **transaction:** `SELECT ... FOR UPDATE` daily_plan; если есть: (при `!hasAnyVersion` — v1 «Исходное (до миграции)») → UPDATE approved_by + status='approved' + DELETE tasks + INSERT tasks (position = i) → v(next) «Обновление наряда» (reason ?? 'Обновление наряда'); иначе: INSERT plan → v1 «Создание (пустой)» → INSERT tasks → v2 «Формирование»; audit → `getCellDailyPlan`.
+- **`assignCellDailyTask`** — `getPlanRow` → `!plan` → NotFound; `isCellCoordinatorOrArchitect` → Forbidden; SELECT `cell_members` active → NotFound → ForbiddenError 'Назначать можно только участнику этой ячейки'; **transaction:** `SELECT ... FOR UPDATE` task (id, status, kind, direction_id, assigned_to) → package → Conflict; submitted/accepted → Conflict; in_progress → Conflict ('Прямое переназначение задачи в работе запрещено — используйте процедуру передачи'); previousAssignee = task.assigned_to; `SELECT ... FOR UPDATE` daily_plan → !planId → NotFound; (при `!hasAnyVersion` — v1 «Исходное (до миграции)») → UPDATE `cell_daily_plan_tasks.assigned_to` (0 rows → NotFound) → UPDATE tasks: `nextStatus = task.status === 'created' ? 'assigned' : task.status`; UPDATE `assigned_to`, `assigned_by`, `status`, `updated_at` → v(next) «Назначение задачи ...» → return `getCellDailyPlan`; audit (oldValue/previousAssignee, newValue/version).
+- **`listCellPlanCandidates`** — SELECT `direction_id` FROM cells WHERE id → если null — `[]`; иначе SELECT tasks WHERE `direction_id = $1 AND status IN ('created','assigned','in_progress') AND kind = 'deliverable'` ORDER BY `CASE status (in_progress→assigned→created) + deadline NULLS LAST`, LIMIT 200. |
 |Примечания:
-РЕАЛИЗОВАНО: 4 публичные функции + 1 private (`getPlanRow`) + 2 интерфейса.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.11): **`upsertCellDailyPlan`** — транзакция с FOR UPDATE (race-safe); **`assignCellDailyTask`** — проверка `cell_members` (нельзя назначить чужим); **`listCellPlanCandidates`** — только активные задачи направления.
-СВЯЗЬ С C.0.04.02 (cells/service): `cell.direction_id` — источник для проверки задач; `cell_members` — active membership.
-СВЯЗЬ С C.0.07.02 (tasks/service): `tasks.assigned_to/by` — обновляется при назначении; задача сразу появляется в «Моих задачах».
-СВЯЗЬ С C.0.04.15 (cards.ts): `getCellDailyPlan` — `dailyPlan` в `CellCard`.
-СВЯЗЬ С C.0.41.04 (delegation.ts): `getCellDailyPlan` — база для `distributeCellDailyPlan`; `getDelegationTree` — parent + children.
-СВЯЗЬ С C.0.06.02 (plans/service): параллельная `upsertDailyPlan` в `daily_plans` — разные таблицы; семантика «план направления vs наряд ячейки» — разделены.
+СОЗДАН (новый блок; ранее упоминался в C.0.04.02 (provides) и C.0.41.04 (deps), но блока не было).
+СВЕРХ СТАРОЙ СПЕКИ: **`CellDailyPlanView` / `CellDailyTask` / `CellPlanVersion` / `VersionSnapshot` / `TxClient`** — 5 интерфейсов/types; **`hasAnyVersion` / `writeVersion`** — публичные (нужны C.0.41.04); **версионирование** (D.2.01.68) — v1/v2 при создании, «Исходное (до миграции)» + «Обновление» при upsert, «Назначение задачи ...» при assign.
+СВЯЗЬ С C.0.04.02 (cells/service): `isCellCoordinatorOrArchitect` — координатор или FIRST_ARCHITECT (глобальное полномочие).
+СВЯЗЬ С C.0.41.04 (delegation): `getCellDailyPlan` / `CellDailyPlanView` / `hasAnyVersion` / `writeVersion` — используются в `distributeCellDailyPlan`.
+СВЯЗЬ С D.2.01.68: `cell_daily_plan_versions` — история версий наряда ячейки (таблица создаётся в миграции 068).
+СВЯЗЬ С C.0.07.01 (tasks/entity): `Task.kind` — источник для фильтра `kind='package' → не входит в наряд`.
+СВЯЗЬ С C.0.07.02 (tasks/service): `assigned_to` / `assigned_by` — задача появляется в «Моих задачах» после assign.
+СВЯЗЬ С A.1.04.01: 5 эндпоинтов наряда ячейки.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Пакеты (`kind='package'`) не входят в наряд** — организационные контейнеры, не единица работы.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Прямое переназначение задачи в работе запрещено** (`status='in_progress'` → ConflictError) — используйте процедуру передачи.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Назначать можно только участнику ячейки** (`cell_members active`) — иначе это не наряд ячейки, а перекладывание работы на чужих.
 ТЕХДОЛГ:
-- **`upsertCellDailyPlan` — `approved_by`/`status` перезаписываются** — при update — `approved_by = input.approvedById`, `status='approved'`; семантика «пересоставление = переодобрение» — ок.
-- **`upsertCellDailyPlan` — `delegated_to_cell_id`** — при UPDATE DELETE tasks → `delegated_to_cell_id` теряется; семантика «пересоставление сбрасывает делегирование» — ок, но roadmap — сохранять или предупреждать.
-- **`assignCellDailyTask` — нет проверки, что план в статусе `'approved'`** — можно назначить в `'delegated'`; семантика «наряд утверждён или делегирован» — roadmap.
-- **`assignCellDailyTask` — race** — UPDATE `cell_daily_plan_tasks` + UPDATE `tasks` не транзакция; при сбое второго — рассинхрон; roadmap — транзакция.
-- **`listCellPlanCandidates` — не исключает уже назначенные в этот наряд** — roadmap.
-- **`upsertCellDailyPlan — ≤50 задач** — hardcoded; для больших нарядов — roadmap.
-- **`getCellDailyPlan` — `assigned_name`** — из `participants`; если participant удалён — null; ок.
-- **`getCellDailyPlan` — `planId` null при отсутствии** — семантика «нет наряда» — ок.
-- **`upsertCellDailyPlan` — `position` 0..N** — по порядку `uniqueTaskIds`; при пересоставлении — позиции пересоздаются; ок.
-- **`assignCellDailyTask` — UPDATE `tasks.assigned_to`** — без транзакции с UPDATE `cell_daily_plan_tasks`; roadmap — транзакция.
-- **Нет WS-эмиссий** — real-time для наряда — не отправляется; roadmap — WS.
-- **Нет уведомлений** — о назначении задачи — не уведомляется; roadmap — push/email. |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.03 test-cells.ts (косвенно); I.9.04.67 test-capacity-cells.ts (косвенно); I.9.04.61 test-delegation.ts (прямо — `distributeCellDailyPlan`). |
+- **`upsertCellDailyPlan` — `cell_daily_plan_tasks` DELETE + INSERT** — при параллельном чтении карточки возможен кратковременный «пустой» наряд (в пределах транзакции — атомарно, но другие транзакции с READ COMMITTED увидят момент до commit; в PostgreSQL — снапшот, так что «пустого» не видно).
+- **`upsertCellDailyPlan` — не проверяет `parent` при создании** — только `isCellCoordinatorOrArchitect`; семантика «координатор над пятью ячейками распределяет по ячейкам» — на UI.
+- **`upsertCellDailyPlan` — `taskIds (≤50)`** — жёсткий лимит; в A.1.06.01 — 100 для направления; разные конвенции.
+- **`assignCellDailyTask` — `status='in_progress'` запрещено** — если задача уже в работе, нельзя переназначить; семантика «передача» — roadmap.
+- **`assignCellDailyTask` — `assignmentVersion`** — фиксируется в audit; но при `writeVersion` версия уже записана; audit содержит `version` — дублирование.
+- **`getCellDailyPlan` — deadline через `.toISOString()`** — если `deadline` null — null; ок.
+- **`listCellPlanVersions` — `getPlanRow` → если null — `[]`** — семантика «нет версий, т.к. нет наряда» — ок.
+- **`hasAnyVersion` — публичная** — используется в C.0.41.04; сигнатура с `client` — урезанный `TxClient`.
+- **`writeVersion` — публичная** — используется в C.0.41.04; возвращает `version` (number).
+- **`upsertCellDailyPlan — reason ?? 'Обновление наряда'`** — дефолт; в audit — `reason ?? null`; семантика размыта.
+- **`assignCellDailyTask — previousAssignee`** — если задача не назначена — null; audit пишет oldValue.
+- **`assignCellDailyTask — nextStatus = created→assigned, assigned→assigned`** — status не меняется, если задача уже assigned; семантика «переназначение» — ок.
+- **`listCellPlanCandidates — LIMIT 200`** — без пагинации; для больших направлений — обрезается.
+- **`getCellDailyPlan — `assignedName`** — `LEFT JOIN participants p`; если participant soft-deleted, `p.name` — NULL; ок.
+- **Нет уведомлений** — о новом наряде/назначении — не уведомляется; roadmap.
+- **Нет WS-эмиссий** — real-time для наряда ячейки — не отправляется; roadmap.
+- **`upsertCellDailyPlan` — audit один `logAction`** — для per-task — roadmap.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.59 test-tree-naryad.ts (косвенно); I.9.04.61 test-delegation.ts (косвенно — `getCellDailyPlan`, `hasAnyVersion`, `writeVersion`); I.9.04.67 test-capacity-cells.ts (косвенно); I.9.04.75 test-cell-daily-plan.ts (прямо). |
 
-|C.0.41.04|CORE|Cells|TypeScript|src/core/cells/delegation.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.41.03, L.0.01.01, L.0.01.09|v.0.0.1|Draft|-|
-|Описание: **Передача наряда в дочерние ячейки (5 × 5).** Наряд приходит на ячейку. Её координатор может: 1) распределить задачи по людям своей ячейки (`C.0.41.03`), или 2) **передать части наряда дочерним ячейкам** (этот модуль), а те раздадут людям сами. **Задача остаётся в наряде верхней ячейки** (общая картина не теряется), но помечается `delegated_to_cell_id`; в дочерней ячейке создаётся свой наряд на ту же дату. **Одна задача — одна дочерняя ячейка** (иначе два человека делают одно и то же). **Функции:** `distributeCellDailyPlan` (валидация: дочерние ячейки — дети; задачи входят в наряд родителя; нет дублей; транзакция: для каждого assignment — SELECT FOR UPDATE child plan (или INSERT), INSERT `cell_daily_plan_tasks` ON CONFLICT DO NOTHING, UPDATE parent `delegated_to_cell_id`); `getDelegationTree` (parent + children на дату); `countDelegated` (COUNT задач родителя с `delegated_to_cell_id NOT NULL`). |
+|C.0.41.04|CORE|Cells|TypeScript|src/core/cells/delegation.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.0.04.02, C.0.41.03, L.0.01.01, L.0.01.09|v.0.0.2|Draft|-|
+|Описание: **Передача наряда в дочерние ячейки (5 × 5).** Наряд приходит на ячейку; её координатор может: 1) распределить задачи по людям своей ячейки (`C.0.41.03`), или 2) **передать части наряда дочерним ячейкам** (этот модуль), а те раздадут людям сами. **Задача остаётся в наряде верхней ячейки** (общая картина не теряется), но помечается `delegated_to_cell_id`; в дочерней ячейке создаётся свой наряд на ту же дату. **Одна задача — одна дочерняя ячейка** (иначе два человека делают одно и то же). **Правки (v0.0.02):** делегировать может только **координатор ячейки (или FIRST_ARCHITECT)** через `isCellCoordinatorOrArchitect`; делегирование — **только внутри направления** (дочерняя ячейка обязана принадлежать тому же `direction_id`, что и родитель); **пакеты (`kind='package'`) не передаются**; **версионирование** — «до»/«после» у родителя и у каждой дочерней ячейки через `writeVersion` / `hasAnyVersion` из `./daily.js`. **Функции:** `distributeCellDailyPlan` (валидация + транзакция: `FOR UPDATE` child plan → INSERT `cell_daily_plan_tasks ON CONFLICT DO NOTHING` → UPDATE parent `delegated_to_cell_id`); `getDelegationTree` (parent + children на дату); `countDelegated` (COUNT задач родителя с `delegated_to_cell_id NOT NULL`). |
 |Публичный API:
-- `interface Distribution { childCellId; taskIds }`.
-- `interface DelegationResult { parent: CellDailyPlanView; children: Array<CellDailyPlanView & { cellNumber }> }`.
-- `distributeCellDailyPlan(input): Promise<DelegationResult>` — `getCellDailyPlan` (parent) → NotFound если нет plan; `getChildren` (empty → 409); валидация assignments: `childCellId ∈ children`, задачи ∈ parent, нет дублей, нет уже делегированных; `seen.size === 0` → 422; транзакция: для каждого assignment — SELECT child plan FOR UPDATE (UPDATE `status='delegated'` или INSERT с `status='delegated'`), INSERT `cell_daily_plan_tasks ON CONFLICT DO NOTHING`, UPDATE parent `delegated_to_cell_id`; audit; return `getDelegationTree`.
+- `interface Distribution { childCellId: UUID; taskIds: UUID[] }`.
+- `interface DelegationResult { parent: CellDailyPlanView; children: Array<CellDailyPlanView & { cellNumber: string }> }`.
+- `distributeCellDailyPlan(input): Promise<DelegationResult>` — `{ cellId, date, assignments, requesterId }`; **`isCellCoordinatorOrArchitect`** (иначе `ForbiddenError`); `getCellDailyPlan` (parent) → `NotFound` если нет plan; `parentCell.direction_id` — источник для проверки; `getChildren` (empty → `ConflictError`); валидация assignments: `childCellId ∈ children` (ValidationError), `childDirection.get(childCellId) === parentCell.direction_id` (ConflictError), `taskId ∈ parentTaskIds` (ConflictError), `kindById.get(taskId) !== 'package'` (ConflictError), `!alreadyDelegated.has(taskId)` (ConflictError), `!seen.has(taskId)` (ValidationError); `seen.size === 0` → ValidationError; **транзакция:** (для родителя) `hasAnyVersion` → если нет — v1 «Исходное (до миграции)»; для каждого assignment: `SELECT ... FOR UPDATE` child plan → если есть: UPDATE `status='delegated'` + (при отсутствии истории) v1 «Исходное (до миграции)»; иначе: INSERT child plan `status='delegated'` + v1 «Создание наряда (делегирование)»; для каждой taskId: INSERT `cell_daily_plan_tasks ON CONFLICT (plan_id, task_id) DO NOTHING` + UPDATE parent `delegated_to_cell_id`; v(next) «Получено делегирование от <cellId>» у child; v(next) «Делегирование N задач дочерним ячейкам» у parent; audit; return `getDelegationTree`.
 - `getDelegationTree(cellId, date): Promise<DelegationResult>` — parent + для каждого child — `getCellDailyPlan` + `cellNumber`.
-- `countDelegated(planId): Promise<number>` — COUNT `cell_daily_plan_tasks WHERE plan_id AND delegated_to_cell_id IS NOT NULL`. |
+- `countDelegated(planId): Promise<number>` — COUNT `cell_daily_plan_tasks WHERE plan_id AND delegated_to_cell_id IS NOT NULL`.
+- Приватная: `getChildren(cellId)` — SELECT id, number FROM cells WHERE parent_cell_id ORDER BY number. |
 |↙ ПОТРЕБЛЯЕТ:
-- **C.0.01.02** (errors) — `ConflictError`, `NotFoundError`, `ValidationError`.
+- **C.0.01.02** (errors) — `ConflictError`, `ForbiddenError`, `NotFoundError`, `ValidationError`.
 - **C.0.01.04** (types) — `UUID`.
 - **C.0.01.05** (audit) — `logAction`.
-- **C.0.41.03** (cells/daily) — `getCellDailyPlan`, `CellDailyPlanView`.
+- **C.0.04.02** (cells/service) — `isCellCoordinatorOrArchitect` (координатор или FIRST_ARCHITECT).
+- **C.0.41.03** (cells/daily) — `getCellDailyPlan`, `writeVersion`, `hasAnyVersion`, `CellDailyPlanView`, `TxClient`.
 - **L.0.01.01** (id) — `newUUID`.
 - **L.0.01.09** (db) — `query`, `queryOne`, `transaction`.
 - Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- **`distributeCellDailyPlan`** — A.1.04.01 (cells/controller.ts): POST /cells/:id/daily-plan/:date/distribute; F.4.02.35 (CellsMap.tsx) — распределение по дереву.
-- **`getDelegationTree`** — A.1.04.01: GET /cells/:id/daily-plan/:date/delegation; F.4.02.35 (CellsMap.tsx).
-- **`countDelegated`** — A.1.04.01: GET /cells/:id/daily-plan/:date/delegated-count.
+- **`distributeCellDailyPlan`** — A.1.04.01 (cells/controller.ts): POST /cells/:id/daily-plan/distribute; F.4.02.35 (CellsMap.tsx) — распределение по дереву.
+- **`getDelegationTree`** — A.1.04.01: GET /cells/:id/daily-plan/tree; F.4.02.35 (CellsMap.tsx).
+- **`countDelegated`** — A.1.04.01: (roadmap; контроллер не регистрирует отдельный route, но сервис публичный).
 - **`Distribution` / `DelegationResult`** — A.1.04.01; F.4.02.35 (CellsMap.tsx). |
 |Реализация:
-- **`getChildren(cellId)`** (private) — SELECT `cells WHERE parent_cell_id = $1` ORDER BY number.
-- **`distributeCellDailyPlan`** — `getCellDailyPlan` (parent) → `!parent.planId` → 404; `getChildren` (empty → 409); `childIds = Set`; `parentTaskIds = Set(parent.tasks.map(taskId))`; `delegatedRows = SELECT task_id, delegated_to_cell_id FROM cell_daily_plan_tasks WHERE plan_id = parent.planId`; `alreadyDelegated = Set(...filter delegated_to_cell_id)`; валидация assignments (`seen`): `childCellId ∈ childIds` (422), `taskId ∈ parentTaskIds` (409), `!alreadyDelegated.has(taskId)` (409), `!seen.has(taskId)` (422); `seen.size === 0` → 422; транзакция: для каждого assignment — SELECT child plan `FOR UPDATE`; если есть — UPDATE `approved_by, status='delegated'`; иначе — INSERT `status='delegated'`; для каждого taskId — INSERT `cell_daily_plan_tasks ON CONFLICT (plan_id, task_id) DO NOTHING` + UPDATE parent `delegated_to_cell_id = a.childCellId`; audit; return `getDelegationTree`.
-- **`getDelegationTree`** — `getCellDailyPlan` (parent) + `getChildren`; для каждого child — `getCellDailyPlan(child.id, date)` + `cellNumber`; return `{parent, children}`.
-- **`countDelegated`** — COUNT `cell_daily_plan_tasks WHERE plan_id AND delegated_to_cell_id IS NOT NULL`. |
+- **`getChildren(cellId)`** (private) — `SELECT id, number FROM cells WHERE parent_cell_id = $1 ORDER BY number`.
+- **`distributeCellDailyPlan`** — `isCellCoordinatorOrArchitect` → `getCellDailyPlan` (parent) → `!parent.planId` → NotFound; `parentCell.direction_id`; `getChildren` (empty → 409); `childIds = Set`; `childRows = SELECT id, direction_id FROM cells WHERE id = ANY(...)`; `childDirection = Map`; `parentTaskIds = Set(parent.tasks.map(t => t.taskId))`; `delegatedRows = SELECT task_id, delegated_to_cell_id FROM cell_daily_plan_tasks WHERE plan_id = parent.planId`; `alreadyDelegated = Set(...filter delegated_to_cell_id)`; `taskKinds = SELECT id, kind FROM tasks WHERE id = ANY([...parentTaskIds])`; `kindById = Map`; **валидация assignments** (`seen`): `childCellId ∈ childIds` (ValidationError), `childDirection.get(childCellId) === parentCell.direction_id` (ConflictError), `taskIds.length === 0` — `continue`, `taskId ∈ parentTaskIds` (ConflictError), `kindById.get(taskId) !== 'package'` (ConflictError), `!alreadyDelegated.has(taskId)` (ConflictError), `!seen.has(taskId)` (ValidationError); `seen.size === 0` → ValidationError; **транзакция** (`transaction`): `tx = client as TxClient`; для родителя: `hasAnyVersion(tx, parent.planId)` → если нет — `writeVersion(tx, parent.planId, 'Исходное состояние (до миграции)', requesterId)`; **для каждого assignment** (`taskIds.length === 0` — `continue`): `SELECT id FROM cell_daily_plans WHERE cell_id AND date FOR UPDATE`; если есть: UPDATE `approved_by, status='delegated'`; `hasAnyVersion` → если нет — v1 «Исходное (до миграции)»; иначе: `childPlanId = newUUID()`, INSERT `status='delegated'`, v1 «Создание наряда (делегирование)»; для каждой taskId: INSERT `cell_daily_plan_tasks ON CONFLICT (plan_id, task_id) DO NOTHING` + UPDATE `cell_daily_plan_tasks SET delegated_to_cell_id = $3 WHERE plan_id AND task_id`; v(next) «Получено делегирование от <cellId>»; **v(next) у родителя** «Делегирование N задач дочерним ячейкам»; audit (`cells.daily_plan.distribute`); return `getDelegationTree`.
+- **`getDelegationTree`** — `getCellDailyPlan` (parent) + `getChildren`; для каждого child — `getCellDailyPlan(child.id, date)` + `cellNumber`; return `{ parent, children }`.
+- **`countDelegated`** — `SELECT COUNT(*)::text FROM cell_daily_plan_tasks WHERE plan_id = $1 AND delegated_to_cell_id IS NOT NULL`. |
 |Примечания:
 РЕАЛИЗОВАНО: 3 публичные функции + 1 private (`getChildren`) + 2 интерфейса.
-СВЕРХ СТАРОЙ СПЕКИ (v0.0.11): **`distributeCellDailyPlan`** — транзакция + FOR UPDATE (race-safe); **`delegated_to_cell_id`** — пометка в родителе; **`getDelegationTree`** — parent + children; **`countDelegated`** — счётчик переданных задач.
-СВЯЗЬ С C.0.41.03 (cells/daily): `getCellDailyPlan` — источник parent; `delegated_to_cell_id` — колонка в `cell_daily_plan_tasks` (добавлена в daily? — да, в `upsertCellDailyPlan` DELETE сбрасывает, а тут — UPDATE); семантика «делегирование» — в этой колонке.
-СВЯЗЬ С C.0.04.02 (cells/service): `parent_cell_id` — иерархия; `getChildren` — потомки.
-СВЯЗЬ С F.4.02.35 (CellsMap.tsx): UI — дерево нарядов.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.1):
+- **Проверка направления дочерних ячеек** — `childDirection.get(childCellId) === parentCell.direction_id` → `ConflictError` (было: не проверялось, roadmap).
+- **Проверка `kind='package'`** — `ConflictError` (пакеты не передаются).
+- **Транзакция с версионированием** — `FOR UPDATE` child plan; `hasAnyVersion` / `writeVersion` для родителя и каждого child; «до»/«после» в одной транзакции.
+- **`status='delegated'` у child** — при создании нового плана; при существующем — UPDATE на `'delegated'`.
+- **`isCellCoordinatorOrArchitect`** (из C.0.04.02) — вместо ручной проверки; FIRST_ARCHITECT — глобальное полномочие.
+- **`parent.planId!` non-null assertion** — после `if (!parent.planId) throw` — безопасно, но `!` — обход типизации.
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.41.03 (cells/daily): `getCellDailyPlan` — источник parent; `hasAnyVersion` / `writeVersion` — версионирование; `TxClient` — урезанный клиент; `delegated_to_cell_id` — колонка в `cell_daily_plan_tasks`.
+СВЯЗЬ С C.0.04.02 (cells/service): `isCellCoordinatorOrArchitect` — координатор или FIRST_ARCHITECT; `parent_cell_id` — иерархия; `getChildren` — потомки (собственная реализация, не C.0.04.02, т.к. `getChildren` из C.0.04.02 возвращает `Cell[]`, а здесь нужен `{ id, number }[]`).
+СВЯЗЬ С C.0.07.01 (tasks/entity): `kind` — источник для проверки «пакет не передаётся».
+СВЯЗЬ С A.1.04.01: 2 эндпоинта (`GET .../tree`, `POST .../distribute`).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Одна задача — одна дочерняя ячейка** (`alreadyDelegated` + `seen` + UPDATE parent `delegated_to_cell_id`) — иначе два человека делают одно и то же.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Задача остаётся в наряде верхней ячейки** — общая картина не теряется; `delegated_to_cell_id` — маркер, а не перемещение.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`status='delegated'`** для child-плана — семантика «делегированный наряд»; родитель остаётся `'approved'` (или прежний статус — UPDATE только `approved_by` у parent не делается, но в транзакции parent-статус не меняется).
 ТЕХДОЛГ:
-- **`distributeCellDailyPlan` — `delegated_to_cell_id` не сбрасывается при повторном** — если задача уже делегирована — 409; семантика «нельзя передать дважды» — ок, но если нужно «передать в другую ячейку» — roadmap (UPDATE).
-- **`distributeCellDailyPlan` — `status='delegated'` для child** — у child-плана `status='delegated'`; семантика «делегированный наряд» — ок; в `C.0.41.03` `upsertCellDailyPlan` перезаписывает на `'approved'` при UPDATE — рассинхрон статусов между parent (delegated → approved при update) и child; roadmap — унифицировать.
-- **`distributeCellDailyPlan` — не проверяет, что child не имеет своего наряда с другими задачами** — если child уже имеет план (например, `status='approved'`), то `status='delegated'` перезапишет; семантика «делегирование перезаписывает» — ок, но задача может быть потеряна (DELETE не делается — INSERT ON CONFLICT DO NOTHING); roadmap — предупреждение.
-- **`distributeCellDailyPlan` — не проверяет направление child-ячейки** — `child.direction_id` может отличаться; задача родителя из направления X передаётся ячейке из направления Y — семантика «делегирование в дочернюю (должна быть в том же направлении)» — ок, но не проверяется; roadmap.
-- **`getDelegationTree` — N+1** — для каждого child — `getCellDailyPlan`; для 5 детей — 5 SELECT; ок для 5×5.
-- **`countDelegated` — не считает детей** — только parent; для «сколько в дочерних» — `getDelegationTree` (children); семантика «count только parent» — ок.
-- **`getChildren` — не проверяет `deleted_at`** — если ячейка soft-deleted — попадёт; roadmap.
-- **Нет WS-эмиссий** — real-time для делегирования — не отправляется; roadmap — WS.
-- **Нет уведомлений** — о новом наряде дочерней ячейки — не уведомляется; roadmap — push/email.
-- **`distributeCellDailyPlan — audit** — один `logAction` на всю операцию; для per-assignment — roadmap.
-- **`Distribution.taskIds`** — массив; дубли в `taskIds` внутри одного assignment не проверяются (`seen` — глобальный, но только для всех); ок (глобальный `seen` покрывает). |
-|ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.61 test-delegation.ts (прямо); I.9.04.03 test-cells.ts (косвенно); I.9.04.59 test-tree-naryad.ts (косвенно — дерево наряда). |
+- **`distributeCellDailyPlan — delegated_to_cell_id не сбрасывается при повторном** — если задача уже делегирована — 409; семантика «нельзя передать дважды» — ок; «передать в другую ячейку» — roadmap (UPDATE).
+- **`distributeCellDailyPlan — status='delegated' для child`** — у child-плана `status='delegated'`; в C.0.41.03 `upsertCellDailyPlan` перезаписывает на `'approved'` при UPDATE — рассинхрон статусов между parent (delegated → approved при update) и child; roadmap — унифицировать.
+- **`distributeCellDailyPlan — не проверяет, что child не имеет своего наряда с другими задачами** — если child уже имеет план (например, `status='approved'`), то `status='delegated'` перезапишет; семантика «делегирование перезаписывает» — ок, но задача может быть потеряна (DELETE не делается — INSERT ON CONFLICT DO NOTHING); roadmap — предупреждение.
+- **`distributeCellDailyPlan — направление child-ячейки** — проверяется (v0.0.2), ранее было roadmap.
+- **`getDelegationTree — N+1`** — для каждого child — `getCellDailyPlan`; для 5 детей — 5 SELECT; ок для 5×5.
+- **`countDelegated — не считает детей** — только parent; для «сколько в дочерних» — `getDelegationTree`.
+- **`getChildren — не проверяет deleted_at`** — если ячейка soft-deleted — попадёт; roadmap.
+- **Нет WS-эмиссий** — real-time для делегирования — не отправляется; roadmap.
+- **Нет уведомлений** — о новом наряде дочерней ячейки — не уведомляется; roadmap.
+- **`distributeCellDailyPlan — audit`** — один `logAction` на всю операцию; для per-assignment — roadmap.
+- **`Distribution.taskIds`** — массив; дубли в `taskIds` внутри одного assignment не проверяются отдельно (`seen` — глобальный, покрывает).
+- **`parent.planId!` / `childPlanId as UUID`** — non-null assertions / casts; типизация хрупкая (вне `if (!parent.planId) throw`).
+- **`as never` в контроллере** (A.1.04.01) — обход типизации `childCellId`/`taskId`.
+- **Транзакция не имеет явного `try/catch`** — при ошибке внутри (например, ConflictError) — rollback автоматически (transaction wrapper), но `logAction` после транзакции не выполнится — ок.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.61 test-delegation.ts (прямо); I.9.04.03 test-cells.ts (косвенно); I.9.04.59 test-tree-naryad.ts (косвенно). |
 
 |C.0.42.01|CORE|Collective|TypeScript|src/core/collective/service.ts|C.0.01.04, L.0.01.09|v.0.0.1|Draft|-|
 |Описание: **«Коллектив»: кто есть, кто и что происходит.** Приглашённый человек должен за 30 секунд понять, куда он попал — кто здесь работает, на каких направлениях, какие роли заняты и что происходило в последние дни. Без этого продукт выглядит мёртвым, даже если внутри всё работает. **Принципы:** только чтение, без побочных эффектов; **в ленту не попадают телефоны, мессенджеры, IP и payload'ы аудита** — видно «кто», «что» и «когда», но не персональные данные; **жёсткие лимиты** (200 человек, 60 событий) — это экран, а не выгрузка. **`getOverview(activityLimit=40)`** — 5 параллельных запросов: люди (LIMIT 200, JOIN directions + participant_roles + roles, `json_agg DISTINCT jsonb_build_object(name, validTo)`), направления (LEFT JOIN participants, COUNT), роли (JOIN participant_roles, COUNT DISTINCT, LIMIT 30), активность (audit_log LEFT JOIN participants, ORDER BY created_at DESC, LIMIT), totals (4 подзапроса: participants, directions, tasks assigned/in_progress, tasks submitted). Типы: `CollectivePerson` (id/externalId/name/pseudonym/status/direction/roles[]), `CollectiveDirection` (number/name/people), `CollectiveRole` (name/holders), `CollectiveActivityItem` (id/at/actor/action/entityType/entityId), `CollectiveOverview` (totals/people/directions/roles/activity). |
@@ -11072,38 +11436,139 @@
 ТЕХДОЛГ: нет endpoint для `escalate`/`close` mentor_question — только answer.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.09.20 (smoke-passport-teaching), I.9.09.11 (test-passport-v3). |
 
-|C.1.10.01|Core|Passport/Matching|TypeScript|src/core/passport/matching.ts|C.0.01.02, L.0.01.09, C.1.01.01, C.1.04.02, C.1.08.01, C.1.11.01|v.0.0.01|Draft|I.9.09.05, I.9.09.11|
-|Описание: Matching (§11.2, Фаза 3a) участника vs TaskProfile. `matchTask(taskId, participantId, viewerId)` — по каждому `required_atom`: «покрыто» = для каждой применяемой dimension `level >= min[dim]` И `status ∈ {confirmed, provisional}`; `dimension_applicability[dim].applicable=false` → измерение не проверяем. **Критичные dimension по роли (A21)**: `executor→P`, `assessor→E`, `designer→D`, `consultant→U,X`. Агрегат: `match` (нет gaps) | `partial` (gaps только в не-критичных) | `no_match` (есть критичный gap). Permit-gap (**A38/A39**): `absent`/`expired`/`revoked` → критичный, приоритет `active` + effective `valid_until = min(participant_permits, permits)`. `getCandidates(taskId, viewerId, limit ≤ 100)` — top-N без раскрытия уровней. |
+|C.1.09.02|CORE|Passport|TypeScript|src/core/passport/teaching-practice.ts|C.0.01.02, C.0.01.04, C.0.01.05, C.1.09.01, D.2.01.70, L.0.01.01, L.0.01.09|v.0.0.1|Draft|I.9.09.43, §7.5|
+|Описание: **TeachingPracticeLink: обучение на производстве (ТЗ §3.5).** Связывает учителя и ученика через две реальные задачи: `sourceTaskId` — задача учителя (на примере которой идёт обучение); `learnerTaskId` — собственная задача ученика (где он применяет изучаемое; учитель не подменяет ученика и не отвечает за его сдачу в OTC). **Проверки при создании:** `teacher ≠ learner`; оба существуют, не `deleted`; `source_task.assigned_to = teacher`, `kind='deliverable'`; `learner_task.assigned_to = learner`, `kind='deliverable'`; `source` и `learner` в одном направлении; `competency_atom_id` существует; `computeReadiness(teacher, atom) = 'ready'` (предметная компетенция); `learner_task.status <> 'accepted'`; нет активной пары (`proposed`/`active`/`submitted`) для `(teacher, learner, atom)`. **Педагогическая компетенция НЕ проверяется** — модель отсутствует; архитектурный пробел. **Статусы:** `proposed → active` (обе стороны согласились) → `submitted` (ученик сдал) → `completed` (учитель подтвердил). `proposed`/`active`/`submitted` → `cancelled` (отмена). `completed`/`cancelled` — финальные. **Инициатор (`created_by`) автоматически даёт согласие за себя** (`teacherConsent`/`learnerConsent`). |
 |Публичный API:
-- `matchTask(taskId: UUID, participantId: UUID, viewerId: UUID): Promise<TaskMatching>` — `{ taskId, participantId, status, gaps, checkedCount, coverage }`. `coverage = passCount / totalChecks` (0 если `totalChecks=0`).
-- `getCandidates(taskId, viewerId, limit = 20): Promise<TaskCandidate[]>` — `{ participantId, participantExternalId, participantName, matches, gaps, status }` (без `level`/`min`).
-- Внутренние (не экспортируются): `checkRequiredAtom`, `applyProfile`, `aggregateStatus`, `checkPermitsGap`.
-- Константы: `ROLE_CRITICAL: Record<TaskProfileRole, Dimension[]>`. |
+- `type PracticeStatus = 'proposed' | 'active' | 'submitted' | 'completed' | 'cancelled'`.
+- `interface TaskPractice { id; teacherId; learnerId; sourceTaskId; learnerTaskId; competencyAtomId; expectedLearningResult; status; teacherConsent; learnerConsent; createdBy; createdAt; updatedAt; completedAt; cancelledAt; cancelReason }`.
+- `interface CreatePracticeInput { teacherId; learnerId; sourceTaskId; learnerTaskId; competencyAtomId; expectedLearningResult }`.
+- `createPractice(input, actorId): Promise<TaskPractice>` — валидация + `computeReadiness` + транзакция: `SELECT ... FOR UPDATE` дубликата активной пары → INSERT `task_practices` (`proposed`, `teacherConsent = actor === teacher`, `learnerConsent = actor === learner`, `created_by = actor`) → audit.
+- `getById(id): Promise<TaskPractice>` — NotFound.
+- `listMyPractices(participantId): Promise<{ asTeacher: TaskPractice[]; asLearner: TaskPractice[] }>` — параллельные SELECT (asTeacher / asLearner), LIMIT 100, ORDER BY created_at DESC.
+- `isTeacherOfLearnerTask(teacherId, learnerTaskId): Promise<boolean>` — COUNT по `(teacher_id, learner_task_id)` AND `status IN ('active', 'submitted', 'completed')`; **§7.5** (для `C.0.07.02` / `C.0.09.02`).
+- `listPracticesForLearnerTask(learnerTaskId): Promise<TaskPractice[]>` — ORDER BY created_at DESC.
+- `giveConsent(id, actorId): Promise<TaskPractice>` — транзакция: `FOR UPDATE` → `cancelled`/`completed` → ConflictError; `active`/`submitted` → return (идемпотентно); `actor ∈ {teacher, learner}` иначе ForbiddenError; `nextTeacher = isTeacher ? true : row.teacher_consent`; `nextLearner = isLearner ? true : row.learner_consent`; `nextStatus = nextTeacher && nextLearner ? 'active' : 'proposed'`; UPDATE; audit.
+- `submitPractice(id, actorId): Promise<TaskPractice>` — `actor !== learnerId` → ForbiddenError; `status !== 'active'` → ConflictError; UPDATE `status='submitted'` WHERE `status='active'`; audit.
+- `completePractice(id, actorId): Promise<TaskPractice>` — транзакция: `FOR UPDATE` → `actor !== teacher_id` → ForbiddenError; `completed` → return (идемпотентно); `!== 'submitted'` → ConflictError; UPDATE `status='completed', completed_at=now()` WHERE `status='submitted'`; audit.
+- `cancelPractice(id, actorId, reason): Promise<TaskPractice>` — `reason.trim().length < 3` → ValidationError; транзакция: `FOR UPDATE` → `actor ∉ {teacher, learner}` → ForbiddenError; `cancelled` → return (идемпотентно); `completed` → ConflictError; UPDATE `status='cancelled', cancelled_at=now(), cancel_reason = reason`; audit.
+- `const PRACTICE_SELECT` (private) — шаблон SELECT. |
 |↙ ПОТРЕБЛЯЕТ:
-- C.0.01.02 errors — `NotFoundError`.
-- L.0.01.09 db — `query`, `queryOne`.
-- C.1.01.01 types — `UUID`, `Dimension`, `MatchGap`, `MatchStatus`, `RequiredAtom`, `TaskCandidate`, `TaskMatching`, `TaskProfile`, `TaskProfileRole`, `DIMENSIONS`, `isDimensionApplicable`.
-- **C.1.04.02 visibility.ts** — `recordAccess` (журнал при чтении чужого паспорта).
-- **C.1.08.01 task-profile.ts** — `getTaskProfile`.
-- **C.1.11.01 permits.ts** — `pickEffectiveValidUntil`.
-- Таблицы БД: `person_atom_states`, `competency_atoms`, `participant_permits`, `permits`, `participants`, `task_profiles`. |
+- **C.0.01.02** (errors) — `ConflictError`, `ForbiddenError`, `NotFoundError`, `ValidationError`.
+- **C.0.01.04** (types) — `UUID`, `ISODateTime`.
+- **C.0.01.05** (audit) — `logAction`.
+- **C.1.09.01** (teaching.ts) — **`computeReadiness(teacherId, atomId)`** (готовность учителя по атому).
+- **D.2.01.70** (task_practices) — таблица `task_practices` + CHECK (`chk_tp_distinct_participants`, `chk_tp_cancel_reason`, `chk_tp_active_consents`) + UNIQUE partial `uq_task_practices_active_pair` + `idx_task_practices_learner_task`.
+- **L.0.01.01** (id) — `newUUID`.
+- **L.0.01.09** (db) — `query`, `queryOne`, `transaction`.
+- Внешние: нет. |
 |↘ ПРЕДОСТАВЛЯЕТ:
-- `matchTask` / `getCandidates` — контроллер паспорта (TaskProfile/Matching endpoints).
-- Побочный эффект: пишет в `passport_access_log` (reason `matching` / `candidates`) при `viewerId !== participantId`. |
+- **`createPractice` / `getById` / `listMyPractices` / `giveConsent` / `submitPractice` / `completePractice` / `cancelPractice` / `isTeacherOfLearnerTask` / `listPracticesForLearnerTask`** — A.1.31.01 (learning/controller.ts): `POST /learning/task-practices`, `GET /learning/task-practices/:id`, `GET /learning/task-practices/me`, `POST /learning/task-practices/:id/consent`, `POST /learning/task-practices/:id/submit`, `POST /learning/task-practices/:id/complete`, `POST /learning/task-practices/:id/cancel`.
+- **`isTeacherOfLearnerTask`** — **C.0.07.02** (`acceptTaskService` — §7.5: учитель не принимает результат ученика → 403); **C.0.09.02** (`decide` / `crisisDecide` — §7.5).
+- **`TaskPractice` / `CreatePracticeInput` / `PracticeStatus`** — A.1.31.01; F.4.02.12 (Practices.tsx).
+- **Тесты:** I.9.09.43 (полный цикл practice), I.9.04.78 (§7.5), I.9.04.79 (Сценарий 6). |
 |Реализация:
-- `matchTask`: `getTaskProfile` (NotFound если нет); проверка `participants.deleted_at IS NULL`; `applyProfile` (по каждому атому — `checkRequiredAtom`); `checkPermitsGap`; `gaps = permitGap ? [permitGap, ...atomGaps] : atomGaps`; `recordAccess` при `viewerId !== participantId`; `checkedCount = atoms + permitIds.length`, `coverage = (total - gaps) / total`.
-- `checkRequiredAtom`: SELECT `person_atom_states` по `(participant_id, atom_id)`, Map по dimension; для каждой `[dim, minLevel]` из `req.min`: пропуск если `!isDimensionApplicable(app, dim)`; иначе `isCovered(state, minLevel)` — `state.status ∈ {confirmed, provisional}` И `state.level !== null` И `state.level >= minLevel`; собранные `missingDimensions` → `MatchGap { atomId, role, missingDimensions, critical: any criticalDims.includes(d), reason: 'missing_dimensions' }`.
-- `aggregateStatus`: `[] → 'match'`; есть `critical → 'no_match'`; иначе `'partial'`.
-- `checkPermitsGap`: пустой `permitIds → null`; SELECT `participant_permits JOIN permits` с `ORDER BY created_at DESC`; по каждому pid: нет записей → `absent`; есть `active` с effective `valid_until < now` → `expired`; active и не истёк → `continue` (покрыто); есть `expired` → `expired`; иначе `revoked`. Gap: `{ atomId: null, permitId, role: 'executor', missingDimensions: [], critical: true, reason: 'missing_permit', permitStatus }`.
-- `getCandidates`: `getTaskProfile` (NotFound если нет); `safeLimit = clamp(1, 100)`; SELECT активных с `EXISTS(person_atom_states WHERE level IS NOT NULL)` — до 200 кандидатов, `ORDER BY entered_at ASC`; для каждого — `applyProfile` + `checkPermitsGap`; `status === 'no_match'` → **не включаем**; `matches = requiredAtoms.length - atomGaps.length`; сортировка `match > partial`, затем `matches DESC`, затем `name.localeCompare`; top-N; `recordAccess` по каждому. |
+- **`createPractice`** — `teacher === learner` → ValidationError; `expectedLearningResult.trim().length < 5` → ValidationError; `!/^CYB\.ATOM\.\d{4}$/.test(competencyAtomId)` → ValidationError; `actor ∉ {teacher, learner}` → ForbiddenError; SELECT `participants` по `id = ANY` AND `deleted_at IS NULL` → `length !== 2` → NotFound; SELECT `tasks` по `id = ANY` → `length !== 2` → NotFound; `source.kind !== 'deliverable'` → ConflictError; `learner.kind !== 'deliverable'` → ConflictError; `source.assigned_to !== teacherId` → ConflictError; `learner.assigned_to !== learnerId` → ConflictError; `source.direction_id !== learner.direction_id` → ConflictError; `learner.status === 'accepted'` → ConflictError; SELECT `competency_atoms` → `!atom` → NotFound; `computeReadiness(teacherId, atomId)` → `!readiness` → NotFound; `readiness.state !== 'ready'` → ForbiddenError; `id = newUUID()`; `teacherConsent = actorId === teacherId`; `learnerConsent = actorId === learnerId`; **транзакция:** SELECT `task_practices` дубликата (`teacher_id, learner_id, competency_atom_id` AND `status IN ('proposed', 'active', 'submitted')`) `FOR UPDATE` → если есть — ConflictError(`existing_id`); INSERT; audit `task_practices.create`; return `getById`.
+- **`getById`** — SELECT `PRACTICE_SELECT` WHERE `id`, NotFound.
+- **`listMyPractices`** — `Promise.all` (asTeacher / asLearner), LIMIT 100, ORDER BY created_at DESC.
+- **`isTeacherOfLearnerTask`** — `SELECT COUNT(*)::int AS n FROM task_practices WHERE teacher_id = $1 AND learner_task_id = $2 AND status IN ('active', 'submitted', 'completed')`; `n > 0`.
+- **`giveConsent`** — транзакция: `FOR UPDATE` по `id`; `!row` → NotFound; `cancelled`/`completed` → ConflictError; `active`/`submitted` → return (идемпотентно); `actor ∉ {teacher, learner}` → ForbiddenError; `nextTeacher = isTeacher ? true : row.teacher_consent`; `nextLearner = isLearner ? true : row.learner_consent`; `nextStatus = nextTeacher && nextLearner ? 'active' : 'proposed'`; UPDATE (`teacher_consent`, `learner_consent`, `status`, `updated_at`); audit `task_practices.consent`; return `getById`.
+- **`submitPractice`** — SELECT `learner_id, status`; `learner_id !== actorId` → ForbiddenError; `status !== 'active'` → ConflictError; UPDATE `status='submitted'` WHERE `status='active'`; audit `task_practices.submit`; return `getById`.
+- **`completePractice`** — транзакция: `FOR UPDATE`; `!r` → NotFound; `teacher_id !== actorId` → ForbiddenError; `completed` → return (идемпотентно); `!== 'submitted'` → ConflictError; UPDATE `status='completed', completed_at=now()` WHERE `status='submitted'`; audit `task_practices.complete`; return `getById`.
+- **`cancelPractice`** — `reason.trim().length < 3` → ValidationError; транзакция: `FOR UPDATE`; `!r` → NotFound; `actor ∉ {teacher, learner}` → ForbiddenError; `cancelled` → return (идемпотентно); `completed` → ConflictError; UPDATE `status='cancelled', cancelled_at=now(), cancel_reason = reason.trim()`; audit `task_practices.cancel`; return `getById`. |
 |Примечания:
-**A21**: candidates не раскрывают уровни — только `participantId/externalId/name/matches/gaps/status`.
-**Приоритет permit над атомами**: `permitGap` всегда critical → `no_match` → candidate не попадает в top-N (даже если все атомы покрыты).
-**`role` в permit-gap** захардкожен как `'executor'` — permit не привязан к роли, но для консистентности типа `MatchGap.role` заполнен; смысловой нагрузки не несёт.
-**Проверка `deleted_at`** только в `matchTask` (subject); в `getCandidates` — в SQL WHERE.
-ТЕХДОЛГ: N+1 запросов в `getCandidates` (до 200 × 2 запроса на каждого). Для больших профилей возможен тяжёлый план; оптимизация — батчевые SELECT с `ANY(array)`.
-ТЕХДОЛГ: `checkRequiredAtom` не делает различие «нет оценки» vs «низкий level» — оба в `missingDimensions`; UI не отличит «не проверяли» от «проверяли, не дотянул».
-СВЯЗЬ С A21: агрегация `match/partial/no_match` — строгая; порог `coverage` только информационный.
+СОЗДАН (новый блок; ранее упоминался как зависимость в A.1.31.01 и C.0.07.02, но блока не было; файл — `src/core/passport/teaching-practice.ts`, ID `C.1.09.02`).
+СВЕРХ СТАРОЙ СПЕКИ: полный цикл practice: `proposed → active` (обе стороны согласились) → `submitted` (ученик сдал) → `completed` (учитель подтвердил); `cancelled` (отмена; `completed`/`cancelled` — финальные); идемпотентность `consent`/`complete`/`cancel`; **§7.5** (`isTeacherOfLearnerTask`).
+СВЯЗЬ С A.1.31.01: 7 эндпоинтов `/learning/task-practices/*`.
+СВЯЗЬ С C.0.07.02: `acceptTaskService` — `isTeacherOfLearnerTask(requesterId, taskId)` → ForbiddenError (§7.5).
+СВЯЗЬ С C.0.09.02: `decide` / `crisisDecide` — `isTeacherOfLearnerTask(otcId, report.taskId)` → ForbiddenError (§7.5).
+СВЯЗЬ С C.1.09.01 (teaching.ts): `computeReadiness` — предметная готовность учителя по атому.
+СВЯЗЬ С D.2.01.70: `task_practices` + CHECK (`chk_tp_distinct_participants`, `chk_tp_cancel_reason`, `chk_tp_active_consents`); UNIQUE partial `uq_task_practices_active_pair`; `idx_task_practices_learner_task` — partial (для §7.5).
+СВЯЗЬ С D.2.01.67 (tasks.kind): `source_task` / `learner_task` — только `deliverable`.
+СВЯЗЬ С D.2.01.69 (participant_day_blocks): `task_practice_id` — ссылка на практику (без FK — Этап 4).
+АРХИТЕКТУРНЫЙ ПРОБЕЛ: **педагогическая компетенция как отдельная сущность отсутствует** — проверяется только предметная readiness по атому (`computeReadiness`); зафиксировано в отчёте.
+ТЕХДОЛГ:
+- **`giveConsent`** — идемпотентность при `active`/`submitted` — return без audit (повторный consent не логируется); семантика «повторный consent — no-op» — ок.
+- **`completePractice` / `cancelPractice`** — идемпотентность при `completed`/`cancelled` — return без audit; семантика «повтор — no-op» — ок.
+- **`cancelPractice` — `reason.trim().length < 3`** — ValidationError; `reason` — обязателен (D.2.01.70: CHECK `chk_tp_cancel_reason` — `cancelled` требует `cancel_reason`).
+- **`createPractice` — `computeReadiness`** — если `!readiness` → NotFound; `state !== 'ready'` → ForbiddenError(`readiness='${state}'`, `{ readiness }`).
+- **`createPractice` — дубликат активной пары** — `SELECT ... FOR UPDATE` + UNIQUE partial; race-safe.
+- **`createPractice` — `expected_learning_result.trim()`** — сохраняется trim; семантика «очищенная строка» — ок.
+- **`listMyPractices`** — LIMIT 100 без пагинации; для >100 — обрезается (roadmap).
+- **`isTeacherOfLearnerTask`** — COUNT по `status IN ('active', 'submitted', 'completed')`; `proposed` не покрыт (до consent — §7.5 неактуален).
+- **`listPracticesForLearnerTask`** — все статусы; семантика «все практики по задаче» — ок.
+- **`completed`/`cancelled` — финальные** — `giveConsent`/`submit`/`complete`/`cancel` на них → ConflictError (кроме идемпотентных).
+- **`task_practices.competency_atom_id` — TEXT + FK** на `competency_atoms(atom_id)` RESTRICT; `CYB\.ATOM\.\d{4}` — regex в сервисе.
+- **`chk_tp_active_consents`** — `active` требует оба `consent=true` (D.2.01.70); сервис дублирует (`nextStatus = nextTeacher && nextLearner ? 'active' : 'proposed'`).
+- **`chk_tp_distinct_participants`** — `teacher_id <> learner_id`; сервис дублирует (`teacher === learner` → ValidationError).
+- **`chk_tp_cancel_reason`** — `cancelled` требует `cancel_reason`; сервис пишет `reason.trim()`.
+- **`uq_task_practices_active_pair`** — partial unique по `(teacher_id, learner_id, competency_atom_id)` WHERE `status IN ('proposed', 'active', 'submitted')`; `completed`/`cancelled` не блокируют.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.09.43 (полный цикл: негативы — teacher=learner → 400/422, source не назначена на teacher → 403/409, атом не существует → 400/404/422, teacher без readiness → 403/409; позитив — proposed, teacherConsent=true, learnerConsent=false; дубликат → 409; consent FA — proposed; consent learner — active; submit FA → 403; submit learner — submitted; complete teacher — completed + completedAt; cancel completed → 409; listMyPractices asTeacher/asLearner; вторая практика → cancel 200 + cancelled + cancelReason; повторный cancel — идемпотентно 200); I.9.04.78 (§7.5: accept учителем ученика → 403); I.9.04.79 (Сценарий 6 — practice proposed → active). |
+
+|C.1.10.01|CORE|Passport|TypeScript|src/core/passport/matching.ts|C.0.01.02, C.0.01.04, C.1.01.01, C.1.04.02, C.1.08.01, C.1.11.01, L.0.01.09|v.0.0.2|Draft|I.9.09.05, I.9.09.11|
+|Описание: **Matching (§11.2, Фаза 3a).** `matchTask(taskId, participantId, viewerId)` — по каждому `required_atom`: «покрыто» = для каждой применяемой dimension `level >= min[dim]` И `status ∈ {confirmed, provisional}`; `dimension_applicability[dim].applicable=false` → измерение не проверяем. **Критичные dimension по роли (A21):** `executor→P`, `assessor→E`, `designer→D`, `consultant→U,X`. Агрегат: `match` (нет gaps) | `partial` (gaps только в не-критичных) | `no_match` (есть критичный gap). Permit-gap (**A38/A39**): `absent`/`expired`/`revoked` → критичный, приоритет `active` + effective `valid_until = pickEffectiveValidUntil(participant_permits, permits)`. `getCandidates(taskId, viewerId, limit ≤ 100)` — top-N без раскрытия уровней. **v0.0.02:** `getCandidates` — **батчевый**: 1 запрос участников (без LIMIT 200), 1 запрос `competency_atoms`, 1 запрос `person_atom_states` по всем (participants × atoms), 1 запрос `participant_permits` по всем участникам, агрегация `match`/`partial`/`no_match` — в памяти. Раньше: N+1 (по `applyProfile` и `checkPermitsGap` на каждого участника). **Access_log:** пополняется при чтении чужого паспорта (`matching` / `candidates`) через `recordAccess`. |
+|Публичный API:
+- `matchTask(taskId: UUID, participantId: UUID, viewerId: UUID): Promise<TaskMatching>` — `{ taskId, participantId, status, gaps, checkedCount, coverage }`. `checkedCount = atoms + permitIds.length`; `coverage = (totalChecks - gaps.length) / totalChecks` (0 если `totalChecks=0`); `recordAccess` при `viewerId !== participantId` (reason='matching').
+- `getCandidates(taskId: UUID, viewerId: UUID, limit = 20): Promise<TaskCandidate[]>` — `{ participantId, participantExternalId, participantName, matches, gaps, status }` (без `level`/`min`). `safeLimit = clamp(1, 100)`. `no_match` — не включаются. Сортировка: `match > partial`, затем `matches DESC`, затем `name.localeCompare`. `recordAccess` по top-N (reason='candidates').
+- Приватные: `isCovered`, `checkRequiredAtom`, `applyProfile`, `aggregateStatus`, `checkPermitsGap` — не экспортируются.
+- Внутренние интерфейсы: `AtomApplicabilityRow { atom_id, dimension_applicability }`, `StateRow { dimension, level, status }`.
+- Константы: `ROLE_CRITICAL: Record<TaskProfileRole, Dimension[]>` — `executor:['P']`, `assessor:['E']`, `designer:['D']`, `consultant:['U','X']`. |
+|↙ ПОТРЕБЛЯЕТ:
+- **C.0.01.02** (errors) — `NotFoundError`.
+- **C.0.01.04** (types) — `UUID`.
+- **C.1.01.01** (passport/types) — `Dimension`, `MatchGap`, `MatchStatus`, `RequiredAtom`, `TaskCandidate`, `TaskMatching`, `TaskProfile`, `TaskProfileRole`, `DIMENSIONS`, `isDimensionApplicable`.
+- **C.1.04.02** (passport/visibility) — `recordAccess` (журнал при чтении чужого паспорта).
+- **C.1.08.01** (passport/task-profile) — `getTaskProfile`.
+- **C.1.11.01** (passport/permits) — `pickEffectiveValidUntil`.
+- **L.0.01.09** (db) — `query`, `queryOne`.
+- Таблицы БД: `person_atom_states`, `competency_atoms`, `participant_permits`, `permits`, `participants`, `task_profiles`.
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`matchTask` / `getCandidates`** — контроллер паспорта (TaskProfile/Matching endpoints); **C.0.07.02** (tasks/service — `assignTaskService` использует `matchTask` для `partial`/`no_match`).
+- **`TaskMatching` / `TaskCandidate`** — F.4.02.37 `Matching.tsx`, F.4.02.38 `Candidates.tsx`; C.0.07.02 (`assignTaskService` — передача `matching` в audit и `ConflictError`).
+- **Побочный эффект:** пишет в `passport_access_log` (reason `matching` / `candidates`) при `viewerId !== participantId`. |
+|Реализация:
+- **`isCovered(state, minLevel)`** (private) — `!state` → false; `status ∉ {confirmed, provisional}` → false; `level === null` → false; `level >= minLevel`.
+- **`checkRequiredAtom(participantId, req, applicability)`** (private) — SELECT `person_atom_states` по `(participant_id, atom_id)` → Map по dimension; для каждой `[dim, minLevel]` из `req.min`: `!isDimensionApplicable(app, dim)` — skip; иначе `!isCovered(byDim.get(dim), minLevel)` → push в `missingDimensions`; если пусто — null; `criticalDims = ROLE_CRITICAL[req.role]`; `critical = missingDimensions.some(d => criticalDims.includes(d))`; return `MatchGap { atomId, role, missingDimensions, critical, reason: 'missing_dimensions' }`.
+- **`applyProfile(participantId, profile)`** (private) — SELECT `competency_atoms` по `atomIds`; `atomsById = Map`; для каждого `req`: `!atom` → push gap (все DIMENSIONS, critical=true); иначе `checkRequiredAtom`; return `{ gaps, checkedCount: profile.requiredAtoms.length }`.
+- **`aggregateStatus(gaps)`** (private) — `[]` → 'match'; есть critical → 'no_match'; иначе 'partial'.
+- **`matchTask`** — `getTaskProfile` (NotFound если нет); SELECT participant (`deleted_at IS NULL`) (NotFound); `applyProfile`; `checkPermitsGap`; `gaps = permitGap ? [permitGap, ...atomGaps] : atomGaps`; `recordAccess` при `viewerId !== participantId` (reason='matching'); `totalChecks = checkedCount + profile.permitIds.length`; `passCount = totalChecks - gaps.length`; return `{ status: aggregateStatus(gaps), gaps, checkedCount: totalChecks, coverage: totalChecks > 0 ? passCount / totalChecks : 0 }`.
+- **`checkPermitsGap(participantId, permitIds)`** (private) — пустой `permitIds` → null; SELECT `participant_permits JOIN permits` с `ORDER BY pp.created_at DESC`; по каждому pid: `candidates.length === 0` → `absent`; `active = find(status='active')`: `eff = pickEffectiveValidUntil(active.valid_until, active.permit_valid_until)`; `eff < now` → `expired`; иначе `continue` (покрыто); `!active`, есть `expired` → `expired`; иначе `revoked`. Gap: `{ atomId: null, permitId, role: 'executor', missingDimensions: [], critical: true, reason: 'missing_permit', permitStatus }`.
+- **`getCandidates(taskId, viewerId, limit)`** (v0.0.02, батчевый) — `getTaskProfile` (NotFound); `safeLimit = clamp(1, 100)`; **1)** SELECT активных участников (`deleted_at IS NULL` + `EXISTS(person_atom_states.level IS NOT NULL)`) ORDER BY `entered_at ASC` (без LIMIT); если пусто — `[]`; **2)** SELECT `competency_atoms` по `atomIds` → `atomsById`; **3)** SELECT `person_atom_states` по `participant_id = ANY($1) AND atom_id = ANY($2)` → `statesByKey: Map<"pid|aid", Map<Dimension, StateRow>>`; **4)** если `permitIds.length > 0`: SELECT `participant_permits JOIN permits` по `participant_id = ANY($1) AND permit_id = ANY($2)` ORDER BY `pp.created_at DESC` → `byParticipant: Map`; для каждого участника: `gap = null`; для каждого `permId`: `candidates.length === 0` → gap `absent`, break; `active` → `eff < now` → gap `expired`, break; иначе `continue`; `expired` → gap `expired`, break; иначе gap `revoked`, break; `permitGapsByParticipant.set(pid, gap)`; **5)** агрегация в памяти: для каждого участника: `atomGaps` — по `profile.requiredAtoms`: `!atom` → gap (все DIMENSIONS); иначе `statesMap = statesByKey.get(pid|atom_id)`; `missing = []`; для каждой `[dim, min]` из `req.min`: `!isDimensionApplicable` — skip; `covered = st !== undefined && st.level !== null && (status confirmed|provisional) && st.level >= min`; `!covered` → `missing.push(dim)`; `missing.length > 0` → `critical = missing.some(d => ROLE_CRITICAL[req.role].includes(d))` → push gap; `permitGap = permitGapsByParticipant.get(pid) ?? null`; `allGaps = permitGap ? [permitGap, ...atomGaps] : atomGaps`; `status = aggregateStatus(allGaps)`; `no_match` → skip (не включаем); иначе push `{ participantId, participantExternalId, participantName, matches: profile.requiredAtoms.length - atomGaps.length, gaps: allGaps.length, status }`; **6)** сортировка `match > partial`, `matches DESC`, `name.localeCompare`; slice(0, safeLimit); **7)** `recordAccess` по top-N при `viewerId !== participantId`. |
+|Примечания:
+РЕАЛИЗОВАНО: 2 публичные функции + 5 приватных + 2 интерфейса + 1 константа.
+СВЕРХ СТАРОЙ СПЕКИ (v0.0.1):
+- **`getCandidates` — батчевый** (v0.0.02): 1 запрос участников + 1 `competency_atoms` + 1 `person_atom_states` по `participants × atoms` + 1 `participant_permits` по всем; агрегация в памяти. Раньше — N+1 (`applyProfile` + `checkPermitsGap` на каждого из 200 кандидатов).
+- **`statesByKey`** — Map по ключу `"pid|aid"`; внутри — Map по `Dimension`; `st.level === null` → `covered = false`.
+- **`pickEffectiveValidUntil`** — используется и в `checkPermitsGap`, и в батчевом варианте.
+- **`permitGapsByParticipant: Map<string, MatchGap | null>`** — null = покрыто.
+- **Агрегация `matches = profile.requiredAtoms.length - atomGaps.length`** — `permitGap` не вычитается (он доп. критичный, но `matches` считает только атомы); при permitGap — `status = 'no_match'` (критичный), не попадает в результат.
+- **`gaps` в `TaskCandidate`** — `allGaps.length` (включая permit-gap).
+ИЗМЕНЕНИЯ относительно предыдущей ревизии: подтверждено фактическим кодом.
+СВЯЗЬ С C.0.07.02 (tasks/service): `assignTaskService` использует `matchTask` для `partial`/`no_match`; передаёт `matching` в audit/`ConflictError`.
+СВЯЗЬ С C.1.01.01 (types): `Dimension`, `MatchGap`, `MatchStatus`, `RequiredAtom`, `TaskCandidate`, `TaskMatching`, `TaskProfile`, `TaskProfileRole`, `DIMENSIONS`, `isDimensionApplicable`.
+СВЯЗЬ С C.1.04.02 (visibility): `recordAccess` — журнал `passport_access_log`; `reason` = 'matching' / 'candidates'.
+СВЯЗЬ С C.1.08.01 (task-profile): `getTaskProfile` — источник `requiredAtoms`, `permitIds`.
+СВЯЗЬ С C.1.11.01 (permits): `pickEffectiveValidUntil(participant_permit.valid_until, permit.valid_until)` — effective `valid_until`.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **A21** — `candidates` не раскрывают уровни; только `participantId/externalId/name/matches/gaps/status`.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **Приоритет permit над атомами** — `permitGap` всегда critical → `no_match` → candidate не попадает в top-N (даже если все атомы покрыты).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`role` в permit-gap** — захардкожен `'executor'`; permit не привязан к роли; для консистентности типа `MatchGap.role`.
+ТЕХДОЛГ:
+- **`checkRequiredAtom`** — не делает различие «нет оценки» vs «низкий level» — оба в `missingDimensions`; UI не отличит «не проверяли» от «проверяли, не дотянул».
+- **`getCandidates` — без LIMIT на участников** (v0.0.02, батчевый) — если участников много (10k+), `participantIds` уходит в `ANY($1::uuid[])` — большой массив; нужен батчинг/пагинация.
+- **`getCandidates` — сортировка `name.localeCompare`** — для кириллицы/латиницы — локаль-зависимо; без `Intl.Collator` — разный порядок на разных локалях.
+- **`getCandidates` — `participantName.localeCompare`** — если `name` null (в БД разрешено?) — упадёт; семантически `name` — NOT NULL (в `participants`), но не проверяется.
+- **`permitGap` в агрегации** — `matches` не учитывает permit; семантика «matches = покрытые атомы» — ок, но при 0 атомов и permitGap — `matches = 0`, `status = 'no_match'`.
+- **`aggregateStatus`** — `gaps.length === 0` → 'match'; критичный gap есть → 'no_match'; иначе 'partial'.
+- **`recordAccess`** — по top-N (после slice); если участник в top-N, но `viewerId === participantId` — skip; `recordAccess` — N запросов (не батч); для limit=20 — 20 SELECT в `passport_access_log`.
+- **`checkPermitsGap`** — если `permitIds` содержит дубли — обрабатывается несколько раз (семантика «дубли permitIds» не валидируется; но `TaskProfile` — из C.1.08.01, должен быть уникальным).
+- **`ROLE_CRITICAL`** — Record по `TaskProfileRole`; при добавлении новой роли — править здесь и в C.1.01.01.
+- **`getCandidates` — `safeLimit = clamp(1, 100)`** — жёсткий потолок; для панели балансировки — 100; больше — пагинация (roadmap).
+- **`statesByKey`** — память O(participants × atoms × dims); для 200 участников × 20 атомов × 8 dims — 32k записей; ок.
+- **`getCandidates` — `participants.length === 0`** — early return `[]`; без записи в `passport_access_log` — ок (нечего логировать).
+- **`applyProfile` — `!atom` → gap (все DIMENSIONS, critical=true)** — защита от «битого» профиля; семантика «неизвестный атом = критичный gap».
+- **`checkPermitsGap` — приоритет `active` над `expired`** — если есть active с effective `valid_until < now`, но есть и expired — возвращает `expired` (из-за active-ветки); семантика «свежий active с истёкшим effective» — пограничный случай.
+- **`pickEffectiveValidUntil`** — из C.1.11.01; семантика «min(participant_permit.valid_until, permit.valid_until)» — effective.
+- **`recordAccess`** — пишет в `passport_access_log`; при массовом `getCandidates` — нагрузка на БД; roadmap — батч.
 ТЕСТОВОЕ ПОКРЫТИЕ: I.9.09.05 (test-passport-v2), I.9.09.11 (test-passport-v3). |
 
 |C.1.11.01|Core|Passport/Permits|TypeScript|src/core/passport/permits.ts|C.0.01.02, L.0.01.01, L.0.01.09, C.1.01.01|v.0.0.01|Draft|I.9.09.20, I.9.09.30|
@@ -12224,13 +12689,13 @@
 - `uniq_roles_direction_name` UNIQUE (direction_id, name).
 - `uniq_interview_questions_cat_q_ver` UNIQUE (category, question, version).
 - Cleanup (идемпотентно): UPDATE participant_roles SET role_id = keeper через CTE; то же для rights_matrix; DELETE дубликатов roles (self-join); DELETE дубликатов interview_questions.
-- Sanity-нотисы: roles_cnt, questions_cnt, dups_roles, dups_questions через RAISE NOTICE.| 
-|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (roles, participant_roles, rights_matrix, interview_questions). C.0.35.02 (seed ON CONFLICT). A.1.35.01 (инициатор). MIN/COUNT/RAISE NOTICE/DO.| 
+- Sanity-нотисы: roles_cnt, questions_cnt, dups_roles, dups_questions через RAISE NOTICE.|
+|↙ ПОТРЕБЛЯЕТ: D.2.01.03 (roles, participant_roles, rights_matrix, interview_questions). C.0.35.02 (seed ON CONFLICT). A.1.35.01 (инициатор). MIN/COUNT/RAISE NOTICE/DO.|
 - D.2.01.03 (003_tables.sql) — таблицы `roles`, `participant_roles`, `rights_matrix`, `interview_questions`.
 - C.0.35.02 admin/service — источник требования: `POST /admin/seed` использует `ON CONFLICT DO NOTHING`, который требует UNIQUE.
 - A.1.35.01 admin/controller — инициатор: через роут обнаружено дублирование при seed.
 - Встроенные функции PostgreSQL: `MIN`, `COUNT`, `RAISE NOTICE`, `DO $$ ... $$` (анонимный блок).|
-|↘ ПРЕДОСТАВЛЯЕТ: C.0.35.02.seedTemplates — ON CONFLICT DO NOTHING реально работает. A.1.35.01 POST /admin/seed — идемпотентен. Индексы для assignRole (S.0.01.03). NOTICE в лог миграции.| 
+|↘ ПРЕДОСТАВЛЯЕТ: C.0.35.02.seedTemplates — ON CONFLICT DO NOTHING реально работает. A.1.35.01 POST /admin/seed — идемпотентен. Индексы для assignRole (S.0.01.03). NOTICE в лог миграции.|
 - C.0.35.02 admin/service — `ON CONFLICT DO NOTHING` работает на INSERT roles и interview_questions (seed идемпотентен).
 - A.1.35.01 admin/controller — POST /admin/seed может безопасно вызываться многократно.
 - Индексы используются в запросах поиска roles (например, `assignRole` в S.0.01.03: `WHERE name = $1 AND direction_id = $2 AND active = true LIMIT 1`).
@@ -12240,7 +12705,7 @@
 - Cleanup roles: CTE `keeper` — `MIN(id::text)::uuid AS keep_id` по (direction_id, name) с COUNT > 1; UPDATE participant_roles / rights_matrix → SET role_id = keep_id; DELETE FROM roles r1 USING roles r2 WHERE r1.id > r2.id AND ... .
 - Cleanup interview_questions: self-join DELETE.
 - UNIQUE-индексы: `CREATE UNIQUE INDEX IF NOT EXISTS`.
-- Sanity-нотисы: `DO $$ DECLARE ... RAISE NOTICE` (roles_cnt, dups_roles, questions_cnt, dups_questions).| 
+- Sanity-нотисы: `DO $$ DECLARE ... RAISE NOTICE` (roles_cnt, dups_roles, questions_cnt, dups_questions).|
 |Примечания:
 РЕАЛИЗОВАНО: 2 UNIQUE-индекса + cleanup + DO-нотисы.
 СВЕРХ СТАРОЙ СПЕКИ (v.0.0.01):
@@ -12258,7 +12723,7 @@
 - Double BEGIN/COMMIT — если migrate.ts сам оборачивает, warning/ошибка.
 - Keeper = MIN(id) — не обязательно «самая правильная» запись, но все ссылки перенаправляются.
 - Отсутствует rollback/DOWN.
-ТЕСТОВОЕ ПОКРЫТИЕ: косвенно I.9.02.02 bootstrap-architect, A.1.35.01 POST /admin/seed.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: косвенно I.9.02.02 bootstrap-architect, A.1.35.01 POST /admin/seed.|
 
 |D.2.01.21|DB|Migration|SQL|db/migrations/021_psy_rights_narrow.sql|D.1.26.01, D.2.01.03, C.0.01.06|v.0.0.01|Draft|I.4.12, I.1.10|
 |Описание: Миграция. Сужает `psy_session` до релевантных ролей: PSY (полный V/C/E/Act), COUNCIL_MEMBER (только V), FIRST_ARCHITECT (через универсальное `'*'` — не хранится в rights_matrix для psy_session). Убирает psy_session-права у остальных ролей (VERIFIER, KEEPER, LIAISON, BALANCER, OBLIVION, ASSOCIATED и т.д., которые получили их из D.2.01.15 через CROSS JOIN — но, судя по коду, там psy_session вообще не выдавался, миграция подстраховывает). Идемпотентна: повторный прогон — no-op.|
@@ -13301,6 +13766,253 @@
 - **Нет `version`-поля** внутри JSON — при обновлении словаря нельзя отследить «какая версия перевода».
 - **Строки GitHub Enterprise / Copilot** — не относятся к паспорту; вероятно, скопированы из интерфейса GitHub для тестирования `generate_pass.py`. |
 |ТЕСТОВОЕ ПОКРЫТИЕ: I.9.09.16 test-passport-v8.ts (косвенно — техдолги Группы 1); `generate_pass.py` — при ручном прогоне. |
+
+|D.2.01.67|DB|Migration|SQL|db/migrations/067_task_work_packages_dependencies.sql|C.0.07.01, C.0.07.02, C.0.07.03|v.1|Draft|D.2.01.68, C.0.07.02, C.0.07.03|
+|Описание: **Пакеты работ, исполняемые задачи и зависимости.** Миграция вводит `tasks.kind ('package' \| 'deliverable')` (default `'deliverable'` — обратная совместимость), `tasks.expected_result TEXT`, `tasks.planned_start_at TIMESTAMPTZ`, `tasks.estimated_minutes INTEGER` + CHECK `> 0` или NULL. **Ослабляет `chk_priority_deadline`** (было: `priority <> 'critical' OR deadline IS NOT NULL`; по ТЗ §4.5 приоритет и срок — независимы). **Создаёт `task_dependencies`** (отдельная таблица; иерархия `parent_task_id` ≠ зависимости): `id`, `task_id` (FK tasks CASCADE), `depends_on_task_id` (FK tasks CASCADE), `dependency_type` (default `'blocks'`), `created_by` (FK participants RESTRICT), `created_at`; CHECK `chk_dep_self` (`task_id <> depends_on_task_id`), CHECK `chk_dep_type` (только `'blocks'`), UNIQUE `uq_dep_pair` (`task_id, depends_on_task_id`). Обязательность `expected_result` для новых `deliverable` — на уровне сервиса (`C.0.07.02`), а не в БД (чтобы не сломать старые данные). |
+|Публичный API:
+- `tasks.kind TEXT NOT NULL DEFAULT 'deliverable'` — CHECK `chk_tasks_kind (kind IN ('package', 'deliverable'))`.
+- `tasks.expected_result TEXT` (nullable).
+- `tasks.planned_start_at TIMESTAMPTZ` (nullable).
+- `tasks.estimated_minutes INTEGER` (nullable) — CHECK `chk_tasks_estimated_minutes (IS NULL OR > 0)`.
+- **DROP `chk_priority_deadline`** — снята жёсткая связь priority↔deadline.
+- **`task_dependencies`** — `id UUID PK`, `task_id UUID NOT NULL FK tasks CASCADE`, `depends_on_task_id UUID NOT NULL FK tasks CASCADE`, `dependency_type TEXT NOT NULL DEFAULT 'blocks'`, `created_by UUID NOT NULL FK participants RESTRICT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
+- CHECK `chk_dep_self (task_id <> depends_on_task_id)`, CHECK `chk_dep_type (dependency_type IN ('blocks'))`, UNIQUE `uq_dep_pair (task_id, depends_on_task_id)`.
+- Индексы: `idx_task_dependencies_task (task_id)`, `idx_task_dependencies_depends_on (depends_on_task_id)`. |
+|↙ ПОТРЕБЛЯЕТ:
+- **tasks** (существующая; ALTER).
+- **participants** (FK `created_by` — RESTRICT).
+- **D.2.01.67 (chk_tasks_kind, chk_tasks_estimated_minutes)** — новые constraints.
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`tasks.kind`** — C.0.07.01 (entity — `TaskKind`), C.0.07.02 (`createTaskService` — kind-валидация), C.0.06.02 (`getPlanProgress` — фильтр `kind='deliverable'`), C.0.06.03/04/05/06 (агрегаты только deliverable), C.0.41.03 (`upsertCellDailyPlan` — package не входит в наряд), C.0.41.04 (package не передаётся).
+- **`tasks.expected_result`** — C.0.07.01 (`Task.expectedResult`), C.0.07.02 (обязательность для deliverable — на уровне сервиса).
+- **`tasks.planned_start_at`** / **`tasks.estimated_minutes`** — C.0.07.01 (`Task.plannedStartAt`/`estimatedMinutes`), C.0.07.02 (`createTaskService` — валидация `estimatedMinutes > 0`).
+- **`task_dependencies`** — C.0.07.03 (`listDependencies`, `getBlockingDependencies`, `addDependency`, `removeDependency`); C.0.07.02 (`takeTaskService` — `getBlockingDependencies`); A.1.07.01 (`GET/POST/DELETE /tasks/:id/dependencies`).
+- **Снятие `chk_priority_deadline`** — D.2.01.67 + ТЗ §4.5 (приоритет и срок — независимы). |
+|Реализация:
+- `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'deliverable'`; `DROP CONSTRAINT IF EXISTS chk_tasks_kind`; `ADD CONSTRAINT chk_tasks_kind CHECK (kind IN ('package', 'deliverable'))`.
+- `ADD COLUMN IF NOT EXISTS expected_result TEXT`; `planned_start_at TIMESTAMPTZ`; `estimated_minutes INTEGER`; `DROP CONSTRAINT IF EXISTS chk_tasks_estimated_minutes`; `ADD CONSTRAINT chk_tasks_estimated_minutes CHECK (estimated_minutes IS NULL OR estimated_minutes > 0)`.
+- `ALTER TABLE tasks DROP CONSTRAINT IF EXISTS chk_priority_deadline`.
+- `CREATE TABLE IF NOT EXISTS task_dependencies (...)` с 3 constraint (`chk_dep_self`, `chk_dep_type`, `uq_dep_pair`) + 2 индекса (`idx_task_dependencies_task`, `idx_task_dependencies_depends_on`).
+- Всё в `BEGIN; ... COMMIT;`. |
+|Примечания:
+СОЗДАН (новый блок; миграция упоминается в шапках C.0.07.01/C.0.07.02/C.0.07.03 как «D.2.01.67»).
+СВЕРХ СТАРОЙ СПЕКИ: обратная совместимость — `kind='deliverable'` по умолчанию для всех существующих задач; `expected_result=NULL` у старых задач — не блокируем; обязательность `expected_result` для новых `deliverable` — на уровне сервиса (C.0.07.02).
+СВЯЗЬ С C.0.07.01 (tasks/entity): `TaskKind`, `Task.kind`, `Task.expectedResult`, `Task.plannedStartAt`, `Task.estimatedMinutes`.
+СВЯЗЬ С C.0.07.02 (tasks/service): `createTaskService` — kind-валидация (deliverable требует `expectedResult`); `estimatedMinutes > 0` если задан.
+СВЯЗЬ С C.0.07.03 (tasks/dependencies): `task_dependencies` + `uq_dep_pair` + `chk_dep_self` + `chk_dep_type`; `removeDependency`; `addDependency` — цикл-детект в сервисе (CTE).
+СВЯЗЬ С C.0.06.02/03/04/05/06: `kind='deliverable'` — фильтр в агрегатах (`getPlanProgress`, `computeDeviation`, `computePlanBranches`, `getPlanTree`, `getOversightTree`).
+СВЯЗЬ С C.0.41.03/04: package не входит в наряд/не передаётся.
+ТЕХДОЛГ:
+- **`expected_result`** — nullable в БД, обязателен для deliverable на уровне сервиса; если сервис обойдут (прямой SQL) — deliverable без `expected_result` возможен.
+- **`chk_priority_deadline` снят** — семантика «critical обязательно с deadline» больше не enforced; целостность priority_enum — типом.
+- **`uq_dep_pair`** — защита от дубля; порядок (task_id, depends_on_task_id) — семантически «A зависит от B»; обратная зависимость B→A — другая строка (не дубль); цикл-детект — в сервисе (C.0.07.03).
+- **`created_by` — FK RESTRICT** — нельзя удалить участника, создавшего зависимость; семантика «аудит-след» — сохраняется.
+- **`dependency_type`** — только `'blocks'`; для `'related'`/`'follows'` — новая миграция.
+- **CHECK `chk_tasks_estimated_minutes`** — `> 0` или NULL; для package `estimated_minutes` может быть NULL (не требуется).
+- **`planned_start_at`** — nullable; семантика «плановое начало» — отдельно от `deadline` (конец).
+- **`idx_task_dependencies_depends_on`** — для `getBlockingDependencies` (JOIN по `depends_on_task_id`); `idx_task_dependencies_task` — для `listDependencies`.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.74 (package без expected_result), I.9.04.75 (package в наряде → 409), I.9.04.79 (декомпозиция package → deliverable + dependency cycle → 409). |
+
+|D.2.01.68|DB|Migration|SQL|db/migrations/068_cell_daily_plan_versions.sql|C.0.41.03, C.0.41.04|v.1|Draft|D.2.01.67|
+|Описание: **История версий наряда ячейки.** Append-only снимки состава наряда. Версии не перезаписываются и не удаляются. Каждое изменение наряда (`upsertCellDailyPlan` / `assignCellDailyTask` / `distributeCellDailyPlan`) фиксирует новую версию через `writeVersion` (C.0.41.03). Снимок (JSONB): `{ tasks: [{taskId, position, assignedTo, delegatedToCellId}], status, approvedBy }`. **Соглашение о версиях:** `v1` — исходное состояние (пустой наряд при создании ИЛИ фактическое состояние существующего наряда перед первым изменением после установки миграции); `v2+` — состояние после каждого последующего изменения. |
+|Публичный API:
+- **`cell_daily_plan_versions`** — `id UUID PK DEFAULT gen_random_uuid()`, `plan_id UUID NOT NULL FK cell_daily_plans ON DELETE CASCADE`, `version INTEGER NOT NULL`, `snapshot JSONB NOT NULL`, `reason TEXT`, `created_by UUID NOT NULL FK participants ON DELETE RESTRICT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
+- CHECK `chk_cell_daily_plan_version_positive (version > 0)`; UNIQUE `uq_cell_daily_plan_version (plan_id, version)`.
+- CHECK `chk_cell_daily_plan_snapshot_shape` — `snapshot` — object, содержит `tasks` (array), `status`, `approvedBy`.
+- Индекс: `idx_cell_daily_plan_versions_plan (plan_id, version DESC)`.
+- Append-only: версии не перезаписываются и не удаляются (соглашение). |
+|↙ ПОТРЕБЛЯЕТ:
+- **cell_daily_plans** (FK `plan_id` — CASCADE).
+- **participants** (FK `created_by` — RESTRICT).
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`cell_daily_plan_versions`** — C.0.41.03 (`writeVersion`, `hasAnyVersion`, `listCellPlanVersions`); C.0.41.04 (`distributeCellDailyPlan` — «до»/«после» у родителя и каждого child); A.1.04.01 (`GET /cells/:id/daily-plan/versions`).
+- Семантика «снимок состояния наряда» — F.4.02.99 (DailyPlan.tsx — история), F.4.02.35 (CellsMap.tsx). |
+|Реализация:
+- `CREATE TABLE IF NOT EXISTS cell_daily_plan_versions (...)` — 7 колонок; 3 constraint (`chk_cell_daily_plan_version_positive`, `uq_cell_daily_plan_version`, `chk_cell_daily_plan_snapshot_shape`); JSONB shape — `snapshot ? 'tasks'`, `snapshot ? 'status'`, `snapshot ? 'approvedBy'`, `jsonb_typeof(snapshot->'tasks') = 'array'`.
+- `CREATE INDEX IF NOT EXISTS idx_cell_daily_plan_versions_plan ON cell_daily_plan_versions(plan_id, version DESC)` — для `listCellPlanVersions` (ORDER BY version DESC).
+- Всё в `BEGIN; ... COMMIT;`. |
+|Примечания:
+СОЗДАН (новый блок; миграция упоминается в шапке 068 как «D.2.01.68»; в шапке C.0.41.03 — «версии наряда»).
+СВЕРХ СТАРОЙ СПЕКИ: **версионирование наряда ячейки** — «append-only, не перезаписывается»; `chk_cell_daily_plan_snapshot_shape` — JSONB-контракт (`tasks` array, `status`, `approvedBy`).
+СВЯЗЬ С C.0.41.03 (cells/daily): `hasAnyVersion`, `writeVersion`, `listCellPlanVersions` — SELECT/INSERT.
+СВЯЗЬ С C.0.41.04 (cells/delegation): `distributeCellDailyPlan` — `writeVersion` для родителя и каждого child.
+СВЯЗЬ С A.1.04.01: `GET /cells/:id/daily-plan/versions` → `listCellPlanVersions`.
+СВЯЗЬ С D.2.01.71: аналогичная структура (`daily_plan_versions`) — для дневного плана направления; связь «по аналогии», не по зависимости.
+ТЕХДОЛГ:
+- **`snapshot` — JSONB без строгой схемы** — CHECK проверяет только «наличие ключей» и «tasks — array»; типы внутри `tasks[i]` (`taskId`, `position`, `assignedTo`, `delegatedToCellId`) не валидируются на уровне БД — на уровне сервиса `VersionSnapshot`.
+- **`plan_id` — CASCADE** — при удалении `cell_daily_plans` версии удаляются; семантика «append-only» соблюдается только в пределах жизни плана.
+- **`created_by` — RESTRICT** — нельзя удалить участника, создавшего версию; аудит-след сохраняется.
+- **`reason TEXT` (nullable)** — семантика: `null` = «без комментария» (например, для технических версий); `'Исходное состояние (до миграции)'` — из `hasAnyVersion=false` при первом изменении.
+- **`uq_cell_daily_plan_version`** — защита от race при параллельной записи (два `writeVersion` одновременно получают одну и ту же `MAX(version)` — UNIQUE отклонит второй).
+- **`idx_cell_daily_plan_versions_plan`** — DESC для `ORDER BY version DESC` (`listCellPlanVersions`).
+- **`chk_cell_daily_plan_snapshot_shape`** — `jsonb_typeof(snapshot->'tasks') = 'array'`; если `snapshot` содержит `tasks: null` — CHECK отклонит (правильно).
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.75 (версии наряда — v1/v2/v3), I.9.04.79 (Сценарий 3 — наряд + assign). |
+
+|D.2.01.69|DB|Migration|SQL|db/migrations/069_participant_day_plans.sql|C.0.31.03, C.1.09.02, D.2.01.67|v.1|Draft|D.2.01.70|
+|Описание: **Персональный план дня.** ТЗ §9: план на локальную дату, учёт часового пояса, доступное время, блоки разных типов (`production`/`learning`/`teaching`/`other`), плановое и фактическое время раздельно. **3 таблицы:** `participant_day_plans` (шапка: `participant_id`, `date`, `timezone`, `available_minutes` 1..1440, `status draft\|confirmed\|closed`, `version`, `created_at`, `updated_at`; UNIQUE `(participant_id, date)`); `participant_day_blocks` (блоки: `day_plan_id` CASCADE, `kind`, `task_id` (FK tasks SET NULL), `task_practice_id`, `learning_goal_id`, `teaching_assignment_id`, `planned_minutes > 0`, `actual_minutes ≥ 0` или NULL, `position`, `status planned\|in_progress\|done\|skipped`, `comment`; CHECK `chk_pdb_production_task (kind <> 'production' OR task_id IS NOT NULL)`); `participant_day_plan_versions` (append-only; snapshot JSONB `{availableMinutes, blocks[]}`; UNIQUE `(day_plan_id, version)`). **Соглашение о версиях** (аналогично D.2.01.68): `v1` — исходное состояние (пустой план, `blocks: []`); `v2` — после первого PUT с блоками; `v3+` — каждое последующее изменение. Фактические минуты заполняются только через `POST .../close` (ТЗ §9.4). |
+|Публичный API:
+- **`participant_day_plans`** — `id UUID PK`, `participant_id UUID NOT NULL FK participants CASCADE`, `date DATE NOT NULL`, `timezone VARCHAR(64) NOT NULL`, `available_minutes INTEGER NOT NULL CHECK (1..1440)`, `status TEXT NOT NULL DEFAULT 'draft'` CHECK (`draft\|confirmed\|closed`), `version INTEGER NOT NULL DEFAULT 1 CHECK (> 0)`, `created_at`, `updated_at` TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE `uq_participant_day_plan (participant_id, date)`, индекс `idx_pdp_participant_date (participant_id, date DESC)`.
+- **`participant_day_blocks`** — `id UUID PK`, `day_plan_id UUID NOT NULL FK participant_day_plans CASCADE`, `kind TEXT NOT NULL` CHECK (`production\|learning\|teaching\|other`), `task_id UUID FK tasks SET NULL`, `task_practice_id UUID` (без FK — Этап 4), `learning_goal_id UUID`, `teaching_assignment_id UUID`, `planned_minutes INTEGER NOT NULL CHECK (> 0)`, `actual_minutes INTEGER CHECK (IS NULL OR ≥ 0)`, `position INTEGER NOT NULL DEFAULT 0`, `status TEXT NOT NULL DEFAULT 'planned'` CHECK (`planned\|in_progress\|done\|skipped`), `comment TEXT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`, CHECK `chk_pdb_production_task (kind <> 'production' OR task_id IS NOT NULL)`, индексы `idx_pdb_plan (day_plan_id, position)`, `idx_pdb_task (task_id) WHERE task_id IS NOT NULL`.
+- **`participant_day_plan_versions`** — `id UUID PK`, `day_plan_id UUID NOT NULL FK participant_day_plans CASCADE`, `version INTEGER NOT NULL CHECK (> 0)`, `snapshot JSONB NOT NULL`, `reason TEXT`, `created_by UUID NOT NULL FK participants RESTRICT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`, UNIQUE `uq_pdpv (day_plan_id, version)`, CHECK `chk_pdpv_snapshot_shape` — object + `availableMinutes` + `blocks` array; индекс `idx_pdpv_plan (day_plan_id, version DESC)`. |
+|↙ ПОТРЕБЛЯЕТ:
+- **participants** (FK `participant_id` CASCADE, `created_by` RESTRICT).
+- **tasks** (FK `task_id` SET NULL).
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`participant_day_plans` / `participant_day_blocks` / `participant_day_plan_versions`** — C.0.31.03 (`getDayPlan`, `upsertDayPlan`, `confirmDayPlan`, `closeDayPlan`, `listMyDayPlans`, `listVersions`); A.1.31.01 (`GET/PUT/confirm/close/history`).
+- Семантика «план дня участника» — F.4.02.13 (DayPlan.tsx).
+- Версии (v1/v2/v3+) — I.9.04.77, I.9.04.79 (Сценарий 5). |
+|Реализация:
+- `CREATE TABLE IF NOT EXISTS participant_day_plans (...)` — UNIQUE `(participant_id, date)` (одна запись на участника в день).
+- `CREATE TABLE IF NOT EXISTS participant_day_blocks (...)` — CHECK `chk_pdb_production_task` (production требует `task_id`).
+- `CREATE TABLE IF NOT EXISTS participant_day_plan_versions (...)` — CHECK `chk_pdpv_snapshot_shape` (object + `availableMinutes` + `blocks` array).
+- Индексы: `idx_pdp_participant_date`, `idx_pdb_plan`, `idx_pdb_task` (partial), `idx_pdpv_plan`.
+- Всё в `BEGIN; ... COMMIT;`. |
+|Примечания:
+СОЗДАН (новый блок; миграция упоминается как `D.2.01.69` по номеру файла; в шапке 069 — ссылка на D.2.01.68 как «аналогично»).
+СВЕРХ СТАРОЙ СПЕКИ: **3 таблицы** (шапка + блоки + версии); **CHECK `chk_pdb_production_task`** — production требует `task_id` (C.0.31.03 также валидирует; тест I.9.04.77 — production без `task_id` → 400/422); **snapshot contract** для версий — `availableMinutes` + `blocks` array.
+СВЯЗЬ С A.1.31.01: 5 эндпоинтов (`GET/PUT/confirm/close/history`).
+СВЯЗЬ С C.0.31.03 (learning/participant-day-plan): `getDayPlan`, `upsertDayPlan` (v1/v2), `confirmDayPlan` (draft → confirmed), `closeDayPlan` (confirmed → closed; `actual_minutes` + `status='done'`), `listVersions`.
+СВЯЗЬ С D.2.01.67: `tasks.kind` — для `production`-блоков (task_id — deliverable; package не назначается).
+СВЯЗЬ С D.2.01.70 (task_practices): `participant_day_blocks.task_practice_id` — ссылка на практику (без FK — Этап 4); `teaching_assignment_id` — преподавательское назначение (Этап 4); `learning_goal_id` — цель обучения (Этап 4).
+СВЯЗЬ С D.2.01.68: аналогичная схема версионирования — «по аналогии», не по зависимости.
+ТЕХДОЛГ:
+- **`task_practice_id` / `learning_goal_id` / `teaching_assignment_id`** — без FK (Этап 4); семантика «мягкая ссылка» — если запись удалена, блок остаётся (orphan).
+- **`available_minutes` 1..1440** — до 24 ч; для нескольких блоков с `planned_minutes` сумма ≤ `available_minutes` — проверка в C.0.31.03 (тест I.9.04.77 — сумма > available → 409).
+- **`version` в `participant_day_plans`** — счётчик версий шапки (не `snapshot`); дублирует `MAX(version)` из `participant_day_plan_versions` — потенциальный рассинхрон (если версии пишутся, а `version` шапки не инкрементится; в C.0.31.03 — обе обновляются).
+- **`status` в `participant_day_plans`** — `draft\|confirmed\|closed`; переходы — `draft → confirmed → closed`; PUT на `confirmed` → возврат в `draft` (тест I.9.04.77); PUT на `closed` → 409.
+- **`actual_minutes` — только через `POST .../close`** (ТЗ §9.4); семантика «факт» — фиксируется при закрытии.
+- **`chk_pdb_production_task`** — защита от production без task_id; `learning`/`teaching`/`other` — без task_id — валидно.
+- **`uq_participant_day_plan`** — одна запись на участника в день; `upsertDayPlan` — `ON CONFLICT` или pre-check.
+- **`position`** — порядок блоков в плане; при `upsertDayPlan` — перенумерация (в сервисе).
+- **`created_by` — RESTRICT** — нельзя удалить участника, создавшего версию; аудит-след сохраняется.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.77 (полный цикл day-plan), I.9.04.79 (Сценарий 5 — day-plan). |
+
+|D.2.01.70|DB|Migration|SQL|db/migrations/070_task_practices.sql|C.1.09.02, D.2.01.67, D.2.01.69|v.1|Draft|D.2.01.69|
+|Описание: **TeachingPracticeLink (обучение на производстве, ТЗ §3.5).** Связь учитель ↔ ученик через **две реальные задачи**: `source_task_id` — задача учителя (на примере которой идёт обучение); `learner_task_id` — собственная задача ученика (где он применяет изучаемое; учитель не подменяет ученика в этой задаче). **Согласие обеих сторон** (`teacher_consent` / `learner_consent`); статус `active` только когда обе `true`; инициатор (`created_by`) автоматически даёт согласие за себя. **Педагогическая компетенция как отдельная сущность отсутствует** — проверяется только предметная readiness по атому (`computeReadiness`); архитектурный пробел, зафиксирован в отчёте. **I.2.12 / §7.5:** индекс `idx_task_practices_learner_task` — для проверки «учитель не принимает результат ученика». |
+|Публичный API:
+- **`task_practices`** — `id UUID PK`, `teacher_id UUID NOT NULL FK participants RESTRICT`, `learner_id UUID NOT NULL FK participants RESTRICT`, `source_task_id UUID NOT NULL FK tasks CASCADE`, `learner_task_id UUID NOT NULL FK tasks CASCADE`, `competency_atom_id TEXT NOT NULL FK competency_atoms(atom_id) RESTRICT`, `expected_learning_result TEXT NOT NULL`, `status TEXT NOT NULL DEFAULT 'proposed'` CHECK (`proposed\|active\|submitted\|completed\|cancelled`), `teacher_consent BOOLEAN NOT NULL DEFAULT false`, `learner_consent BOOLEAN NOT NULL DEFAULT false`, `created_by UUID NOT NULL FK participants RESTRICT`, `created_at`, `updated_at`, `completed_at`, `cancelled_at` TIMESTAMPTZ, `cancel_reason TEXT`.
+- CHECK `chk_tp_distinct_participants (teacher_id <> learner_id)`.
+- CHECK `chk_tp_cancel_reason (status <> 'cancelled' OR cancel_reason IS NOT NULL)`.
+- CHECK `chk_tp_active_consents (status <> 'active' OR (teacher_consent AND learner_consent))`.
+- **UNIQUE INDEX partial `uq_task_practices_active_pair (teacher_id, learner_id, competency_atom_id) WHERE status IN ('proposed', 'active', 'submitted')`** — одна активная практика на пару.
+- Индексы: `idx_task_practices_teacher (teacher_id, status)`, `idx_task_practices_learner (learner_id, status)`, `idx_task_practices_learner_task (learner_task_id) WHERE status IN ('active', 'submitted', 'completed')` — для §7.5 в OTC. |
+|↙ ПОТРЕБЛЯЕТ:
+- **participants** (FK `teacher_id` / `learner_id` / `created_by` — RESTRICT).
+- **tasks** (FK `source_task_id` / `learner_task_id` — CASCADE).
+- **competency_atoms** (FK `competency_atom_id` → `atom_id` — RESTRICT).
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`task_practices`** — C.1.09.02 (`createPractice`, `giveConsent`, `submitPractice`, `completePractice`, `cancelPractice`, `getById`, `listMyPractices`, `isTeacherOfLearnerTask`); A.1.31.01 (7 эндпоинтов `/learning/task-practices/*`); C.0.07.02 (`acceptTaskService` — §7.5: `isTeacherOfLearnerTask` → 403); C.0.09.02 (`decide` / `crisisDecide` — §7.5).
+- Семантика «обучение через задачу» — F.4.02.12 (Practices.tsx).
+- §7.5 — индекс `idx_task_practices_learner_task` (для быстрого поиска «учитель — learner_task»). |
+|Реализация:
+- `CREATE TABLE IF NOT EXISTS task_practices (...)` — 19 колонок; 3 CHECK (`chk_tp_distinct_participants`, `chk_tp_cancel_reason`, `chk_tp_active_consents`).
+- **UNIQUE INDEX partial `uq_task_practices_active_pair`** — `WHERE status IN ('proposed', 'active', 'submitted')` (защита от дубля активной пары; `completed`/`cancelled` — не блокируют).
+- `idx_task_practices_teacher` / `idx_task_practices_learner` — для `listMyPractices` (asTeacher/asLearner).
+- `idx_task_practices_learner_task` — partial (только активные/завершённые) — для `isTeacherOfLearnerTask`.
+- Всё в `BEGIN; ... COMMIT;`. |
+|Примечания:
+СОЗДАН (новый блок; миграция упоминается в шапке 070; в C.1.09.02 — как источник practice).
+СВЕРХ СТАРОЙ СПЕКИ: **CHECK `chk_tp_cancel_reason`** — `cancelled` требует `cancel_reason` (нельзя отменить без причины); **CHECK `chk_tp_active_consents`** — `active` требует оба `consent=true`; **UNIQUE partial** — только одна активная практика на пару `(teacher, learner, atom)`; **`idx_task_practices_learner_task`** — partial (для §7.5).
+СВЯЗЬ С C.1.09.02 (passport/teaching-practice): `createPractice` (негативы: `teacher=learner` — 400/422; `source` не назначена на teacher — 403/409; атом не существует — 400/404/422; teacher без readiness — 403/409); `giveConsent` (proposed → active после обоих consent); `submitPractice` (active → submitted; только learner); `completePractice` (submitted → completed; только teacher); `cancelPractice` (proposed/submitted → cancelled; идемпотентный); `listMyPractices` (asTeacher/asLearner); `isTeacherOfLearnerTask` (§7.5).
+СВЯЗЬ С C.0.07.02: `acceptTaskService` — `isTeacherOfLearnerTask(requesterId, taskId)` → 403 (§7.5).
+СВЯЗЬ С C.0.09.02: `decide` / `crisisDecide` — `isTeacherOfLearnerTask` после I.2.12, до `assertDirectionScope`.
+СВЯЗЬ С A.1.31.01: 7 эндпоинтов `/learning/task-practices/*`.
+АРХИТЕКТУРНЫЙ ПРОБЕЛ: **педагогическая компетенция как отдельная сущность отсутствует** — проверяется только предметная readiness по атому (`computeReadiness`); зафиксировано в отчёте.
+ТЕХДОЛГ:
+- **`competency_atom_id TEXT`** — ссылка на `competency_atoms(atom_id)` (TEXT); FK — RESTRICT.
+- **`chk_tp_distinct_participants`** — `teacher_id <> learner_id`; семантика «нельзя учить самого себя».
+- **`chk_tp_active_consents`** — `active` требует `teacher_consent AND learner_consent`; CHECK на уровне БД; `giveConsent` — на уровне сервиса (в C.1.09.02).
+- **`uq_task_practices_active_pair`** — partial unique; защита от race при параллельном `createPractice` (два запроса одновременно проходят проверку и оба INSERT — второй упадёт по UNIQUE).
+- **`expected_learning_result TEXT NOT NULL`** — обязателен; семантика «цель обучения» — на уровне сервиса.
+- **`chk_tp_cancel_reason`** — `cancelled` требует `cancel_reason`; иначе CHECK отклонит.
+- **`completed_at` / `cancelled_at` / `cancel_reason`** — nullable; семантика «время/причина завершения/отмены».
+- **`created_by` — RESTRICT** — нельзя удалить инициатора.
+- **`source_task_id` / `learner_task_id` — CASCADE** — при удалении задачи практика удаляется (тест I.9.09.43: cleanup через tasks).
+- **`idx_task_practices_learner_task` partial** — `WHERE status IN ('active', 'submitted', 'completed')`; для `proposed` — не покрыт (но proposed — до consent, §7.5 неактуален).
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.09.43 (полный цикл practice), I.9.04.78 (§7.5), I.9.04.79 (Сценарий 6 — practice). |
+
+|D.2.01.71|DB|Migration|SQL|db/migrations/071_daily_plan_versions.sql|C.0.06.02|v.1|Draft|-|
+|Описание: **История версий дневного плана направления.** Проблема: `upsertDailyPlan` (C.0.06.02) делал `DELETE + INSERT` в `daily_plan_tasks` без истории. Аналогично `cell_daily_plan_versions` (D.2.01.68), но для `daily_plans` направления (а не для наряда ячейки). **Соглашение о версиях:** `v1` — исходное состояние (пустой план при создании ИЛИ фактическое состояние существующего плана перед первым изменением после установки миграции); `v2+` — состояние после каждого изменения. **Снимок (JSONB):** `{ tasks: [{taskId, position}], status, approvedBy }`. |
+|Публичный API:
+- **`daily_plan_versions`** — `id UUID PK DEFAULT gen_random_uuid()`, `daily_plan_id UUID NOT NULL FK daily_plans ON DELETE CASCADE`, `version INTEGER NOT NULL`, `snapshot JSONB NOT NULL`, `reason TEXT`, `created_by UUID NOT NULL FK participants ON DELETE RESTRICT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
+- CHECK `chk_daily_plan_version_positive (version > 0)`; UNIQUE `uq_daily_plan_version (daily_plan_id, version)`.
+- CHECK `chk_daily_plan_snapshot_shape` — `snapshot` — object, содержит `tasks` (array), `status`, `approvedBy`.
+- Индекс: `idx_daily_plan_versions_plan (daily_plan_id, version DESC)`.
+- Append-only: версии не перезаписываются. |
+|↙ ПОТРЕБЛЯЕТ:
+- **daily_plans** (FK `daily_plan_id` — CASCADE).
+- **participants** (FK `created_by` — RESTRICT).
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`daily_plan_versions`** — C.0.06.02 (`upsertDailyPlan` — v1/v2 при создании; v3/v4 при обновлении; `removeTaskFromDailyPlan` — v5/v6; `listDailyPlanVersions`); A.1.06.01 (`GET /daily-plans/versions`).
+- Семантика «снимок дневного плана направления» — F.4.02.99 (DailyPlan.tsx — история). |
+|Реализация:
+- `CREATE TABLE IF NOT EXISTS daily_plan_versions (...)` — 7 колонок; 3 constraint (`chk_daily_plan_version_positive`, `uq_daily_plan_version`, `chk_daily_plan_snapshot_shape`); JSONB shape — `snapshot ? 'tasks'`, `snapshot ? 'status'`, `snapshot ? 'approvedBy'`, `jsonb_typeof(snapshot->'tasks') = 'array'`.
+- `CREATE INDEX IF NOT EXISTS idx_daily_plan_versions_plan ON daily_plan_versions(daily_plan_id, version DESC)` — для `listDailyPlanVersions` (ORDER BY version DESC).
+- Всё в `BEGIN; ... COMMIT;`. |
+|Примечания:
+СОЗДАН (новый блок; миграция упоминается в шапке C.0.06.02 как «D.2.01.71 — версии дневного плана»; в шапке 071 — ссылка на D.2.01.68 как «аналогично»).
+СВЕРХ СТАРОЙ СПЕКИ: **версионирование `daily_plans`** — «append-only, не перезаписывается»; **`chk_daily_plan_snapshot_shape`** — JSONB-контракт (`tasks` array, `status`, `approvedBy`).
+СВЯЗЬ С C.0.06.02: `upsertDailyPlan` — v1 (пустой) / v2 (сформированный) при создании; v3 (до изменения) / v4 (после) при обновлении; `removeTaskFromDailyPlan` — v5/v6; `listDailyPlanVersions`.
+СВЯЗЬ С A.1.06.01: `GET /daily-plans/versions` (эндпоинт).
+СВЯЗЬ С D.2.01.68: аналогичная структура (`cell_daily_plan_versions`) — для наряда ячейки; связь «по аналогии», не по зависимости.
+ТЕХДОЛГ:
+- **`snapshot` — JSONB без строгой схемы** — CHECK проверяет только «наличие ключей» и «tasks — array»; типы внутри `tasks[i]` (`taskId`, `position`) не валидируются на уровне БД.
+- **`daily_plan_id` — CASCADE** — при удалении `daily_plans` версии удаляются.
+- **`created_by` — RESTRICT** — нельзя удалить участника, создавшего версию.
+- **`reason TEXT` (nullable)** — семантика: `null` = «без комментария»; `'Исходное состояние (до миграции)'` — из `hasAnyVersion=false` при первом изменении.
+- **`uq_daily_plan_version`** — защита от race при параллельной записи.
+- **`idx_daily_plan_versions_plan`** — DESC для `ORDER BY version DESC`.
+- **`chk_daily_plan_snapshot_shape`** — `jsonb_typeof(snapshot->'tasks') = 'array'`; если `snapshot` содержит `tasks: null` — CHECK отклонит.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.77 (версии day-plan), I.9.04.78 (версии daily-plan), I.9.04.79 (Сценарий 8 — перепланирование). |
+
+|D.2.01.72|DB|Migration|SQL|db/migrations/072_load_indexes.sql|C.0.07.01, C.0.07.02, C.0.06.02, C.1.09.02|v.1|Draft|D.2.01.67, D.2.01.70|
+|Описание: **Индексы для нагрузки (ТЗ §21).** После Этапов 1–5 агрегаты и списки фильтруют по `kind='deliverable'`. Без композитных индексов — Seq Scan при росте задач. **Добавляет 5 индексов:** `tasks (direction_id, kind, status)` — `listTasks`; `tasks (plan_id, kind, status)` — `getPlanProgress` / `getPlanTree`; `tasks (kind, status)` — глобальные агрегаты; `tasks (assigned_to, kind, status)` — `listMyTasks` (partial); `task_practices (teacher_id, learner_task_id, status)` — `isTeacherOfLearnerTask` (§7.5). **Не создаёт дубли:** `CREATE INDEX IF NOT EXISTS` — no-op, если индекс уже есть. |
+|Публичный API:
+- **`idx_tasks_direction_kind_status`** — `(direction_id, kind, status)` — для `listTasks` (фильтр по `direction_id` + `kind` + `status`).
+- **`idx_tasks_plan_kind_status`** — `(plan_id, kind, status) WHERE plan_id IS NOT NULL` — для `getPlanProgress` / `getPlanTree` (plan-scoped агрегаты).
+- **`idx_tasks_kind_status`** — `(kind, status)` — для глобальных агрегатов (без direction/plan).
+- **`idx_tasks_assigned_kind_status`** — `(assigned_to, kind, status) WHERE assigned_to IS NOT NULL AND status <> 'accepted'` — для `listMyTasks` (partial: только активные задачи с assignee).
+- **`idx_task_practices_teacher_learner_task`** — `(teacher_id, learner_task_id, status)` — для `isTeacherOfLearnerTask` (§7.5; проверка «учитель — learner_task»). |
+|↙ ПОТРЕБЛЯЕТ:
+- **tasks** (существующая; CREATE INDEX).
+- **task_practices** (существующая; CREATE INDEX).
+- Внешние: нет. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- **`idx_tasks_direction_kind_status`** — C.0.07.02 (`listTasks` — фильтр `direction_id` + `kind` + `status`); A.1.07.01 (`GET /tasks`).
+- **`idx_tasks_plan_kind_status`** — C.0.06.02 (`getPlanProgress`); C.0.06.05 (`getPlanTree`); C.0.06.06 (`getOversightTree`).
+- **`idx_tasks_kind_status`** — глобальные агрегаты (C.0.06.03 — deviation, C.0.06.04 — branches, C.0.43.01 — public overview).
+- **`idx_tasks_assigned_kind_status`** — C.0.07.02 (`listMyTasks` — `assigned_to` + активные).
+- **`idx_task_practices_teacher_learner_task`** — C.1.09.02 (`isTeacherOfLearnerTask` — §7.5); C.0.07.02 (`acceptTaskService`); C.0.09.02 (`decide`/`crisisDecide`). |
+|Реализация:
+- `CREATE INDEX IF NOT EXISTS idx_tasks_direction_kind_status ON tasks (direction_id, kind, status)`.
+- `CREATE INDEX IF NOT EXISTS idx_tasks_plan_kind_status ON tasks (plan_id, kind, status) WHERE plan_id IS NOT NULL`.
+- `CREATE INDEX IF NOT EXISTS idx_tasks_kind_status ON tasks (kind, status)`.
+- `CREATE INDEX IF NOT EXISTS idx_tasks_assigned_kind_status ON tasks (assigned_to, kind, status) WHERE assigned_to IS NOT NULL AND status <> 'accepted'`.
+- `CREATE INDEX IF NOT EXISTS idx_task_practices_teacher_learner_task ON task_practices (teacher_id, learner_task_id, status)`.
+- Всё в `BEGIN; ... COMMIT;`. |
+|Примечания:
+СОЗДАН (новый блок; миграция упоминается как D.2.01.72 по номеру файла; в шапке 072 — «Индексы для нагрузки (ТЗ §21)»; ссылки — на D.2.01.67 / D.2.01.70).
+СВЕРХ СТАРОЙ СПЕКИ: **5 композитных индексов** — целевые запросы после Этапов 1–5 (фильтрация `kind='deliverable'`); **partial-индексы** — `idx_tasks_plan_kind_status` (только `plan_id IS NOT NULL`), `idx_tasks_assigned_kind_status` (только активные с assignee) — экономия места и скорость.
+СВЯЗЬ С C.0.07.01 (tasks/entity): `kind='deliverable'` — фильтр; `assigned_to` / `status` — для `listMyTasks`.
+СВЯЗЬ С C.0.07.02 (tasks/service): `listTasks` (direction + kind + status), `listMyTasks` (assigned + kind + status), `getById`, `getPlanProgress` (plan + kind + status).
+СВЯЗЬ С C.0.06.02 (plans/service): `getPlanProgress` — `WITH plan_task_ids AS (tasks.plan_id UNION plan_tasks)` + `kind='deliverable'` (D.2.01.67).
+СВЯЗЬ С C.0.06.05/06 (plans/tree, oversight): plan-scoped выборки.
+СВЯЗЬ С C.1.09.02 (teaching-practice): `isTeacherOfLearnerTask` — `teacher_id, learner_task_id, status` (idx_task_practices_teacher_learner_task).
+СВЯЗЬ С C.0.06.03/04 (deviation/branches): `kind='deliverable'` + `status` — `idx_tasks_kind_status`.
+СВЯЗЬ С C.0.43.01 (public overview): `tasks WHERE status='accepted'` — покрывается `idx_tasks_kind_status` (kind не фильтруется — но Seq Scan по одному полю; для точного покрытия нужен отдельный индекс — roadmap).
+ТЕХДОЛГ:
+- **`idx_tasks_kind_status`** — `(kind, status)` без `direction_id`; для глобальных агрегатов (без фильтра направления) — ок; для запросов с `direction_id` — менее эффективен (используется `idx_tasks_direction_kind_status`).
+- **`idx_tasks_assigned_kind_status` — partial** — `WHERE assigned_to IS NOT NULL AND status <> 'accepted'`; для `listMyTasks` (`assigned_to = $1 AND status <> 'accepted'`) — точное покрытие; для запросов с `status = 'accepted'` — не покрывает (Seq Scan).
+- **`idx_tasks_plan_kind_status` — partial** — `WHERE plan_id IS NOT NULL`; для задач без плана — не покрывает; но `getPlanProgress` / `getPlanTree` — только plan-scoped.
+- **`idx_task_practices_teacher_learner_task`** — не partial; для §7.5 — `WHERE status IN ('active', 'submitted', 'completed')` — использует индекс, но с фильтром по status в SQL (index scan + filter); для точного покрытия — partial-index — roadmap.
+- **`CREATE INDEX IF NOT EXISTS`** — no-op, если индекс уже есть; при переименовании — старый индекс останется (нужен `DROP INDEX` — roadmap).
+- **`idx_tasks_kind_status`** — потенциально дублирует `idx_tasks_direction_kind_status` (первая колонка `direction_id` — не `kind`); но для запросов без `direction_id` — нужен.
+ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.79 (Сценарий 2 — `getPlanProgress`/`getPlanTree` с `kind='deliverable'`; I.9.04.74 — package без expected_result; I.9.09.43 — §7.5). |
 
 |F.4.01.01|Frontend|App|React|src/web/App.tsx|F.4.01.02, F.4.01.03, F.4.01.04, F.4.99.09, F.4.99.11, F.4.99.12, F.4.99.13, F.4.99.17, F.4.04.01, F.4.04.02–07, **F.4.04.10**, F.4.02.15, F.4.02.17, F.4.02.24|v.0.0.06|Draft|—|
 |Описание: Точка входа web-приложения. QueryClientProvider + BrowserRouter. Все защищённые маршруты — RequireAuth + Layout. Вложенная группа `/admin` с **7 дочерними роутами** (WebhooksPage добавлена). **Добавлены маршруты `/psy`, `/chat`, `/automation`, `/quanta`**. Корень `/` редиректит на `/workspace`. Публичные: /login, /register, /waiting/:request_id. |
@@ -14811,13 +15523,13 @@
 - UI для аудита, тестов, масштабирования, остановки, документирования, внедрения в общину. |
 |Реализация:
 - **QuantaPage**: `useState<Tab>('catalog')`; 3 кнопки-таба; рендер `CatalogTab` / `MandatoryTab` / `DetectTab`.
-- **CatalogTab**: 
+- **CatalogTab**:
 - `useApiQuery(['quanta','list',filterStatus,filterLevel], '/quanta?...')`.
 - Master-detail: aside + section.
 - Filters: status, level, кнопка «+ Обнаружить» (если `quantum:C`).
 - Список квантов: badges L/status/M, description, type + дата.
 - Detail: `QuantumDetail` / `CreateQuantumForm` / placeholder.
-- **QuantumDetail**: 
+- **QuantumDetail**:
 - `useApiQuery(['quanta','detail',id], '/quanta/:id')`.
 - `readinessQ` — `enabled: false` (ручка `/quanta/:id/readiness` в A.1.25.01 **не зарегистрирована**).
 - Mutations: auditM, scaleM, documentM.
@@ -14825,7 +15537,7 @@
 - Действия: аудит (detected + A), масштабировать (testing + A), документировать (E), внедрить в общину (scaling + E), остановить (не cancelled + A).
 - Модалки stop/apply.
 - QuantumTestPanel для status ∈ {testing, scaling}.
-- **QuantumTestPanel**: 
+- **QuantumTestPanel**:
 - `testsQ` — `enabled: false` (ручка `/quanta/:id/tests` в A.1.25.01 **не зарегистрирована**).
 - runTestM, recordForm.
 - Кнопки «Запустить тест» / «Записать результат» (если E).
@@ -15066,7 +15778,7 @@
 - Filters: status (select).
 - Кнопка «+ Создать план» (если `convergence:C`).
 - Планы: badge status, badge «Этап N/5», stateName, startedAt.
-- **ConvergenceStages**: 
+- **ConvergenceStages**:
 - `planQ`, `criteriaQ`, `councilQ`, `validationQ` — 4 параллельных запроса.
 - `advanceM` — `POST /convergence/plans/:id/stage/:n`.
 - **StageTimeline** — 6 узлов (0..5), текущий подсвечен, пройденные зелёные, `ProgressBar` с `percent = (currentStage / 5) * 100`.
@@ -15851,12 +16563,12 @@
 |Публичный API:
 - `export function AdminLayout(): ReactElement`.
 - `export default AdminLayout`.
-- Внутренние: `Section` interface, `SECTIONS: readonly Section[]`, `BREADCRUMB_LABEL`, `Breadcrumbs()`, `ACCENT='#60a5fa'`, `ACCENT_SOFT='rgba(96,165,250,0.12)'`.| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.05 theme; F.4.99.17 Layout (внешний). Внешние: react, react-router-dom (NavLink, Outlet, useLocation).| 
+- Внутренние: `Section` interface, `SECTIONS: readonly Section[]`, `BREADCRUMB_LABEL`, `Breadcrumbs()`, `ACCENT='#60a5fa'`, `ACCENT_SOFT='rgba(96,165,250,0.12)'`.|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.05 theme; F.4.99.17 Layout (внешний). Внешние: react, react-router-dom (NavLink, Outlet, useLocation).|
 - F.4.99.05 theme (colors, fontSize, radius, spacing).
 - F.4.99.17 Layout (внешняя обёртка).
 - Внешние: react, react-router-dom (NavLink, Outlet, useLocation).|
-|↘ ПРЕДОСТАВЛЯЕТ: каркас для 6 страниц админки; breadcrumbs (6 меток); sidebar-навигацию.| 
+|↘ ПРЕДОСТАВЛЯЕТ: каркас для 6 страниц админки; breadcrumbs (6 меток); sidebar-навигацию.|
 - Каркас для 6 страниц админки (F.4.04.02–F.4.04.07) через `<Outlet />`.
 - Breadcrumbs — сегменты URL разрешаются через BREADCRUMB_LABEL; для `admin` → «Админ-панель».
 - Sidebar-навигацию: Дашборд (end), Участники, Мандаты, Recovery, Логи, Система.|
@@ -15864,7 +16576,7 @@
 - SECTIONS: admin (end:true, breadcrumbLabel:'Админ-панель'), participants, mandates, recovery, logs, system.
 - `Breadcrumbs()`: split pathname → filter(Boolean) → map → span/crumb + crumbSep; последний — crumbLast.
 - NavLink: style — функция isActive.
-- Стили: root flex; sidebar 220 flexShrink:0; content flex:1 overflow:hidden; pageBody flex:1 overflowY:auto.| 
+- Стили: root flex; sidebar 220 flexShrink:0; content flex:1 overflow:hidden; pageBody flex:1 overflowY:auto.|
 |Примечания:
 РЕАЛИЗОВАНО: sidebar, breadcrumbs, активное состояние, aria-region, компенсация padding.
 ТЕХДОЛГ:
@@ -15873,19 +16585,19 @@
 - Динамические сегменты breadcrumbs (UUID) показываются как есть.
 - `role="region"` временный — заменить на `<main>`, если внешний Layout перестанет давать `<main>`.
 - Активная ссылка использует `colors.text` (без веса 600) — визуально ок, но резерв на fw 500.
-ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |F.4.04.02|Web|Admin Dashboard|TypeScript|src/web/pages/admin/DashboardPage.tsx|F.4.99.03, F.4.99.06, F.4.99.20, F.4.99.26, F.4.99.12|v.0.0.01|Draft|F.4.01.01, F.4.04.01, A.1.35.01|
 |Описание: Дашборд Архитектора. 6 метрик-плиток: participantsTotal, activeMandates, recoveryPending, openSignals, activeRegimes, directionsTotal. Каждая плитка кликабельна (`<button>`) → переход в раздел с фильтром (participants, mandates?status=active, recovery). `updatedAt` — формат ru-RU. Один запрос `GET /admin/dashboard`.|
 |Публичный API:
 - `export function DashboardPage(): ReactElement`.
 - `export default DashboardPage`.
-- Внутренние: `AdminDashboard` (тип), `Tile` component, `formatDateTime(iso)`.| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.03 Card, F.4.99.06 Chart(MetricCard), F.4.99.20 useApiQuery, F.4.99.26 Spinner. Внешние: react, react-router-dom (useNavigate).| 
+- Внутренние: `AdminDashboard` (тип), `Tile` component, `formatDateTime(iso)`.|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.03 Card, F.4.99.06 Chart(MetricCard), F.4.99.20 useApiQuery, F.4.99.26 Spinner. Внешние: react, react-router-dom (useNavigate).|
 - F.4.99.03 Card; F.4.99.06 Chart (MetricCard); F.4.99.20 useApi (useApiQuery); F.4.99.26 Spinner.
 - Бэкенд: A.1.35.01 `GET /admin/dashboard`.
 - Внешние: react.|
-|↘ ПРЕДОСТАВЛЯЕТ: /admin (index route в F.4.01.01); 6 плиток-метрик.| 
+|↘ ПРЕДОСТАВЛЯЕТ: /admin (index route в F.4.01.01); 6 плиток-метрик.|
 - Страницу `/admin` (index route в App.tsx через F.4.04.01).
 - Метрики: participantsTotal, directionsTotal, activeMandates, openSignals, activeRegimes, recoveryPending (pending+approved), updatedAt.|
 |Реализация:
@@ -15893,26 +16605,26 @@
 - Tile: `<button>` с onClick (navigate) или static.
 - Grid `repeat(auto-fit, minmax(220px, 1fr))`.
 - formatDateTime: `toLocaleString('ru-RU', {day, month, year: '2-digit', hour, minute})`.
-- recoveryPending — hint="pending + approved".| 
+- recoveryPending — hint="pending + approved".|
 |Примечания:
 РЕАЛИЗОВАНО: запрос, grid, 6 плиток, deep links, дата обновления.
 ТЕХДОЛГ:
 - `formatDateTime` дублируется в других страницах — в `lib/format.ts` (F.4.99.22).
 - Tile hint «открыть →» — только при `to` (не для всех).
 - `value` = 0 показывается как «0» (нет fallback placeholder при ошибке запроса, кроме error-case).
-ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |F.4.04.03|Web|Admin Participants|TypeScript|src/web/pages/admin/ParticipantsPage.tsx|F.4.99.02, F.4.99.03, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.20, F.4.99.12, F.4.99.05|v.0.0.01|Draft|F.4.01.01, F.4.04.01, A.1.35.01|
-|Описание: Участники — список с фильтрами (search/status/direction_id), пагинация, side panel. Состояние в URL: `?search=&status=&direction_id=&page=&selected=`. Deep link `?selected=<uuid>` открывает panel. Редактирование: name, pseudonym, status, direction_id. FIRST_ARCHITECT — read-only через admin.| 
+|Описание: Участники — список с фильтрами (search/status/direction_id), пагинация, side panel. Состояние в URL: `?search=&status=&direction_id=&page=&selected=`. Deep link `?selected=<uuid>` открывает panel. Редактирование: name, pseudonym, status, direction_id. FIRST_ARCHITECT — read-only через admin.|
 |Публичный API:
 - `export function ParticipantsPage(): ReactElement`.
 - `export default ParticipantsPage`.
-- Внутренние: `ParticipantRow`, `ListEnvelope<T>`, `DirectionBrief`, `STATUS_OPTIONS`, `STATUS_LABEL`, `statusTone`, `RISK_LABEL`, `riskLabel`, `FilterBar`, `ParticipantPanel`.| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiPatch, F.4.99.05 theme. Внешние: react, react-router-dom (useSearchParams).| 
+- Внутренние: `ParticipantRow`, `ListEnvelope<T>`, `DirectionBrief`, `STATUS_OPTIONS`, `STATUS_LABEL`, `statusTone`, `RISK_LABEL`, `riskLabel`, `FilterBar`, `ParticipantPanel`.|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiPatch, F.4.99.05 theme. Внешние: react, react-router-dom (useSearchParams).|
 - F.4.99.02 Table; F.4.99.03 Card; F.4.99.24 Badge; F.4.99.25 Button; F.4.99.26 Spinner; F.4.99.20 useApi; F.4.99.12 apiPatch; F.4.99.05 theme (colors, fontSize, radius, spacing).
 - Бэкенд: A.1.35.01 `GET /admin/participants` (list), `GET /admin/participants/:id` (detail), `PATCH /admin/participants/:id` (update).
 - Внешние: react, react-router-dom (useSearchParams).|
-|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/participants; URL-состояние; редактирование.| 
+|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/participants; URL-состояние; редактирование.|
 - Страницу `/admin/participants`.
 - URL-состояние для deep links и шаринга фильтров.
 - Редактирование участника (кроме FIRST_ARCHITECT).|
@@ -15923,7 +16635,7 @@
 - Patch: `apiPatch`; изменяются только dirty-поля.
 - directionId: если очищен — **patch не выставляется** (`if (directionId) {patch['direction_id'] = directionId;}` — фактически сброс не поддерживается).
 - Пагинация: `Button ← Назад / Вперёд →` при totalPages > 1.
-- Guard: `isFirstArchitect` → поля disabled, warning, кнопка сохранения disabled.| 
+- Guard: `isFirstArchitect` → поля disabled, warning, кнопка сохранения disabled.|
 |Примечания:
 РЕАЛИЗОВАНО: список, фильтры, пагинация, side panel, редактирование, deep link.
 ТЕХДОЛГ:
@@ -15933,7 +16645,7 @@
 - STATUS_LABEL / RISK_LABEL — дублируют ParticipantPicker; кандидат в lib/format.ts.
 - `ListEnvelope<T>` дублируется в F.4.04.04/05/06.
 - Pager без перехода на первую/последнюю.
-ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 |2026-10-24: список участников прокручивается отдельно от карточки (listScroll, overflowY: auto) — при сотне строк нижние строки и пагинация были недоступны. Добавлена dev-кнопка «Войти как» (A.1.39.01) с сохранением своей сессии.
 
 |F.4.04.04|Web|Admin Mandates|TypeScript|src/web/pages/admin/MandatesPage.tsx|F.4.99.02, F.4.99.03, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.20, F.4.99.12, F.4.04.09|v.0.0.01|Draft|F.4.01.01, F.4.04.01, A.1.35.01, A.1.05.01|
@@ -15941,12 +16653,12 @@
 |Публичный API:
 - `export function MandatesPage(): ReactElement`.
 - `export default MandatesPage`.
-- Внутренние: `MandateStatus`, `AdminMandateRow`, `ListEnvelope<T>`, `DirectionBrief`, `FUNCTIONS` (8 ролей), `FUNCTION_LABEL`, `STATUS_LABEL`, `STATUS_TONE`, `FilterBar`, `CreateMandateModal`, `MandatePanel` (mode: 'view'|'rotate'|'revoke').| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiDelete/apiPost, F.4.04.09 ParticipantPicker. Внешние: react, react-router-dom (useSearchParams).| 
+- Внутренние: `MandateStatus`, `AdminMandateRow`, `ListEnvelope<T>`, `DirectionBrief`, `FUNCTIONS` (8 ролей), `FUNCTION_LABEL`, `STATUS_LABEL`, `STATUS_TONE`, `FilterBar`, `CreateMandateModal`, `MandatePanel` (mode: 'view'|'rotate'|'revoke').|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiDelete/apiPost, F.4.04.09 ParticipantPicker. Внешние: react, react-router-dom (useSearchParams).|
 - F.4.99.02 Table; F.4.99.03 Card; F.4.99.24 Badge; F.4.99.26 Spinner; F.4.99.20 useApi.
 - Бэкенд: A.1.35.01 `GET /admin/mandates/map`.
 - Внешние: react.|
-|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/mandates; deep link по selected; создание/ротация/отзыв.| 
+|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/mandates; deep link по selected; создание/ротация/отзыв.|
 - Страницу `/admin/mandates`.
 - Таблицу мандатов по направлениям (с ключом `${directionId}:${function}:${holderId}`).
 - Чипы функций Архитектора, таблицу делегирований.|
@@ -15957,7 +16669,7 @@
 - Rotate: `POST /mandates/:id/rotate` body { successor_id }.
 - Revoke: `DELETE /mandates/:id?reason=…` — reason в query (Fastify 5 не парсит body у DELETE).
 - FilterBar с ParticipantPicker для holderId.
-- `useEffect`: если selected не найден в новом списке — сброс.| 
+- `useEffect`: если selected не найден в новом списке — сброс.|
 |Примечания:
 РЕАЛИЗОВАНО: список, фильтры, создание, ротация, отзыв, deep link.
 ТЕХДОЛГ:
@@ -15968,19 +16680,19 @@
 - При ошибке DELETE reason слишком короткий — показывается серверное сообщение (ок).
 - Нет массовых операций (bulk revoke).
 - `useEffect` в MandatesPage может перезаписывать selected при race'е.
-ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |F.4.04.05|Web|Admin Recovery Queue|TypeScript|src/web/pages/admin/RecoveryPage.tsx|F.4.99.02, F.4.99.03, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.20, F.4.99.12|v.0.0.01|Draft|F.4.01.01, F.4.04.01, A.1.35.01|
 |Описание: Очередь recovery-заявок. Фильтр по статусам (pending/approved/used/rejected/expired). Таблица + side panel с approve (POST /admin/recovery/:id/approve) и reject (POST /admin/recovery/:id/reject). Deep link `?selected=<request_id>`. Dev-token показывается в панели при `ALLOW_DEV_TOKEN=true` (на бэке).|
 |Публичный API:
 - `export function RecoveryPage(): ReactElement`.
 - `export default RecoveryPage`.
-- Внутренние: `RecoveryStatus`, `RecoveryQueueItem`, `ListEnvelope<T>`, `ApproveResult`, `RECOVERY_STATUS_LABEL`, `RECOVERY_STATUS_TONE`, `formatDateTime`, `RecoveryPanel` (mode: 'view'|'reject'|'approved').| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiPost. Внешние: react, react-router-dom (useSearchParams).| 
+- Внутренние: `RecoveryStatus`, `RecoveryQueueItem`, `ListEnvelope<T>`, `ApproveResult`, `RECOVERY_STATUS_LABEL`, `RECOVERY_STATUS_TONE`, `formatDateTime`, `RecoveryPanel` (mode: 'view'|'reject'|'approved').|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiPost. Внешние: react, react-router-dom (useSearchParams).|
 - F.4.99.02 Table; F.4.99.03 Card; F.4.99.24 Badge; F.4.99.26 Spinner; F.4.99.20 useApi.
 - Бэкенд: A.1.35.01 `GET /admin/recovery/queue?statuses=&page=&per_page=`.
 - Внешние: react.|
-|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/recovery; deep link; approve / reject.| 
+|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/recovery; deep link; approve / reject.|
 - Страницу `/admin/recovery`.
 - Фильтр статусов через `<select>`; дефолт — `pending,approved`.|
 |Реализация:
@@ -15989,7 +16701,7 @@
 - Approve: `POST /admin/recovery/:id/approve` body {} → ApproveResult; в panel mode='approved' отображает expires_at, delivered_via, warning, dev_token.
 - Reject: `POST /admin/recovery/:id/reject` body { reason }; reason 1..1000.
 - Dev-token: блок с warning-стилем `DEV-ONLY (ALLOW_DEV_TOKEN=true)`.
-- Deep link в URL (`selected`).| 
+- Deep link в URL (`selected`).|
 |Примечания:
 РЕАЛИЗОВАНО: очередь, фильтр, approve/reject, dev-token display, deep link.
 ТЕХДОЛГ:
@@ -15998,19 +16710,19 @@
 - `formatDateTime` — кандидат в lib/format.ts.
 - `dev_token` отображается клиенту без TTL — если user не закрыл панель, токен виден в UI до перезагрузки; при `ALLOW_DEV_TOKEN=false` поле не приходит — ок.
 - Нет автоматического refetch/refreshInterval (60s) — новые заявки не подгружаются, пока пользователь не обновит.
-ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |F.4.04.06|Web|Admin Logs|TypeScript|src/web/pages/admin/LogsPage.tsx|F.4.99.02, F.4.99.03, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.20, F.4.99.12|v.0.0.01|Draft|F.4.01.01, F.4.04.01, A.1.35.01|
 |Описание: Логи аудита. Источник — `GET /admin/logs` (listLogsRich из C.0.35.02 — с резолвом actor/entity имён через JOIN). Фильтры: entity_type (select), actor_id (ParticipantPicker). Экспорт CSV/JSON — `GET /admin/logs/export` возвращает `{ key, url, format, rows, bytes }`. Локализация action/entity через ACTION_LABEL / ENTITY_LABEL. Ссылки на карточки сущностей через Link.|
 |Публичный API:
 - `export function LogsPage(): ReactElement`.
 - `export default LogsPage`.
-- Внутренние: `AdminLogRow`, `ExportResult`, `ListEnvelope<T>`, `ACTION_LABEL`, `ENTITY_LABEL`, `ENTITY_ROUTE`, `actionLabel`, `entityLabel`, `formatDateTime`, `formatRelative`, `EntityCell`.| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiGet. F.4.04.09 ParticipantPicker. Внешние: react, react-router-dom (Link).| 
+- Внутренние: `AdminLogRow`, `ExportResult`, `ListEnvelope<T>`, `ACTION_LABEL`, `ENTITY_LABEL`, `ENTITY_ROUTE`, `actionLabel`, `entityLabel`, `formatDateTime`, `formatRelative`, `EntityCell`.|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.02 Table, F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiGet. F.4.04.09 ParticipantPicker. Внешние: react, react-router-dom (Link).|
 - F.4.99.02 Table; F.4.99.03 Card; F.4.99.24 Badge; F.4.99.25 Button; F.4.99.26 Spinner; F.4.99.20 useApi; F.4.99.12 apiGet, ApiError.
 - Бэкенд: A.1.35.01 `GET /admin/logs?entity_type=&actor_id=&page=&per_page=`, `GET /admin/logs/export?format=csv|json&entity_type=`.
 - Внешние: react.|
-|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/logs; фильтры; экспорт CSV/JSON с presigned URL.| 
+|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/logs; фильтры; экспорт CSV/JSON с presigned URL.|
 - Страницу `/admin/logs`.
 - Экспорт CSV/JSON — отдаёт URL и метрики (rows, bytes).|
 |Реализация:
@@ -16020,7 +16732,7 @@
 - ENTITY_LABEL / ENTITY_ROUTE: participant → /admin/participants, mandate → /admin/mandates, recovery_request → /admin/recovery.
 - Колонки: createdAt (relative + tooltip absolute), actorType/actorName/actorId, action, entityType/entityName, ip, reason.
 - EntityCell — Link на маршрут с `?selected=<id>` или plain text.
-- formatRelative: «только что» / «N мин назад» / «N ч назад» / «N дн назад».| 
+- formatRelative: «только что» / «N мин назад» / «N ч назад» / «N дн назад».|
 |Примечания:
 РЕАЛИЗОВАНО: список, фильтры, экспорт, локализация, ссылки на карточки, relative time.
 ТЕХДОЛГ:
@@ -16030,20 +16742,20 @@
 - `formatDateTime` / `formatRelative` — кандидаты в lib/format.ts.
 - 24h window логируется сервером (C.0.35.02.listLogsRich); UI не показывает это ограничение явно.
 - `<a href={url}>` вместо Link — ok для внешнего S3.
-ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |F.4.04.07|Web|Admin System Status|TypeScript|src/web/pages/admin/SystemPage.tsx|F.4.99.03, F.4.99.24, F.4.99.25, F.4.99.26, F.4.99.20, F.4.99.12|v.0.0.01|Draft|F.4.01.01, F.4.04.01, A.1.35.01, C.0.35.02, D.2.01.20|
 |Описание: Состояние системы + seed справочников + справка по bootstrap. health/degraded, uptime, version, services (db/redis). Кнопки: «Инвалидировать кэши» (POST /admin/invalidate-caches), «Запустить seed» (POST /admin/seed body {}). Bootstrap — только через CLI (`pnpm ensure:architect`), UI показывает инструкцию.|
 |Публичный API:
 - `export function SystemPage(): ReactElement`.
 - `export default SystemPage`.
-- Внутренние: `SystemStatus`, `formatUptime`.| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiPost. F.4.99.05 theme. Внешние: react.| 
+- Внутренние: `SystemStatus`, `formatUptime`.|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.03 Card, F.4.99.24 Badge, F.4.99.25 Button, F.4.99.26 Spinner, F.4.99.20 useApi, F.4.99.12 apiPost. F.4.99.05 theme. Внешние: react.|
 - F.4.99.03 Card; F.4.99.24 Badge; F.4.99.25 Button; F.4.99.26 Spinner; F.4.99.20 useApi; F.4.99.12 apiPost, ApiError.
 - F.4.99.05 theme (colors, fontSize, spacing).
 - Бэкенд: A.1.35.01 `GET /admin/system-status`, `POST /admin/invalidate-caches`, `POST /admin/delegate|rotate|bootstrap|seed`; C.0.35.02 — техдолг заглушек.
 - Внешние: react.|
-|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/system; инвалидация кэшей; seed справочников; справка по bootstrap.| 
+|↘ ПРЕДОСТАВЛЯЕТ: страница /admin/system; инвалидация кэшей; seed справочников; справка по bootstrap.|
 - Страницу `/admin/system`.
 - Отображение healthy/degraded, списка сервисов, uptime, версии.
 - Инвалидацию кэшей с показом числа инвалидированных ключей.
@@ -16054,7 +16766,7 @@
 - onInvalidate: POST /admin/invalidate-caches → setInvalidated(count).
 - onSeed: POST /admin/seed body {} → setSeedMsg(`Seed выполнен. Вставлено записей: ${totalInserted}`).
 - Card «Прочее»: инструкция `pnpm ensure:architect` в `<pre>`.
-- Комментарий в шапке: bootstrap/delegate/rotate/seed удалены как action-кнопки, потому что требуют форм; delegate/rotate — в MandatesPage, seed — здесь, bootstrap — только CLI.| 
+- Комментарий в шапке: bootstrap/delegate/rotate/seed удалены как action-кнопки, потому что требуют форм; delegate/rotate — в MandatesPage, seed — здесь, bootstrap — только CLI.|
 |Примечания:
 РЕАЛИЗОВАНО: статус, сервисы, uptime, version, инвалидация, seed, bootstrap-справка.
 ТЕХДОЛГ:
@@ -16062,10 +16774,10 @@
 - `delegate/rotate/seed` — кнопки, если пользователь кликнет seed без templates — уйдёт `{}` → Zod default ['all'] на бэке.
 - `<pre>` монospace-стиль — кандидат в общий компонент.
 - `colors`/`fontSize`/`spacing` используются, но не все (colors.borderSoft, colors.text).
-ТЕСТОВОЕ ПОКРЫТИЕ: косвенно — I.9.02.02 bootstrap-architect.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: косвенно — I.9.02.02 bootstrap-architect.|
 
 |F.4.04.08|Web|Admin Section Public API|TypeScript|src/web/pages/admin/index.ts|F.4.04.01, F.4.04.02–F.4.04.07, F.4.04.09|v.0.0.01|Draft|F.4.01.01|
-|Описание: Публичный API админ-раздела. Реэкспорт layout'а и 7 компонентов одной точкой входа (`from './pages/admin'`). Внутренние модули (types.ts, adminStyles.ts — при появлении) наружу не выводятся.| 
+|Описание: Публичный API админ-раздела. Реэкспорт layout'а и 7 компонентов одной точкой входа (`from './pages/admin'`). Внутренние модули (types.ts, adminStyles.ts — при появлении) наружу не выводятся.|
 |Публичный API:
 - `export { AdminLayout } from './AdminLayout'`.
 - `export { DashboardPage } from './DashboardPage'`.
@@ -16074,13 +16786,13 @@
 - `export { MandatesPage } from './MandatesPage'`.
 - `export { RecoveryPage } from './RecoveryPage'`.
 - `export { LogsPage } from './LogsPage'`.
-- `export { SystemPage } from './SystemPage'`.| 
-|↙ ПОТРЕБЛЯЕТ: F.4.04.01–F.4.04.07, F.4.04.09.| 
+- `export { SystemPage } from './SystemPage'`.|
+|↙ ПОТРЕБЛЯЕТ: F.4.04.01–F.4.04.07, F.4.04.09.|
 - F.4.04.01–F.4.04.07 (все страницы и layout).|
-|↘ ПРЕДОСТАВЛЯЕТ: единая точка входа для F.4.01.01.| 
+|↘ ПРЕДОСТАВЛЯЕТ: единая точка входа для F.4.01.01.|
 - Единственную точку входа для App.tsx (F.4.01.01).
 - Явный список экспортов — не `export *`, чтобы внутренние хелперы не утекали.|
-|Реализация: только именованные реэкспорты, без `export *`.| 
+|Реализация: только именованные реэкспорты, без `export *`.|
 - Только именованные реэкспорты, без значений по умолчанию (дефолтные экспорты файлов остаются доступны при прямом импорте файла).|
 |Примечания:
 РЕАЛИЗОВАНО: 8 реэкспортов (7 страниц + AdminLayout + ParticipantPicker).
@@ -16089,7 +16801,7 @@
 ТЕХДОЛГ:
 - При появлении общих модулей (types.ts, adminStyles.ts, useAdminQuery.ts) — не пробрасывать через index.ts.
 - При разрастании до подпапок — локальные index.ts + агрегация здесь.
-ТЕСТОВОЕ ПОКРЫТИЕ: не требуется.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: не требуется.|
 
 |F.4.04.09|Web|ParticipantPicker|TypeScript|src/web/pages/admin/ParticipantPicker.tsx|F.4.99.24, F.4.99.20, F.4.99.05|v.0.0.01|Draft|F.4.04.03, F.4.04.04, F.4.04.06, A.1.35.01|
 |Описание: Переиспользуемый выбор участника. Три режима: (1) `value` пусто → input с debounce 300мс + dropdown результатов; (2) введён UUID → точечный `GET /admin/participants/:id`; (3) `value` задан → карточка выбранного с external_id, статусом, ссылкой «Открыть паспорт в новой вкладке» (↗) и сбросом (×). Backdrop при клике вне закрывает dropdown.|
@@ -16098,12 +16810,12 @@
 - `export default ParticipantPicker`.
 - `export interface ParticipantBrief { id, externalId, name, pseudonym, status }` — публичный тип.
 - Props: `value`, `onChange`, `placeholder?`, `disabled?`.
-- Внутренние: `UUID_RE`, `STATUS_LABEL`, `statusLabel`, `ListEnvelope<T>`.| 
-|↙ ПОТРЕБЛЯЕТ: F.4.99.24 Badge, F.4.99.20 useApi, F.4.99.05 theme. Бэкенд: A.1.35.01 `GET /admin/participants?search=` и `GET /admin/participants/:id`. Внешние: react, react-router-dom (Link).| 
+- Внутренние: `UUID_RE`, `STATUS_LABEL`, `statusLabel`, `ListEnvelope<T>`.|
+|↙ ПОТРЕБЛЯЕТ: F.4.99.24 Badge, F.4.99.20 useApi, F.4.99.05 theme. Бэкенд: A.1.35.01 `GET /admin/participants?search=` и `GET /admin/participants/:id`. Внешние: react, react-router-dom (Link).|
 - F.4.99.24 Badge; F.4.99.20 useApi (useApiQuery); F.4.99.05 theme (colors, fontSize, radius, spacing).
 - Бэкенд: A.1.35.01 `GET /admin/participants?search=&per_page=`, `GET /admin/participants/:id`.
 - Внешние: react, react-router-dom (Link).|
-|↘ ПРЕДОСТАВЛЯЕТ: компонент для форм мандатов (holder/successor), логов (actor_id), участников (filter).| 
+|↘ ПРЕДОСТАВЛЯЕТ: компонент для форм мандатов (holder/successor), логов (actor_id), участников (filter).|
 - Компонент выбора участника с тремя режимами (поиск / UUID / выбранный).
 - Колбэк onChange(id) при выборе; onChange('') при сбросе.
 - Публичный тип ParticipantBrief.|
@@ -16115,7 +16827,7 @@
 - byIdQ / searchQ / selectedQ — useApiQuery с enabled-флагами.
 - results: byIdQ.data или searchQ.data.data.
 - Рендер: 3 состояния (value → selected card / loading / search + dropdown).
-- Выбор: onChange(id) + setOpen(false). Сброс: onChange('') + очистка query/debounced.| 
+- Выбор: onChange(id) + setOpen(false). Сброс: onChange('') + очистка query/debounced.|
 |Примечания:
 РЕАЛИЗОВАНО: debounce, UUID-ветка, поиск, карточка выбранного, deep link, сброс, ParticipantBrief.
 ТЕХДОЛГ:
@@ -16126,7 +16838,7 @@
 - `per_page=20` — без подгрузки/пагинации.
 - Нет отмены предыдущего запроса при быстром наборе (react-query кэширует, но лишние ответы приходят).
 - `value` снаружи (например, из URL) и невалидный UUID → selectedQ упадёт в 404; UI покажет «загрузка…» бесконечно.
-ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.| 
+ТЕСТОВОЕ ПОКРЫТИЕ: прямой тест не указан.|
 
 |F.4.04.10|Frontend|Page|React|src/web/pages/admin/WebhooksPage.tsx|F.4.99.03, F.4.99.05, A.1.97.01|v.0.0.01|Draft|V.6, V.7|
 |Описание: Admin-страница Webhooks (**Deferred**). UI не реализован, но маршрут заведён, чтобы не забыть при возврате к задачам интеграций. API уже работает (A.1.97.01) — можно управлять через curl / swagger. Страница выводит placeholder-карточку со списком доступных эндпоинтов. |
@@ -16732,7 +17444,7 @@
 - **«Стать наставником по атому»**: `<input>` с `onChange = e.target.value.trim().toUpperCase()`, placeholder `CYB.ATOM.0009`. Заголовок Card — «readiness = P≥7 + X≥5 + E≥5». Кандидаты: `length===0 → 'Нет участников с оценками по этому атому (или readiness unknown).'`; иначе пояснение + таблица `Кандидат | Readiness | Сигналы`. Readiness: `<Badge tone={ready?success : not_ready?warning : default}>{state}</Badge>` + `{Math.round(score * 100)}%` (muted). Сигналы: `dim:level ?? '∅'/{required}{ok?'✓':'✗'}` для каждого.
 - **Assign**: `<input menteeId>` (`trim()`, `minWidth: 320`) + `<Button variant='secondary' size='sm' loading={assign.isPending} disabled={!menteeId || !/^CYB\.ATOM\.\d{4}$/.test(atomQuery)} onClick={assign.mutate({ menteeId, atomId: atomQuery }, { onSuccess: () => setMenteeId('') })}>назначить</Button>`.
 - **Ошибки**: `assign.isError → красный текст {assign.error?.message ?? 'ошибка'}` под формой. Ошибки `revoke`/`candidates` **не отображаются** (техдолг).
-- **`assign.isError`/`revoke.isError`** — только для assign, revoke **молчит** (нет `revoke.isError` блока). |  
+- **`assign.isError`/`revoke.isError`** — только для assign, revoke **молчит** (нет `revoke.isError` блока). |
 |Примечания:
 **`candidates` enabled-guard** — `{ enabled: /^CYB\.ATOM\.\d{4}$/.test(atomQuery) }` — react-query не делает запрос, пока atomQuery не матчит формат. Это хорошо, но **при невалидном формате** пользователь видит пусто (нет подсказки «неверный формат»); техдолг UX.
 **`atomQuery` `.toUpperCase()`** — вводится сразу uppercase; если пользователь вставит `cyb.atom.0009` — превратится в `CYB.ATOM.0009` и пройдёт regex. Если вставит `cyb atom 0009` (с пробелами) — не пройдёт; техдолг: `.replace(/\s+/g, '')` перед `.toUpperCase()`.
@@ -16829,7 +17541,7 @@
 - **«Выдать допуск»** — `formRow` (flex-wrap): `<input subjectId>` (дефолт `meId`, trim на onChange), `<select issuePermitId>` (опции из `catalog.data.data`), `<input issueValidUntil>` (placeholder ISO), `<Button disabled={!subjectId || !issuePermitId} onClick={issue.mutate({participantId, permitId, ...(validUntil ? {validUntil} : {})}, {onSuccess: () => { setIssuePermitId(''); setIssueValidUntil(''); }})}`. **`subjectId` не сбрасывается** — техдолг UX (можно выдать серию одному и тому же).
 - **«Создать permit в справочнике»** — `formGrid` (auto-fit minmax(200px,1fr)): 5 inputs (permitId `.toUpperCase()`, name, issuedBy, scope, method) + `<Button disabled={!newPermitId || !newName || !newIssuedBy || !newMethod}>`. `onSuccess` очищает все 5 полей.
 - **`invalidateQueries`**: issue/revoke → `['passport','participant-permits']` + `['passport','history']`; createPermit → `['passport','permits']` (без `history`, т.к. `createPermit` в C.1.11.01 пишет `passport_history_events` с `actor_id` — но это не participant-событие, а catalog-event; UI не инвалидирует `['passport','history']` — ок).
-- **Ошибки**: `issue.isError`/`createPermit.isError` → красный текст под формой. **`revoke.isError` не показывается** — техдолг. |  
+- **Ошибки**: `issue.isError`/`createPermit.isError` → красный текст под формой. **`revoke.isError` не показывается** — техдолг. |
 |Примечания:
 **`window.prompt` для reason** — грубый UX (блокирующий, нельзя стилизовать, нет валидации длины); в `TeachingPanel` (F.4.10.10) revoke **без** reason — разнобой. Техдолг: inline-форма с полем reason или модалка (есть `F.4.99.x` модалки).
 **`subjectId` не сбрасывается** после успешного `issue` — техдолг UX: при выдаче нескольких permit одному — удобно; при выдаче разным — надо не забыть поменять. Компромисс.
@@ -26327,7 +27039,7 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 - `infoBlockadeActivated` — предполагается boolean; если сервис делает асинхронно — тест упадёт (но P4 — best-effort, оба варианта ок).
 - `JSON.stringify(...).slice(0, 600)` — обрезка логов может скрыть ошибки.
 - `gracefulShutdown` в `finally` — вызывается всегда.
-ЗАЯВЛЕНО И НЕ РЕАЛИЗОВАНО: — 
+ЗАЯВЛЕНО И НЕ РЕАЛИЗОВАНО: —
 СВЕРХ СТАРОЙ СПЕКИ (v0.0.01): 4 regression + 7 негативов.
 ТЕСТОВОЕ ПОКРЫТИЕ: A.1.29.01, C.0.29.02 (P1/P2/P3/P4 + полный цикл).
 
@@ -26735,7 +27447,7 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 - Worker-креды захардкожены.
 - Нет `AbortSignal.timeout`.
 - `gateway-suspend` — проверяется только `status === 200`, без `fail()` при ином.
-СВЕРХ СТАРОЙ СПЕКИ: — 
+СВЕРХ СТАРОЙ СПЕКИ: —
 ИЗМЕНЕНИЯ: 18 шагов (было 15); добавлены B3, B8-тесты; MARKER `VERIFY-TEST:`; worker `+79990009989` / `Т90089-01`.
 ТЕСТОВОЕ ПОКРЫТИЕ: A.1.19.01, C.0.19.02 (B1, B2, B3, B6, B8).
 
@@ -28135,7 +28847,7 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 - `resocialization` тест не проверяет `status`/`program`.
 - `B8` — проверяется только 422, не проверяется причина.
 - `validate-collective { relatives: [] }` → `valid=true` — проверяется, но `violations` не проверяется.
-СВЕРХ СТАРОЙ СПЕКИ: — 
+СВЕРХ СТАРОЙ СПЕКИ: —
 ИЗМЕНЕНИЯ: новый файл (первая ревизия).
 ТЕСТОВОЕ ПОКРЫТИЕ: A.1.21.01, C.0.21.02 (B1/B2/B4/B5/B6/B7/B8 + self-service + полный цикл).
 
@@ -28243,7 +28955,7 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 - `findContainerWidget`/`findLeafWidget`: `SELECT id FROM widgets WHERE type = 'container'` / `!= 'container' LIMIT 1`.
 - `ensureWorker`: INSERT participants + role ASSOCIATED.
 - `resetRateLimit()`: `redis.scan` по `rate:*`/`ratelimit:*` (кроме `NODE_ENV=production`).
-- **Секции 1–22** (см. Описание). 
+- **Секции 1–22** (см. Описание).
 - **B37** (unit): `universalEntry = { roleId: null, resource: 'test_resource', action: 'V', scope: 'self', ... }`; `checkRightInMatrix([universalEntry], anyRole, 'test_resource', 'V', 'self')` → true; с `'other_resource'` → false.
 - **B38** (integration): global normal (publish) + role-specific crisis (publish); `GET /panels/context/<role1>/crisis` → specific; `GET /panels/context/<role2>/crisis` → fallback на global normal.
 - Cleanup в `finally`; `gracefulShutdown()` в `finally` (вызывается всегда).
@@ -28606,6 +29318,349 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 |Публичный API: pnpm tsx scripts/check-invariants.ts.
 |↙ ПОТРЕБЛЯЕТ: D.2.01.57.
 |↘ ПРЕДОСТАВЛЯЕТ: шаг «Smoke — инварианты реестра» в I.1.01.16.
+
+|I.9.04.74|TEST|Integration|TypeScript|scripts/test-task-package.ts|A.1.06.01, A.1.07.01, C.0.06.02, C.0.07.02, L.0.01.09|v.0.0.1|Draft|I.9.04.74, D.2.01.67|
+|Описание: **Приёмочный тест №1 — package создаётся без `expected_result`.** Проверяет реальный `POST /tasks` через HTTP API и сохранённые значения в БД. Использует существующего авторизованного участника с правом создания задач (отдельный тестовый worker/исполнитель не требуется). Маркер `I.9.04.74:<run_id>` — изоляция от чужих данных; cleanup — только созданное этим прогоном (plan_tasks → tasks → plan_versions → plans). Запуск: `pnpm tsx scripts/test-task-package.ts <phone> <password>` или через `ARCHITECT_PHONE` / `ARCHITECT_PASSWORD`; `API_URL` по умолчанию `http://localhost:3000`. Отказ при `NODE_ENV=production`. |
+|Публичный API:
+- Скрипт (CLI): `pnpm tsx scripts/test-task-package.ts <phone> <password>`.
+- Env: `API_URL` (default `http://localhost:3000`), `ARCHITECT_PHONE`, `ARCHITECT_PASSWORD`, `NODE_ENV`.
+- Внутренние хелперы: `assert(condition, message)` — `asserts condition`; `assertStatus(result, expected, label)`; `request<T>(method, path, token?, body?)` — fetch + JSON; `login(phone, password)` → `Client`; `log(label, result)`; `cleanup(planId, taskId, description)`.
+- `interface Client { token; participantId; directionId }`.
+- `interface ApiResult<T> { status; data }`.
+- `interface LoginResponse { access_token; participant: { id; direction_id } }`.
+- `interface IdResponse { id?; externalId?; status? }`.
+- `interface StoredTask { id; kind; expected_result; description; plan_id }`.
+- `const BASE = process.env['API_URL'] ?? 'http://localhost:3000'`, `RUN_ID = randomUUID()`, `MARKER = 'I.9.04.74:<RUN_ID>'`. |
+|↙ ПОТРЕБЛЯЕТ:
+- **A.1.06.01** (plans/controller) — `POST /plans`, `POST /plans/:id/approve`, `POST /plans/:id/activate`.
+- **A.1.07.01** (tasks/controller) — `POST /tasks` (`kind: 'package'`, без `expected_result`).
+- **A.1.01.01** (auth/controller) — `POST /auth/login`.
+- **C.0.06.02** (plans/service) — план создаётся и переводится в `in_progress`.
+- **C.0.07.02** (tasks/service) — `createTaskService` с `kind='package'` — `expectedResult` опционален (в отличие от `deliverable`).
+- **L.0.01.09** (db) — `query`, `queryOne` (проверка БД; cleanup).
+- **L.0.01.15** (`lib/shutdown`) — `gracefulShutdown`.
+- Env: `dotenv/config`.
+- Внешние: `node:crypto.randomUUID`, `fetch`, `AbortSignal.timeout(20_000)`. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- Приёмочный сигнал по **D.2.01.67**: `POST /tasks { kind: 'package' }` без `expected_result` → 201; HTTP-ответ `kind='package'`, `expectedResult=null`; БД `kind='package'`, `expected_result=NULL`, `plan_id` совпадает.
+- Покрытие связи **A.1.07.01 ↔ C.0.07.02 ↔ D.2.01.67**.
+- Cleanup: `plan_tasks` → `tasks` (по `id` + `description`) → `plan_versions` → `plans`. |
+|Реализация:
+- **`main()`** — `NODE_ENV === 'production'` → `throw`; `phone`/`password` из argv или env; `try/finally` (cleanup в finally + `gracefulShutdown`).
+- **`login`** — `POST /auth/login` → 200; `assert` `access_token`/`participant.id`/`participant.direction_id` → `Client`.
+- **Сценарий:** `POST /plans` (type 'standard', title `<MARKER>`, expected_result, `lead_direction_id: actor.directionId`, criteria `{ test, marker }`) → 201; `planId`; `POST /plans/:id/approve` → 200; `status === 'approved'`; `POST /plans/:id/activate` → 200; `status === 'in_progress'`; **`POST /tasks`** (`direction_id`, `plan_id`, `description`, `priority: 'standard'`, `kind: 'package'`; **`expected_result` намеренно отсутствует**) → 201; HTTP-ответ `kind === 'package'`, `expectedResult === null`, `id` есть; БД: `SELECT id, kind, expected_result, description, plan_id FROM tasks WHERE id = $1` → `kind='package'`, `expected_result=null`, `description` совпадает, `plan_id` совпадает.
+- **Cleanup** — `DELETE FROM plan_tasks WHERE plan_id = $1`; `DELETE FROM tasks WHERE id = $1 AND description = $2`; `DELETE FROM plan_versions WHERE plan_id = $1`; `DELETE FROM plans WHERE id = $1`.
+- **`main().catch`** — `process.exitCode = 1`; `console.error('✗ FAIL:', ...)`. |
+|Примечания:
+СОЗДАН (новый блок; тест упоминается в спеке C.0.07.02 (ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.74) как косвенное).
+СВЕРХ СТАРОЙ СПЕКИ: приёмочный тест **D.2.01.67** — `package` без `expected_result` (в C.0.07.02 `createTaskService`: для `deliverable` `expectedResult` обязателен, для `package` — нет).
+СВЯЗЬ С A.1.07.01: `POST /tasks` — контроллер пробрасывает `kind` (в `createBody.kind?`).
+СВЯЗЬ С C.0.07.02: `createTaskService` — kind-валидация (deliverable требует `expectedResult`; package — нет).
+СВЯЗЬ С A.1.06.01: `POST /plans` / `/approve` / `/activate` — подготовка плана (чтобы `tasks.plan_id` FK был валиден).
+СВЯЗЬ С C.0.06.02: план в `in_progress` (иначе `tasks.plan_id` может ссылаться на draft — валидно, но семантика «в работе»).
+ТЕХДОЛГ:
+- **`AbortSignal.timeout(20_000)`** — 20 с на запрос; при медленном CI/локальной БД возможны таймауты (не ретраится).
+- **`assert`** — `asserts condition`; при `false` — `throw new Error('ASSERT: ...')`; сообщение не содержит `label` контекста (только в `assertStatus`).
+- **Cleanup — `DELETE FROM tasks WHERE id = $1 AND description = $2`** — если описание изменилось (маловероятно), задача не удалится (orphan).
+- **Cleanup — `DELETE FROM plan_versions WHERE plan_id = $1`** — не каскадно; порядок «plan_tasks → tasks → plan_versions → plans» — FK-safe.
+- **`planResult.data?.id`** — `typeof === 'string'`; в ответе `POST /plans` — `plan.id` (camelCase `id`), ок.
+- **`createResult.data.kind`** — в ответе `POST /tasks` — `TaskWithRelations.kind` (из `rowToTask`); ок.
+- **`createResult.data.expectedResult`** — в ответе `null` (не `undefined`); `assert === null` — строгая проверка.
+- **`description`** — `${MARKER} Приёмочный тест: package без expected_result` — уникально по `RUN_ID`.
+ТЕСТОВОЕ ПОКРЫТИЕ: сам I.9.04.74 (приёмочный); косвенно — D.2.01.67 (kind package/deliverable); C.0.07.02 (`createTaskService` kind-валидация). |
+
+|I.9.04.75|TEST|Integration|TypeScript|scripts/test-cell-daily-plan.ts|A.1.04.01, A.1.06.01, A.1.07.01, C.0.04.02, C.0.41.03, L.0.01.09|v.0.0.1|Draft|I.9.04.75, D.2.01.67, D.2.01.71|
+|Описание: **Наряд ячейки: версии, координатор, переназначение, пакеты.** Проверяет `C.0.41.03` через HTTP API: `POST /cells/:id/daily-plan` (upsert); версии (`v1` пустой + `v2` сформированный после upsert; `v3` после assign); запрет `package` в наряде (`upsert с package → 409`; `assign package → 404/409`; `candidates` без `package`); `assignCellDailyTask` (назначение координатором — статус `assigned`, `assigned_by = coordinator`); **самоповышение** в `addMemberService` — первая проверка (403), при этом «самодобавление как member» — 201. Запуск: `pnpm tsx scripts/test-cell-daily-plan.ts <phone> <password>`. Отказ при `NODE_ENV=production`. |
+|Публичный API:
+- Скрипт (CLI): `pnpm tsx scripts/test-cell-daily-plan.ts <phone> <password>`.
+- Env: `API_URL` (default `http://localhost:3000`), `ARCHITECT_PHONE`, `ARCHITECT_PASSWORD`, `NODE_ENV`.
+- `const BASE`, `RUN = randomUUID()`, `MARK = 'I.9.04.75:<RUN>'`, `let TOKEN = ''`.
+- Внутренние: `req(method, path, body?)` — fetch + JSON; `check(cond, msg)` — счётчики `ok`/`fail`; `main()`.
+- Сценарии: 1) создание ячейки; 2) негатив по самоповышению (вторая ячейка, затем cleanup); 3) FA как `member` в первую ячейку; 4) план + `deliverable`×2 + `package`; 5) upsert с `package` → 409; 6) upsert с 2 deliverable → 201; 7) версии (v1/v2); 8) assign координатором → 200; 9) версии (v3); 10) assign `package` → 404/409; 11) `candidates` без `package`. |
+|↙ ПОТРЕБЛЯЕТ:
+- **A.1.01.01** (auth/controller) — `POST /auth/login`.
+- **A.1.04.01** (cells/controller) — `POST /cells`, `POST /cells/:id/members`, `POST /cells/:id/daily-plan`, `POST /cells/:id/daily-plan/:task_id/assign`, `GET /cells/:id/daily-plan/candidates`.
+- **A.1.06.01** (plans/controller) — `POST /plans`, `/approve`, `/activate`.
+- **A.1.07.01** (tasks/controller) — `POST /tasks` (`kind='deliverable'` / `kind='package'`).
+- **C.0.04.02** (cells/service) — `addMemberService` (самоповышение → 403, первая проверка); `createCellService`.
+- **C.0.41.03** (cells/daily) — `upsertCellDailyPlan` (v1/v2; package → 409); `assignCellDailyTask` (status `assigned`, `assigned_by`; v3); `listCellPlanCandidates` (без package).
+- **L.0.01.09** (db) — `query`, `queryOne`; cleanup.
+- **L.0.01.15** (`lib/shutdown`) — `gracefulShutdown`.
+- Env: `dotenv/config`.
+- Внешние: `node:crypto.randomUUID`, `fetch`. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- Приёмочный сигнал по **D.2.01.67** (пакеты не входят в наряд), **D.2.01.71** (версии наряда).
+- Покрытие связи **A.1.04.01 ↔ C.0.41.03** (upsert, assign, candidates) и **A.1.04.01 ↔ C.0.04.02** (самоповышение — 403, member — 201).
+- Cleanup: `tasks` (кроме `task_profiles`) → `plan_versions` → `plans` → `cell_members` → `cells`. |
+|Реализация:
+- **Негатив-секция (2.6):** создаётся вторая ячейка `X<RUN>`; `POST /cells/:cell2/members { participant_id: me.id, role_in_cell: 'coordinator' }` → **403** (самоповышение — первая проверка в `addMemberService`, C.0.04.02 v0.0.4); `POST .../members { role_in_cell: 'member' }` → **201**; cleanup (`DELETE FROM cell_members WHERE cell_id`, `DELETE FROM cells WHERE id`).
+- **Позитив:** `POST /cells/:cellId/members { participant_id: me.id, role_in_cell: 'member' }` → 201.
+- **План + задачи:** `POST /plans` → approve → activate; `POST /tasks` `kind='deliverable'` (`task1`, `task2`) + `kind='package'` (`packageTask`).
+- **`upsert с package → 409`** — `POST /cells/:cellId/daily-plan { date, task_ids: [task1, packageTask] }` → 409 (C.0.41.03: `kind='package'` → `ConflictError`).
+- **`upsert с 2 deliverable → 201`** — `POST ... { task_ids: [task1, task2] }` → 201.
+- **Версии (v1/v2):** SELECT `cell_daily_plan_versions JOIN cell_daily_plans` WHERE `cell_id, date` ORDER BY version → 2; `v1.tasks.length === 0`; `v2.tasks.length === 2`.
+- **Assign координатором → 200:** `POST /cells/:cellId/daily-plan/:task1/assign { date, participant_id: me.id }` → 200; `tasks.status = 'assigned'`; `tasks.assigned_by = me.id`.
+- **Версии (v3):** 3 версии после assign.
+- **`assign package → 404/409`:** `POST .../:packageTask/assign` → 404 (package не в наряде) или 409 (kind check).
+- **`candidates` без `package`:** `GET /cells/:cellId/daily-plan/candidates` → `!list.some(c => c.id === packageTask)` (C.0.41.03: `listCellPlanCandidates` фильтрует `kind='deliverable'`).
+- **`main().catch`** — `process.exitCode = 1`; `.finally` — `gracefulShutdown`.
+- **Cleanup** — `DELETE FROM tasks WHERE plan_id AND id NOT IN (SELECT task_id FROM task_profiles)`; `plan_versions`; `plans`; `cell_members`; `cells`. |
+|Примечания:
+СОЗДАН (новый блок; тест упоминается в спеке C.0.41.03 (ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.75) как косвенное).
+СВЕРХ СТАРОЙ СПЕКИ: **негатив по самоповышению (2.6)** — первая проверка в `addMemberService` (C.0.04.02 v0.0.4: «проверка самоповышения вынесена в САМОЕ НАЧАЛО»); **`package` в наряде → 409** (D.2.01.67); **версии наряда** (v1/v2/v3).
+СВЯЗЬ С C.0.04.02: `addMemberService` — самоповышение → 403 (ForbiddenError); FA как `member` — 201; `createCellService` — создание ячейки.
+СВЯЗЬ С C.0.41.03: `upsertCellDailyPlan` — v1/v2; `assignCellDailyTask` — v3; `listCellPlanCandidates` — фильтр `kind='deliverable'`.
+СВЯЗЬ С A.1.04.01: 5 эндпоинтов (create cell, members, daily-plan, assign, candidates).
+ТЕХДОЛГ:
+- **Негатив-секция создаёт вторую ячейку и удаляет её** — cleanup через прямой SQL (не через API — `DELETE /cells/:id` в A.1.04.01 — roadmap, `deleteCellService` не реализован).
+- **`me.id` — FA** — `isCellCoordinatorOrArchitect` для FA = `true` (глобальное полномочие, C.0.04.02); поэтому FA может делать `upsert`/`assign` в своей ячейке, будучи `member`.
+- **Переназначение на другого участника не проверяется** — `assign1` — `participant_id: me.id` (тот же, кто coordinator); семантика «переназначение» — roadmap (нужен второй участник); в спеке C.0.41.03 — `assignedTo` из `cell_members`.
+- **`assign package → 404/409`** — если `packageTask` не в наряде — `assignCellDailyTask` найдёт план, но `UPDATE cell_daily_plan_tasks ... RETURNING id` → 0 rows → `NotFoundError('Задача в наряде', taskId)` — 404. Если package в наряде (что невозможно через upsert, т.к. upsert — 409) — теоретически 409 при `kind='package'` проверке.
+- **`task_profiles` cleanup** — «не удалять задачи с профилем»; в этом тесте профилей нет.
+ТЕСТОВОЕ ПОКРЫТИЕ: сам I.9.04.75 (приёмочный); косвенно — D.2.01.67 (package), D.2.01.71 (версии), C.0.04.02 (самоповышение), C.0.41.03 (наряд/assign/candidates). |
+
+|I.9.04.76|TEST|Integration|TypeScript|scripts/test-assign-partial.ts|A.1.06.01, A.1.07.01, C.0.06.02, C.0.07.02, C.1.08.01, C.1.10.01, L.0.01.09|v.0.0.1|Draft|I.9.04.76, §7.5|
+|Описание: **Matching в назначении: partial override, no_match блокировка.** Требует `TaskProfile` с `requiredAtoms` и участника с частичным покрытием. Проверяет: **partial** (`role=executor`, `min={U:9}`; `U` не входит в `ROLE_CRITICAL.executor=[P]` → некритичный gap; assign без `override` → 409 + `matching.status='partial'`; с `override { reason, risk, accompanying }` от FA → 200 + audit `tasks.assign.override`); **no_match** (`role=executor`, `min={P:9}`; `P` в `ROLE_CRITICAL.executor=[P]` → критичный gap; assign без `override` → 409; override тоже → 409 — обход запрещён); **без TaskProfile** (§7.5) — assign → 200, `hasTaskProfile=false`, audit `tasks.assign.no_profile`. Запуск: `pnpm tsx scripts/test-assign-partial.ts <phone> <password>`. Отказ при `NODE_ENV=production`. |
+|Публичный API:
+- Скрипт (CLI): `pnpm tsx scripts/test-assign-partial.ts <phone> <password>`.
+- Env: `API_URL` (default `http://localhost:3000`), `ARCHITECT_PHONE`, `ARCHITECT_PASSWORD`, `NODE_ENV`.
+- `const BASE`, `RUN = randomUUID()`, `MARK = 'I.9.04.76:<RUN>'`, `let TOKEN = ''`.
+- Внутренние: `req(method, path, body?)`; `check(c, m)`; `extractMatching(data)` — перебор `d.matching`, `d.details.matching`, `d.data.matching`, `d.error.matching`, `d.context.matching`; `createPlanAndTask(dirId, suffix)` — план + approve + activate + задача `deliverable`.
+- Секции: 1) partial (atom с `U applicable`); 2) no_match (atom с `P applicable`); 3) no-profile (§7.5). |
+|↙ ПОТРЕБЛЯЕТ:
+- **A.1.01.01** (auth/controller) — `POST /auth/login`.
+- **A.1.06.01** (plans/controller) — `POST /plans`, `/approve`, `/activate`.
+- **A.1.07.01** (tasks/controller) — `POST /tasks`, `POST /tasks/:id/assign`, `GET /tasks/:id`.
+- **A.1.08.01** (passport/controller, косвенно) — `POST /passport/tasks/:taskId/profile` (создание TaskProfile — не в A.1.08.01 напрямую, но связан).
+- **C.0.06.02** (plans/service) — план в `in_progress`.
+- **C.0.07.02** (tasks/service) — `assignTaskService` — Matching: `partial` → 409 без `override`; `no_match` → 409 (override невозможен); при отсутствии TaskProfile — `hasTaskProfile=false` + audit `tasks.assign.no_profile`.
+- **C.1.08.01** (task-profile) — `getTaskProfile`; POST `/passport/tasks/:id/profile`.
+- **C.1.10.01** (matching) — `matchTask` — `ROLE_CRITICAL.executor=['P']`; `U` — некритичный; `P` — критичный.
+- **C.0.01.05** (audit) — `logAction` (`tasks.assign.override`, `tasks.assign.no_profile`) — fire-and-forget с FLUSH_INTERVAL_MS=500.
+- **L.0.01.09** (db) — `query`, `queryOne`; cleanup; `audit_log` проверка (2 SELECT).
+- **L.0.01.15** (`lib/shutdown`) — `gracefulShutdown`.
+- Env: `dotenv/config`.
+- Внешние: `node:crypto.randomUUID`, `fetch`. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- Приёмочный сигнал по **§7.5** (без TaskProfile — assign разрешён, но с audit `tasks.assign.no_profile`), **C.1.10.01** (partial/no_match), **C.0.07.02** (`AssignOptions.override` + audit `tasks.assign.override`).
+- Покрытие связей **A.1.07.01 ↔ C.0.07.02 ↔ C.1.10.01 ↔ C.1.08.01**.
+- Cleanup: `tasks` (кроме `task_profiles`) → `plan_versions` → `plans` (для каждого `planId` из `cleanedPlanIds`). |
+|Реализация:
+- **`main()`** — `NODE_ENV === 'production'` → `throw`; login; `me.direction_id`; `dir` (проверка active); `atomPartial` (`U applicable`); `atomNoMatch` (`P applicable`).
+- **Секция 1 (partial):** `createPlanAndTask(dir.id, 'partial')`; `POST /passport/tasks/:taskId/profile { requiredAtoms: [{ atom_id: atomPartial.atom_id, role: 'executor', min: { U: 9 } }] }` → 2xx; `POST /tasks/:taskId/assign { participant_id: me.id }` (без override) → **409**; `extractMatching` → `matching.status === 'partial'`; **если partial** — `POST /tasks/:taskId/assign { participant_id: me.id, override: { reason: '...', risk: 'low', accompanying: '...' } }` → **200**; `await setTimeout(800)` (flush audit); SELECT `audit_log WHERE action='tasks.assign.override' AND created_at > now() - 1 min` → `n ≥ 1`; SELECT `audit_log WHERE action='tasks.assign.override' AND entity_id = taskId` → `n ≥ 1`.
+- **Секция 2 (no_match):** `createPlanAndTask(dir.id, 'no_match')`; `POST /passport/tasks/:taskId/profile { requiredAtoms: [{ atom_id: atomNoMatch.atom_id, role: 'executor', min: { P: 9 } }] }` → 2xx; `POST /tasks/:taskId/assign { participant_id: me.id }` → **409**; `matching.status = 'no_match' | 'partial'` (partial — если у FA `P ≥ 9`; no_match — если `P < 9`); **если no_match** — `POST /tasks/:taskId/assign { participant_id: me.id, override: { reason: '...' } }` → **409** (обход запрещён).
+- **Секция 3 (no-profile, §7.5):** `createPlanAndTask(dir.id, 'no-profile')`; **не создаём profile**; `POST /tasks/:taskId/assign { participant_id: me.id }` → **200**; `GET /tasks/:taskId` → `hasTaskProfile === false`; `await setTimeout(800)`; SELECT `audit_log WHERE action='tasks.assign.no_profile' AND entity_id = taskId` → `n ≥ 1`.
+- **Cleanup** — для каждого `planId` из `cleanedPlanIds`: `DELETE FROM tasks WHERE plan_id AND id NOT IN (SELECT task_id FROM task_profiles)`; `plan_versions`; `plans`.
+- **`main().catch`** — `process.exitCode = 1`; `.finally` — `gracefulShutdown`. |
+|Примечания:
+СОЗДАН (новый блок; тест упоминается в спеке C.0.07.02 (ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.76) как косвенное).
+СВЕРХ СТАРОЙ СПЕКИ: **`extractMatching`** — перебор известных мест (`matching`, `details.matching`, `data.matching`, `error.matching`, `context.matching`), т.к. middleware/обёртки могут сдвигать уровень; **`audit` — fire-and-forget** (`FLUSH_INTERVAL_MS = 500`), поэтому `await setTimeout(800)` перед проверкой `audit_log`; **§7.5** — assign без TaskProfile разрешён, но с audit `tasks.assign.no_profile`.
+СВЯЗЬ С C.0.07.02: `assignTaskService` — `partial` требует `override` (reason ≥10); `no_match` — запрет (override невозможен); audit `tasks.assign.override` / `tasks.assign.no_profile`.
+СВЯЗЬ С C.1.10.01: `matchTask` — `ROLE_CRITICAL.executor=['P']`; `U` — некритичный gap (`partial`); `P` — критичный gap (`no_match`).
+СВЯЗЬ С C.1.08.01: `getTaskProfile` — источник `requiredAtoms`; `POST /passport/tasks/:id/profile` — создание.
+СВЯЗЬ С C.0.01.05 (audit): `logAction` — батчинг, `FLUSH_INTERVAL_MS = 500`; `setTimeout(800)` — запас.
+СВЯЗЬ С A.1.07.01: `POST /tasks/:id/assign` — `assignBody` с `override` (reason, risk, accompanying, training).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`extractMatching` — перебор** — контракт ответа не фиксирован; сервис кладёт `matching` в `ConflictError.details` → `errorHandler` (A.1.99.07) разворачивает в `details.matching` (при `details` — на верхнем уровне ответа); но если обёртка — другая, тест не упадёт, а пометит `undefined`.
+ТЕХДОЛГ:
+- **`extractMatching`** — эвристика; если контракт ответа изменится (например, `matching` под другим ключом) — тест не найдёт; `FACT` — лог для диагностики.
+- **`partial` при `U applicable`** — `atomPartial` выбирается по `dimension_applicability->'U'->>'applicable'='true'`; если такого атома нет — throw; зависимость от данных.
+- **`no_match` при `P applicable`** — `atomNoMatch` по `P applicable`; `P=9` — если у FA `P=7` (из `person_atom_states` в других тестах) — no_match; если у FA `P ≥ 9` (например, поднят другим тестом) — partial; тест принимает оба (`no_match | partial`).
+- **`override.reason` — строка «тестовый override...»** — ≥10 символов; `risk: 'low'`, `accompanying` — опционально.
+- **audit `tasks.assign.override` — записан** — `logAction` fire-and-forget; `setTimeout(800)` — запас (FLUSH_INTERVAL_MS=500).
+- **`hasTaskProfile === false`** — из `GET /tasks/:id` (`rowToTaskWithRelations` → `hasTaskProfile: row.has_task_profile ?? false`); после assign без профиля — `false`.
+- **cleanup — `task_profiles`** — задачи с профилем не удаляются (append-only); в этом тесте профили у `t1` (partial) и `t2` (no_match) — обе остаются (orphan); `t3` (no-profile) — удаляется.
+ТЕСТОВОЕ ПОКРЫТИЕ: сам I.9.04.76 (приёмочный); косвенно — C.1.10.01 (partial/no_match), C.0.07.02 (override/§7.5), C.0.01.05 (audit). |
+
+|I.9.04.77|TEST|Integration|TypeScript|scripts/test-day-plan.ts|A.1.06.01, A.1.07.01, A.1.31.01, C.0.06.02, C.0.07.02, D.2.01.XX, L.0.01.09|v.0.0.1|Draft|I.9.04.77, D.2.01.XX|
+|Описание: **Персональный план дня: создание, лимиты, версии, close.** Проверяет полный цикл `D.2.01.XX` через HTTP API: `GET` несуществующего плана → 404; `PUT` с пустыми блоками → `draft`, 2 версии (`v1` + `v2`); `PUT` с 3 блоками (`production`+`learning`+`teaching`) → `draft`; `PUT` с суммой > `available_minutes` → 409; `PUT` `production` без `task_id` → 400/422; `POST /confirm` → `confirmed`; `PUT` на `confirmed` → возврат в `draft`; `POST /close` без `confirm` → 409; `POST /close` с `actuals` → `closed`, все блоки `status='done'`, `actualMinutes=150`; `PUT` на `closed` → 409; `GET /history?date=` → версии (≥4) по убыванию. Запуск: `pnpm tsx scripts/test-day-plan.ts <phone> <password>`. Отказ при `NODE_ENV=production`. |
+|Публичный API:
+- Скрипт (CLI): `pnpm tsx scripts/test-day-plan.ts <phone> <password>`.
+- Env: `API_URL` (default `http://localhost:3000`), `ARCHITECT_PHONE`, `ARCHITECT_PASSWORD`, `NODE_ENV`.
+- `const BASE`, `RUN = randomUUID()`, `DATE = new Date().toISOString().slice(0,10)`, `let TOKEN = ''`.
+- Внутренние: `req(method, path, body?)`; `check(c, m)`.
+- 11 секций: 1) `GET` 404; 2) `PUT` пустой (`draft`, v1+v2); 3) `PUT` 3 блока; 4) `PUT` с суммой > available → 409; 5) `PUT` `production` без `task_id` → 400/422; 6) `confirm` → `confirmed`; 7) `PUT` на `confirmed` → `draft`; 8) `close` без `confirm` → 409; 9) `close` с `actuals` → `closed`; 10) `PUT` на `closed` → 409; 11) `GET /history?date=` → ≥4 версии. |
+|↙ ПОТРЕБЛЯЕТ:
+- **A.1.01.01** (auth/controller) — `POST /auth/login`.
+- **A.1.06.01** (plans/controller) — `POST /plans`, `/approve`, `/activate` (для создания `taskId` в сценарии 3).
+- **A.1.07.01** (tasks/controller) — `POST /tasks` (`kind='deliverable'`).
+- **A.1.31.01** (learning/controller) — `GET /learning/day-plans/me/:date`, `PUT /learning/day-plans/me/:date`, `POST /learning/day-plans/me/:date/confirm`, `POST /learning/day-plans/me/:date/close`, `GET /learning/day-plans/me/history?date=`.
+- **C.0.06.02** (plans/service) — план в `in_progress` (для `taskId`).
+- **C.0.07.02** (tasks/service) — `createTaskService` (для `taskId`).
+- **D.2.01.XX** (learning/participant-day-plan) — `getDayPlan` (404), `upsertDayPlan` (`draft`/`confirmed`/`closed`; сумма > available → 409; `production` без `task_id` → 400/422; версии v1+v2), `confirmDayPlan`, `closeDayPlan` (`actuals` → `status='done'`, `actualMinutes`; `close без confirm` → 409), `listVersions`.
+- **L.0.01.09** (db) — `query`, `queryOne`; cleanup.
+- **L.0.01.15** (`lib/shutdown`) — `gracefulShutdown`.
+- Env: `dotenv/config`.
+- Внешние: `node:crypto.randomUUID`, `fetch`. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- Приёмочный сигнал по **D.2.01.XX**: `GET` 404; `PUT` пустой → `draft` + 2 версии; `PUT` 3 блока; сумма > available → 409; `production` без `task_id` → 400/422; `confirm` → `confirmed`; `PUT` на `confirmed` → `draft`; `close` без `confirm` → 409; `close` с `actuals` → `closed` (`status='done'`, `actualMinutes`); `PUT` на `closed` → 409; `GET /history?date=` → ≥4 версии по убыванию.
+- Покрытие связи **A.1.31.01 ↔ D.2.01.XX**.
+- Cleanup: `participant_day_plans` (каскадно — `participant_day_plan_versions`). |
+|Реализация:
+- **`main()`** — `NODE_ENV === 'production'` → `throw`; login; cleanup `participant_day_plans` (прошлый прогон).
+- **Секция 1:** `GET /learning/day-plans/me/:DATE` → **404**.
+- **Секция 2:** `PUT ... { timezone: 'Europe/Moscow', available_minutes: 480, blocks: [] }` → **200**; `status === 'draft'`, `blocks.length === 0`; SELECT `participant_day_plan_versions JOIN participant_day_plans` WHERE `participant_id, date` ORDER BY version → 2 (`v1`, `v2`).
+- **Секция 3:** `POST /plans` + approve + activate; `POST /tasks` (deliverable, expected_result); `PUT ... { blocks: [{ kind: 'production', task_id: taskId, planned_minutes: 180 }, { kind: 'learning', planned_minutes: 120 }, { kind: 'teaching', planned_minutes: 60 }] }` → **200**; `blocks.length === 3`; `status === 'draft'`.
+- **Секция 4:** `PUT ... { available_minutes: 60, blocks: [{ kind: 'learning', planned_minutes: 120 }] }` → **409** (сумма > available).
+- **Секция 5:** `PUT ... { blocks: [{ kind: 'production', planned_minutes: 60 }] }` (без `task_id`) → **400/422**.
+- **Секция 6:** восстановление валидного плана (production с `task_id`, learning); `POST .../confirm` → **200**; `status === 'confirmed'`.
+- **Секция 7:** `PUT ... { blocks: [{ kind: 'production', task_id: taskId, planned_minutes: 200 }] }` на `confirmed` → **200**; `status === 'draft'` (PUT на `confirmed` возвращает `draft`).
+- **Секция 8:** `POST .../close { actuals: [] }` без `confirm` (статус — `draft`) → **409**.
+- **Секция 9:** `GET .../:DATE` → `blocks` (id); `POST .../confirm`; `POST .../close { actuals: blockIds.map(id => ({ block_id: id, actual_minutes: 150 })) }` → **200**; `status === 'closed'`; `blocks.every(b => b.actualMinutes === 150 && b.status === 'done')`.
+- **Секция 10:** `PUT ... { blocks: [] }` на `closed` → **409**.
+- **Секция 11:** `GET /learning/day-plans/me/history?date=:DATE` → **200**; `data.length ≥ 4`; версии по убыванию.
+- **Cleanup** — `DELETE FROM participant_day_plans WHERE participant_id AND date` (каскадно — `participant_day_plan_versions`).
+- **`main().catch`** — `process.exitCode = 1`; `.finally` — `gracefulShutdown`. |
+|Примечания:
+СОЗДАН (новый блок; тест упоминается в спеке A.1.31.01 (ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.77) как косвенное).
+СВЕРХ СТАРОЙ СПЕКИ: **D.2.01.XX** — персональный план дня: `PUT` пустой → `draft` + 2 версии; 11 секций; **версии** (`GET /history?date=`) — по убыванию; **close** — `actuals` + `status='done'` + `actualMinutes`.
+СВЯЗЬ С A.1.31.01: 5 эндпоинтов (`GET`, `PUT`, `/confirm`, `/close`, `/history`).
+СВЯЗЬ С D.2.01.XX: `upsertDayPlan` (сумма > available → 409; `production` без `task_id` → 400/422; v1/v2); `confirmDayPlan` (`draft → confirmed`); `closeDayPlan` (`confirmed → closed`; `actuals` → `status='done'`, `actualMinutes`); `listVersions`; `getDayPlan` (404).
+СВЯЗЬ С C.0.06.02: план в `in_progress` (для `taskId`).
+СВЯЗЬ С C.0.07.02: `createTaskService` — `taskId` (deliverable, expected_result).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`PUT` на `confirmed` → `draft`** — «PUT на confirmed возвращает draft» (семантика: план можно пересобрать после confirm; но не после close).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`close` без `confirm` → 409**; **`PUT` на `closed` → 409** — терминальный статус `closed`.
+ТЕХДОЛГ:
+- **`description`** — `I.9.04.77:<RUN> task` — уникально; план `I.9.04.77:<RUN> day`.
+- **`available_minutes: 480`** — дефолт; `blocks` — до 50 (в `upsertDayPlanBody` — `max 50`).
+- **`production` без `task_id` → 400/422** — `upsertDayPlanBody` — `task_id: uuidSchema.optional().nullable()` (в Zod — не требуется); семантически `production` требует `task_id` — проверка в `D.2.01.XX` (сервис) → `ValidationError` (422) или `BadRequest` (400) — тест принимает оба.
+- **Сумма > available → 409** — `ConflictError` в `D.2.01.XX`.
+- **`close` с `actuals`** — `actuals: [{ block_id, actual_minutes }]`; `actual_minutes: 150`; `status='done'` для всех блоков (семантика — «все блоки выполнены»).
+- **`GET /history?date=`** — версии; если `date` не задан — `listMyDayPlans(participantId, 30)` (A.1.31.01); в тесте — с `date`.
+- **`participant_day_plan_versions`** — SELECT по `p.participant_id, p.date`; если плана нет — 0 версий (но после PUT — есть).
+- **`main().catch`** — счётчики `ok`/`fail`; `fail > 0` → `process.exitCode = 1`.
+ТЕСТОВОЕ ПОКРЫТИЕ: сам I.9.04.77 (приёмочный); косвенно — D.2.01.XX (полный цикл day-plan). |
+
+|I.9.04.78|TEST|Integration|TypeScript|scripts/test-daily-plan-versions.ts|A.1.06.01, A.1.07.01, A.1.31.01, C.0.06.02, C.0.07.02, C.0.07.03, C.1.09.02, L.0.01.09|v.0.0.1|Draft|I.9.04.78, D.2.01.71, §7.5|
+|Описание: **Версии дневного плана направления + §7.5 (учитель не принимает результат ученика).** Проверяет версионирование `daily_plans` (`D.2.01.71`): первый upsert — v1 (пустой) + v2 (2 задачи); второй upsert — v3 (2 задачи «до») + v4 (1 задача «после»); удаление задачи — v5 (1 задача «до») + v6 (0 задач «после»); `GET /daily-plans/versions` — 6 версий по убыванию. Отдельный блок проверяет **§7.5**: учитель (`admin`) не может принять результат ученика (`learner`) — `POST /tasks/:id/accept` → 403 с сообщением про §7.5. Второй участник (`learner`) создаётся `ensureActor`, `direction_id` выравнивается по FA. Запуск: `pnpm tsx scripts/test-daily-plan-versions.ts <phone> <password>`. Отказ при `NODE_ENV=production`. |
+|Публичный API:
+- Скрипт (CLI): `pnpm tsx scripts/test-daily-plan-versions.ts <phone> <password>`.
+- Env: `API_URL` (default `http://localhost:3000`), `ARCHITECT_PHONE`, `ARCHITECT_PASSWORD`, `NODE_ENV`.
+- `const BASE`, `RUN = randomUUID()`, `MARK = 'I.9.04.78:<RUN>'`, `DATE = new Date().toISOString().slice(0,10)`, `let TOKEN = ''`.
+- Внутренние: `req(method, path, body?)` — fetch + JSON; `check(c, m)` — счётчики ok/fail; `main()`.
+- Тесты: 1) первый upsert (v1+v2); 2) второй upsert (v3+v4); 3) remove task (v5+v6); 4) `GET /daily-plans/versions`; 5) §7.5 accept → 403. |
+|↙ ПОТРЕБЛЯЕТ:
+- **A.1.06.01** (plans/controller) — `POST /plans`, `/approve`, `/activate`, `POST /daily-plans`, `DELETE /daily-plans/:id/tasks/:task_id`, `GET /daily-plans/versions`.
+- **A.1.07.01** (tasks/controller) — `POST /tasks`, `POST /tasks/:id/assign`, `POST /tasks/:id/take`, `POST /tasks/:id/submit`, `POST /tasks/:id/accept`.
+- **A.1.31.01** (learning/controller) — `POST /learning/task-practices`, `POST /learning/task-practices/:id/consent`, `GET /learning/task-practices/:id`.
+- **A.1.01.01** (auth/controller) — `POST /auth/login`.
+- **C.0.06.02** (plans/service) — `upsertDailyPlan` (v1/v2 при создании; v3/v4 при обновлении — «до»/«после»); `removeTaskFromDailyPlan` (v5/v6); `listDailyPlanVersions`.
+- **C.0.07.02** (tasks/service) — `acceptTaskService` — `isTeacherOfLearnerTask` (§7.5) → 403.
+- **C.0.07.03** (tasks/dependencies) — косвенно (в сценарии 2 `test-full-cycle`; здесь — не используется).
+- **C.1.09.02** (teaching-practice) — `createPractice`, `giveConsent`, `getById`; `isTeacherOfLearnerTask` (в C.0.07.02).
+- **L.0.01.09** (db) — `query`, `queryOne`; cleanup.
+- **L.0.01.15** (`lib/shutdown`) — `gracefulShutdown`.
+- **`scripts/lib/passport-fixtures`** — `login`, `ensureActor`.
+- Env: `dotenv/config`.
+- Внешние: `node:crypto.randomUUID`, `fetch`. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- Приёмочный сигнал по **D.2.01.71**: `daily_plan_versions` — v1 (пустой) / v2 (2) при создании; v3 (2 «до») / v4 (1 «после») при обновлении; v5 (1 «до») / v6 (0 «после») при удалении; `GET /daily-plans/versions` — 6 версий по убыванию.
+- Приёмочный сигнал по **§7.5**: `POST /tasks/:id/accept` учителем результата ученика → 403 + сообщение содержит `§7.5` или «учитель».
+- Покрытие связи **A.1.06.01 ↔ C.0.06.02 (версии)** и **C.0.07.02 ↔ C.1.09.02 (§7.5)**.
+- Cleanup: `daily_plans` (каскадно — `daily_plan_tasks` + `daily_plan_versions`); `tasks` (кроме `task_profiles`); `plan_versions`; `plans`. |
+|Реализация:
+- **`main()`** — `NODE_ENV === 'production'` → `throw`; `login`; `admin.directionId`; cleanup `daily_plans` + `participant_day_plans` (прошлый прогон); `POST /plans` → approve → activate; `mk(desc)` — `POST /tasks` (`kind='deliverable'`, `expected_result='r'`); `t1`, `t2`, `t3`.
+- **Сценарий 1 (первый upsert):** `POST /daily-plans` `{ direction_id, date, task_ids: [t1, t2] }` → 201; SELECT `daily_plan_versions` → 2 версии; `v[0].snapshot.tasks.length === 0` (v1 пустой); `v[1].snapshot.tasks.length === 2` (v2).
+- **Сценарий 2 (второй upsert):** `POST /daily-plans` `{ task_ids: [t3] }` → 201; SELECT → 4 версии; `v[2].snapshot.tasks.length === 2` (v3 «до изменения»); `v[3].snapshot.tasks.length === 1` (v4 «после»).
+- **Сценарий 3 (remove):** SELECT `daily_plans.id` по `(direction_id, date)`; `DELETE /daily-plans/:id/tasks/:t3` → 204; SELECT → 6 версий; `v[4] === 1` (v5 «до удаления»); `v[5] === 0` (v6 «после удаления»).
+- **Сценарий 4 (GET versions):** `GET /daily-plans/versions?direction_id=&date=` → 200; `data.length === 6`; версии по убыванию (`data[i-1].version > data[i].version`).
+- **Сценарий 5 (§7.5):** `ensureActor` (`learner`); `UPDATE participants SET direction_id` (выравнивание по FA); `person_atom_states` для admin (P=7, X=5, E=5, confirmed); `mk('src')` + `mk('lrn')`; `assign` → admin / learner; `POST /learning/task-practices` (`teacher_id: admin.id`, `learner_id: learner.id`, `source_task_id: src`, `learner_task_id: lrn`, `competency_atom_id`, `expected_learning_result`) → 201; `POST /learning/task-practices/:id/consent` от `learner` (TOKEN переключается); `GET /learning/task-practices/:id` → `status === 'active'`; INSERT `reports` (artifact_url) от `learner`; TOKEN=learner: `POST /tasks/:lrn/take` → 200; `POST /tasks/:lrn/submit` → 200; TOKEN=admin: `POST /tasks/:lrn/accept` → **403**; `message` содержит `§7.5` или «учитель».
+- **Cleanup** — `DELETE FROM daily_plans WHERE direction_id AND date` (каскад); `DELETE FROM tasks WHERE plan_id AND id NOT IN (SELECT task_id FROM task_profiles)`; `DELETE FROM plan_versions WHERE plan_id`; `DELETE FROM plans WHERE id`.
+- **`main().catch`** — `process.exitCode = 1`. |
+|Примечания:
+СОЗДАН (новый блок; тест упоминается в спеке C.0.06.02 (ТЕСТОВОЕ ПОКРЫТИЕ: I.9.04.78) как косвенное).
+СВЕРХ СТАРОЙ СПЕКИ: **D.2.01.71** — версии дневного плана (v1/v2 при создании; v3/v4 при обновлении; v5/v6 при удалении); **§7.5** — учитель не принимает ученика (проверка в `acceptTaskService` / `decide` / `crisisDecide`).
+СВЯЗЬ С C.0.06.02: `upsertDailyPlan` — v1 «Создание (пустой)» + v2 «Формирование» при создании; v3 «Состояние до изменения» + v4 «Обновление» при втором upsert; `removeTaskFromDailyPlan` — v5 «до удаления» + v6 «Удаление».
+СВЯЗЬ С C.0.07.02: `acceptTaskService` — `isTeacherOfLearnerTask` → 403 (§7.5).
+СВЯЗЬ С C.1.09.02: `createPractice` / `giveConsent` / `getById` — источник для §7.5.
+СВЯЗЬ С A.1.06.01: `GET /daily-plans/versions` — эндпоинт (в A.1.06.01 — `dailyVersionsQuery`).
+СВЯЗЬ С A.1.31.01: `POST /learning/task-practices` / `consent` / `GET`.
+ТЕХДОЛГ:
+- **Cleanup — `DELETE FROM tasks WHERE plan_id AND id NOT IN (SELECT task_id FROM task_profiles)`** — «магическое» условие: задачи с профилем не удаляются (в тесте профилей нет; но если появятся — orphan); семантика «не удалять задачи с профилем» — изоляция от `task_profiles`.
+- **`ensureActor`** — создаёт learner; `direction_id` выравнивается вручную (`UPDATE participants`) — FA и learner должны быть в одном направлении (для assign/accept).
+- **§7.5 accept — TOKEN=admin** — `admin` — учитель (`teacher_id` в практике); проверка идёт по `isTeacherOfLearnerTask(admin.id, lrn)`; сообщение содержит `§7.5` (из `ForbiddenError` в C.0.07.02).
+- **`daily_plans` cleanup каскадно** — `daily_plan_tasks` + `daily_plan_versions` (FK CASCADE в D.4.01.*).
+- **`plan_versions` cleanup** — не каскадно; отдельный DELETE.
+- **`daily_plans` cleanup в начале** — идемпотентность прогона (если остался от предыдущего).
+- **`person_atom_states`** — upsert (`ON CONFLICT DO UPDATE`); P=7, X=5, E=5, confirmed — для `admin` (в тесте `mk('src')`/`mk('lrn')` — без профиля; атомы нужны для practice).
+- **`competency_atoms` — выбор атома** — `WHERE dimension_applicability->'P'->>'applicable' = 'true' ORDER BY atom_id LIMIT 1`; зависит от данных (если нет — throw).
+- **`reports` INSERT** — напрямую в БД (не через API); `artifact_url` — для `submitTaskService` (P0.2).
+- **`POST /tasks/:lrn/take` → `in_progress`; `submit` → `submitted`** — ALLOWED_TRANSITIONS (assigned → in_progress → submitted).
+- **TOKEN switching** — `TOKEN = learner.token` / `TOKEN = savedT`; аккуратно (finally).
+ТЕСТОВОЕ ПОКРЫТИЕ: сам I.9.04.78 (приёмочный); косвенно — D.2.01.71 (версии), §7.5 (учитель); I.9.04.79 (тот же сценарий в full-cycle). |
+
+|I.9.04.79|TEST|Integration|TypeScript|scripts/test-full-cycle.ts|A.1.01.01, A.1.04.01, A.1.06.01, A.1.07.01, A.1.09.01, A.1.31.01, C.0.06.02, C.0.07.01, C.0.07.02, C.0.07.03, C.0.09.02, C.0.41.03, C.0.41.04, C.1.09.02, C.1.10.01, L.0.01.09|v.0.0.1|Draft|I.9.04.79, §23|
+|Описание: **Сквозной рабочий цикл (ТЗ §23, 9 сценариев).** Не дублирует I.9.04.74–78 и I.9.09.43 — каждая подсистема там проверена детально; здесь — **только переходы между подсистемами**. Покрывает: 1) общий план (create → approve → activate); 2) декомпозиция (`package` → `deliverable`, зависимости, без циклов); 3) распределение по ячейкам (наряд + делегирование + направление); 4) Matching (`TaskProfile` + назначение, `no_match` → блок); 5) персональный план дня (`draft → confirmed → closed` + версии); 6) обучение через задачу (`practice` `proposed → active`); 7) OTC и Поток (отчёт → приёмка → +1 Поток; повторный accept → 0); 8) перепланирование (версии `daily_plan` сохраняют «before»); 9) разногласие (`reassignment signal` L0 → escalate L1). Второй участник (`learner`) создаётся `ensureActor`, `direction_id` выравнивается по FA. Запуск: `pnpm tsx scripts/test-full-cycle.ts <phone> <password>`. Отказ при `NODE_ENV=production`. |
+|Публичный API:
+- Скрипт (CLI): `pnpm tsx scripts/test-full-cycle.ts <phone> <password>`.
+- Env: `API_URL` (default `http://localhost:3000`), `ARCHITECT_PHONE`, `ARCHITECT_PASSWORD`, `NODE_ENV`.
+- `const BASE`, `RUN = randomUUID()`, `MARK = 'I.9.04.79:<RUN>'`, `DATE = new Date().toISOString().slice(0,10)`, `let TOKEN = ''`.
+- Внутренние: `req(method, path, body?)` — fetch + JSON; `check(c, m)` — счётчики `ok`/`fail`; `section(name)` — лог; `main()`.
+- Вспомогательные локальные: `mkDeliverable(desc)` — `POST /tasks` с `parent_task_id=packageId`, `kind='deliverable'`.
+- 9 секций: `Сценарий 1..9`. |
+|↙ ПОТРЕБЛЯЕТ:
+- **A.1.01.01** (auth/controller) — `POST /auth/login` (через `login` из `passport-fixtures`).
+- **A.1.04.01** (cells/controller) — `POST /cells`, `POST /cells/:id/members`, `POST /cells/:id/daily-plan`, `POST /cells/:id/daily-plan/:task_id/assign`.
+- **A.1.06.01** (plans/controller) — `POST /plans`, `/approve`, `/activate`, `GET /plans/:id/progress` (или SQL fallback), `POST /daily-plans`.
+- **A.1.07.01** (tasks/controller) — `POST /tasks`, `POST /tasks/:id/dependencies`, `POST /tasks/:id/assign`, `POST /tasks/:id/take`, `POST /tasks/:id/submit`, `POST /tasks/:id/accept`.
+- **A.1.09.01** (otc/controller) — косвенно (через `accept`; прямой `POST /otc/decide` не вызывается).
+- **A.1.31.01** (learning/controller) — `POST /learning/task-practices`, `POST /learning/task-practices/:id/consent`, `GET /learning/task-practices/:id`, `PUT /learning/day-plans/me/:date`, `POST /learning/day-plans/me/:date/confirm`, `POST /learning/day-plans/me/:date/close`.
+- **A.1.42.01** (`reassignment-signals`, косвенно — через `POST /reassignment-signals`, `POST /reassignment-signals/:id/escalate`).
+- **C.0.06.02** (plans/service) — `upsertDailyPlan` (версии — v1..v4); `getPlanProgress` (или SQL fallback).
+- **C.0.07.01** (tasks/entity) — `kind='package'` / `kind='deliverable'`; transitions.
+- **C.0.07.02** (tasks/service) — `assignTaskService` (`no_match` → 409); `acceptTaskService` (§7.5 → 403; I.2.12 → 403); `takeTaskService` (blocking deps); `submitTaskService` (artifact).
+- **C.0.07.03** (dependencies) — `addDependency` (цикл → 409).
+- **C.0.09.02** (otc/service) — косвенно (`acceptTaskService` → `otc_decisions` + `flow_transactions` + `task_flow_awards`).
+- **C.0.41.03** (cells/daily) — `upsertCellDailyPlan`, `assignCellDailyTask`.
+- **C.0.41.04** (cells/delegation) — `distributeCellDailyPlan` (не вызывается напрямую в тесте; сценарий 3 — наряд + assign).
+- **C.1.09.02** (teaching-practice) — `createPractice`, `giveConsent`, `getById`.
+- **C.1.10.01** (matching) — `matchTask` (в `assignTaskService`, `no_match` → 409).
+- **L.0.01.09** (db) — `query`, `queryOne`; cleanup.
+- **L.0.01.15** (`lib/shutdown`) — `gracefulShutdown`.
+- **`scripts/lib/passport-fixtures`** — `login`, `ensureActor`.
+- Env: `dotenv/config`.
+- Внешние: `node:crypto.randomUUID`, `fetch`. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- Приёмочный сигнал по **ТЗ §23** (9 сценариев) — переходы между подсистемами: план → декомпозиция → ячейки → matching → day-plan → practice → OTC → перепланирование → reassignment.
+- Покрытие связей: **A.1.06.01 ↔ C.0.06.02** (план, daily-plan, версии); **A.1.07.01 ↔ C.0.07.02** (tasks + matching); **A.1.04.01 ↔ C.0.41.03** (наряд ячейки + assign); **A.1.31.01 ↔ C.1.09.02** (practice); **C.0.07.02 ↔ C.0.09.02** (accept → OTC → Поток); **A.1.42.01 ↔ C.0.42.01** (reassignment L0 → L1).
+- Cleanup: `task_practices` → `daily_plans` → `participant_day_plans` → `reassignment_signals` → `cell_members` → `cells` → `tasks` (кроме `task_profiles`) → `plan_versions` → `plans`. |
+|Реализация:
+- **`main()`** — `NODE_ENV === 'production'` → `throw`; `login`; `admin.directionId`; cleanup `daily_plans` + `participant_day_plans` (прошлый прогон); `competency_atoms` (`P applicable`) → `atom`; `person_atom_states` upsert для `admin` (P=7, X=5, E=5, confirmed); `ensureActor` → `learner`; `UPDATE participants SET direction_id` для `learner`.
+- **Сценарий 1 (общий план):** `POST /plans` → 201; `planId`; `POST /plans/:id/approve` → 200; `POST /plans/:id/activate` → 200; `status === 'in_progress'`.
+- **Сценарий 2 (декомпозиция):** `POST /tasks { kind: 'package' }` → 201; `packageId`; `mkDeliverable('t1')` → `t1`; `mkDeliverable('t2')` → `t2`; `POST /tasks/:t2/dependencies { depends_on_task_id: t1 }` → 201; `POST /tasks/:t1/dependencies { depends_on_task_id: t2 }` → **409** (цикл); `GET /plans/:planId/progress` → 200 (`total=2`) или SQL fallback (`SELECT COUNT(*) FROM tasks WHERE plan_id AND kind='deliverable'` → 2).
+- **Сценарий 3 (распределение по ячейкам):** `POST /cells` (`level=0`, `number=C<RUN>`, `direction_id`) → 201; `cellId`; `POST /cells/:cellId/members { participant_id: admin.id, role_in_cell: 'member' }`; `POST /cells/:cellId/daily-plan { date, task_ids: [t1, t2] }` → 201; `POST /cells/:cellId/daily-plan/:t1/assign { date, participant_id: admin.id }` → 200; БД: `tasks.status='assigned'`, `tasks.assigned_to=admin.id`.
+- **Сценарий 4 (Matching):** `mkDeliverable('t3')` → `t3`; `POST /passport/tasks/:t3/profile { requiredAtoms: [{ atom_id, role: 'executor', min: { P: 9 } }] }` → 2xx; `POST /tasks/:t3/assign { participant_id: admin.id }` → **409** (`no_match` — у admin P=7 < 9).
+- **Сценарий 5 (персональный план дня):** `PUT /learning/day-plans/me/:DATE { timezone, available_minutes: 480, blocks: [{ kind: 'production', task_id: t1, planned_minutes: 120 }, { kind: 'learning', planned_minutes: 60 }] }` → 200; `blocks.length === 2`; `POST /learning/day-plans/me/:DATE/confirm` → 200; `POST /learning/day-plans/me/:DATE/close { actuals: [...] }` → 200.
+- **Сценарий 6 (обучение через задачу):** `mkDeliverable('src')`, `mkDeliverable('lrn')`; `assign` → admin / learner; `POST /learning/task-practices { teacher_id, learner_id, source_task_id, learner_task_id, competency_atom_id, expected_learning_result }` → 201; `POST /learning/task-practices/:id/consent` от `learner`; `GET /learning/task-practices/:id` → `status === 'active'`.
+- **Сценарий 7 (OTC и Поток):** INSERT `reports` (artifact_url) для `lrn`; TOKEN=learner: `POST /tasks/:lrn/take` → 200; `POST /tasks/:lrn/submit` → 200; TOKEN=admin: `POST /tasks/:lrn/accept` → **403** (§7.5); SELECT `task_flow_awards WHERE task_id=lrn` → 0. Дополнительно: для `t1` — INSERT `reports`, прямой `UPDATE tasks SET status='submitted'` (в обход `take`/`submit` — self-service через API не проходит, т.к. `assignee` не `learner`; FA не может accept свою — I.2.12); `POST /tasks/:t1/accept` → **403** (своя задача).
+- **Сценарий 8 (перепланирование):** `POST /daily-plans { task_ids: [t1, t2] }` → 201; `POST /daily-plans { task_ids: [t1] }` → 201; SELECT `daily_plan_versions JOIN daily_plans` WHERE `direction_id, date` ORDER BY version → 4 версии; `v[0] === 0` (v1 пустой); `v[1] === 2` (v2); `v[2] === 2` (v3 «before»); `v[3] === 1` (v4 «after»).
+- **Сценарий 9 (разногласие):** `POST /reassignment-signals { level: 0, reason, cell_id, task_id: t1 }` → 201; `POST /reassignment-signals/:id/escalate` → 200; `level === 1`.
+- **Cleanup** — порядок FK-каскадный: `task_practices` (id) → `daily_plans` (каскад) → `participant_day_plans` → `reassignment_signals` → `cell_members` → `cells` → `tasks` (кроме `task_profiles`) → `plan_versions` → `plans`.
+- **`main().catch`** — `process.exitCode = 1`; `.finally` — `gracefulShutdown`. |
+|Примечания:
+СОЗДАН (новый блок; тест упоминается в спеке C.0.07.02/ C.0.06.02 / §23 как косвенное).
+СВЕРХ СТАРОЙ СПЕКИ: **ТЗ §23** — 9 сценариев сквозного цикла; **не дублирует** I.9.04.74–78 и I.9.09.43 (детальные тесты подсистем); фокус — **переходы**.
+СВЯЗЬ С A.1.06.01 ↔ C.0.06.02: план + daily-plan + версии (`v1`..`v4`).
+СВЯЗЬ С A.1.07.01 ↔ C.0.07.02/03: tasks + dependencies (цикл → 409); assign с Matching (`no_match` → 409).
+СВЯЗЬ С A.1.04.01 ↔ C.0.41.03: `POST /cells/:id/daily-plan` (upsert) + `POST /cells/:id/daily-plan/:task_id/assign` (assign) — атомарно (транзакция в C.0.41.03).
+СВЯЗЬ С A.1.31.01 ↔ C.1.09.02: practice `proposed → active` (`createPractice` + `giveConsent`).
+СВЯЗЬ С C.0.07.02 ↔ C.0.09.02: `acceptTaskService` → `otc_decisions` + `task_flow_awards` + `flow_transactions`; **§7.5** (учитель не принимает ученика); **I.2.12** (своя задача → 403).
+СВЯЗЬ С A.1.42.01 (reassignment): `POST /reassignment-signals` + `/escalate`; `L0 → L1`.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`process.exitCode = 1`** — не `process.exit`; `finally` — `gracefulShutdown` (flush DB/Redis/audit).
+ТЕХДОЛГ:
+- **`process.exitCode`** — счётчики `ok`/`fail`; тест «мягко» завершается (не падает на первом `fail`); семантика «накопительный отчёт».
+- **`mkDeliverable` — локальная** (внутри `main`) — дублирует логику `createTaskService` (без kind-валидации `deliverable` → требует `expected_result`); в сценарии 2 `expected_result: 'r'` — минимально валидно.
+- **`no_match` (сценарий 4)** — `POST /tasks/:t3/assign` без `override`; `partial` требует `override` (409 тоже, но с другим сообщением); `no_match` — запрет.
+- **`selfAccept` (сценарий 7)** — FA не может accept свою задачу (I.2.12); `take`/`submit` через API не проходит (FA не assignee `t1`; прямые `UPDATE` — обход API); семантика «accept своей задачи → 403» — проверена.
+- **§7.5 accept (сценарий 7)** — `admin` — учитель `learner` (по practice); `accept` → 403; сообщение — из `ForbiddenError` в C.0.07.02 (`'Учитель не принимает результат ученика, которому помогал (§7.5)'`).
+- **`competency_atoms` — `P applicable`** — если нет атома — throw; `person_atom_states` — upsert; при повторном прогоне — `UPDATE` level/status.
+- **`plan.progress` — fallback на SQL** — если `GET /plans/:id/progress` нет (A.1.06.01 не регистрирует; `getPlanProgress` — в C.0.06.02 как private-ish), используется SQL (`COUNT(*) WHERE kind='deliverable'`); семантика — «total = 2» (package не считается; D.2.01.67).
+- **`reports` INSERT** — напрямую (не через API); для `t1` — `UPDATE tasks SET status='submitted'` (обход `take`/`submit`, т.к. `learner` не assignee); семантика — «проверить accept, не проверяя take/submit» (детально — в I.9.04.14 / I.9.04.22).
+- **Cleanup — `DELETE FROM tasks WHERE plan_id AND id NOT IN (SELECT task_id FROM task_profiles)`** — сохраняет задачи с профилем (в тесте профиль у `t3` — не удаляется, но `t3` привязан к `planId`; если профиль есть, `t3` останется orphan — в тесте не критично; roadmap — удалять и `task_profiles`).
+- **`reassignment-signals`** — `A.1.42.01` (не A.1.07.01); `level 0 → 1`; `escalate` — 200.
+- **`TOKEN` switching** — `let TOKEN`; `TOKEN = learner.token` / `TOKEN = savedT`; аккуратно (finally в сценариях 6, 7).
+- **`practice` consent от `learner`** — `POST /learning/task-practices/:id/consent` (A.1.31.01) — self-service (только `authMiddleware`).
+- **`DELETE FROM daily_plans`** в начале `main` — идемпотентность.
+ТЕСТОВОЕ ПОКРЫТИЕ: сам I.9.04.79 (сквозной); косвенно — D.2.01.67 (kind), D.2.01.71 (версии), §7.5 (учитель), I.2.12 (своя работа), §23 (9 сценариев). |
 
 |I.9.05.01|Infra|Tools|TypeScript|scripts/test-ws-server.ts|W.0.01.01, L.0.01.08|v.0.0.01|Draft|W.0.01.01|
 |Описание: Базовая проверка WS-сервера (`W.0.01.01`). Требует `WS_TEST_TOKEN`/`WS_TEST_PID`/`WS_TEST_DIR` (env или позиционные аргументы). Проверяет: запуск на порту 3001 → подключение с токеном (welcome, `connectionId`) → подключение без токена (close 4401) → `subscribe`/`unsubscribe` → `broadcast` → `sendToParticipant` → `sendToDirection` → `ping`/`pong` → `getStats` → закрытие (0 active). Класс `MockClient` инкапсулирует сокет и стек полученных событий. После каждого шага — задержка 200–300 мс, чтобы события успели долететь. Завершается `stopWSServer()` + `redis.quit()`.
@@ -31569,6 +32624,68 @@ Preflight чистит: direct-messages arch↔worker, scope-каналы, со�
 **СВЯЗЬ С X.0.01.40 (`xartia.md`)**: `xartia.md` — описание Хартии; `generate_pass.py` — **генератор** визуальной эмблемы; **концептуально связаны**, но кода нет.
 **ТЕСТОВОЕ ПОКРЫТИЕ**: отсутствует (это GUI-инструмент). |
 
+|I.9.09.43|TEST|Integration|TypeScript|scripts/test-teaching-practice.ts|A.1.06.01, A.1.07.01, A.1.31.01, C.0.06.02, C.0.07.02, C.1.09.02, L.0.01.09|v.0.0.1|Draft|I.9.09.43, §7.5|
+|Описание: **TeachingPracticeLink: полный цикл + негативы.** Требует второго участника (ученика) — создаётся через `ensureActor`. Перед тестом учителю (FA) выставляется предметная readiness (P=7, X=5, E=5, confirmed) на тестовом атоме — прямой SQL (API для assessment существует, но требует отдельного assessor-flow). Проверяет: **негативы при создании** (`teacher=learner` → 400/422; `source` не назначена на teacher → 403/409; атом не существует → 400/404/422; teacher без readiness/source-assignee → 403/409); **позитив create** → `proposed`, `teacherConsent=true`, `learnerConsent=false`; **дубликат активной пары** → 409; **`consent` от FA** (идемпотентно `proposed`); **`consent` от learner** → `active`; **`submit` от FA** → 403; **`submit` от learner** → `submitted`; **`complete` от teacher** → `completed` + `completedAt`; **`cancel` на completed** → 409; **`listMyPractices`** (asTeacher/asLearner); **вторая практика → cancel** (200, `cancelled`, `cancelReason`); **повторный cancel** (идемпотентно 200). Запуск: `pnpm tsx scripts/test-teaching-practice.ts <phone> <password>`. Отказ при `NODE_ENV=production`. |
+|Публичный API:
+- Скрипт (CLI): `pnpm tsx scripts/test-teaching-practice.ts <phone> <password>`.
+- Env: `API_URL` (default `http://localhost:3000`), `ARCHITECT_PHONE`, `ARCHITECT_PASSWORD`, `NODE_ENV`.
+- `const BASE`, `RUN = randomUUID()`, `MARK = 'I.9.09.43:<RUN>'`, `let TOKEN = ''`.
+- Внутренние: `req(method, path, body?)`; `check(c, m)`; `makeDeliverable(directionId, planId, description, assignTo)` — `POST /tasks` (`kind='deliverable'`, `expected_result='r'`) + `POST /tasks/:id/assign`.
+- 12 секций: 1) негативы при создании; 2) позитив create; 3) дубликат → 409; 4) consent FA — proposed; 5) consent learner — active; 6) submit FA → 403; 7) submit learner → submitted; 8) complete teacher → completed; 9) cancel completed → 409; 10) `listMyPractices` asTeacher; 11) `listMyPractices` asLearner; 12) вторая практика → cancel (200) + повторный cancel (идемпотентно 200). |
+|↙ ПОТРЕБЛЯЕТ:
+- **A.1.01.01** (auth/controller) — `POST /auth/login` (через `login` из `passport-fixtures`).
+- **A.1.06.01** (plans/controller) — `POST /plans`, `/approve`, `/activate`.
+- **A.1.07.01** (tasks/controller) — `POST /tasks`, `POST /tasks/:id/assign`.
+- **A.1.31.01** (learning/controller) — `POST /learning/task-practices`, `POST /learning/task-practices/:id/consent`, `POST /learning/task-practices/:id/submit`, `POST /learning/task-practices/:id/complete`, `POST /learning/task-practices/:id/cancel`, `GET /learning/task-practices/:id`, `GET /learning/task-practices/me`.
+- **C.0.06.02** (plans/service) — план в `in_progress`.
+- **C.0.07.02** (tasks/service) — `createTaskService`, `assignTaskService` (source/learner tasks assigned).
+- **C.1.09.02** (passport/teaching-practice) — `createPractice` (негативы + proposed), `giveConsent` (proposed → active), `submitPractice` (active → submitted), `completePractice` (submitted → completed), `cancelPractice` (proposed/submitted → cancelled), `getById`, `listMyPractices`.
+- **L.0.01.09** (db) — `query`, `queryOne`; `person_atom_states` upsert для readiness; `participants.direction_id` для learner; cleanup.
+- **L.0.01.15** (`lib/shutdown`) — `gracefulShutdown`.
+- **`scripts/lib/passport-fixtures`** — `login`, `ensureActor`.
+- Env: `dotenv/config`.
+- Внешние: `node:crypto.randomUUID`, `fetch`. |
+|↘ ПРЕДОСТАВЛЯЕТ:
+- Приёмочный сигнал по **C.1.09.02** (полный цикл practice: `proposed → active → submitted → completed`; `cancelled`; идемпотентный cancel), **§7.5** (в связке с `C.0.07.02`).
+- Покрытие связи **A.1.31.01 ↔ C.1.09.02** (7 эндпоинтов practice).
+- Cleanup: `tasks` (кроме `task_profiles`) → `plan_versions` → `plans`. |
+|Реализация:
+- **`main()`** — `NODE_ENV === 'production'` → `throw`; login (`admin`); `adminRow.direction_id` (throw если нет); `atom` (`P applicable`); **readiness** для FA: `person_atom_states` upsert (P=7, X=5, E=5, `confirmed`); `ensureActor` → `learner`; `UPDATE participants SET direction_id` для `learner` (выравнивание по FA).
+- **План + 2 задачи:** `POST /plans` → approve → activate; `makeDeliverable(dirId, planId, 'source', admin.id)` → `sourceTask`; `makeDeliverable(dirId, planId, 'learner', learner.id)` → `learnerTask`.
+- **Секция 1 (негативы):** `POST /learning/task-practices { teacher_id: admin.id, learner_id: admin.id, source_task_id: source.id, learner_task_id: source.id, competency_atom_id: atomId, expected_learning_result: '...' }` → **400/422** (teacher=learner); `{ teacher_id: learner.id, learner_id: admin.id, source_task_id: source.id, learner_task_id: learnerTask.id, ... }` → **403/409** (source не назначена на teacher); `{ ..., competency_atom_id: 'CYB.ATOM.9999', ... }` → **400/404/422**; `{ teacher_id: learner.id, learner_id: admin.id, source_task_id: learnerTask.id, learner_task_id: sourceTask.id, ... }` → **403/409** (teacher без readiness/source-assignee).
+- **Секция 2 (позитив create):** `POST /learning/task-practices { teacher_id: admin.id, learner_id: learner.id, source_task_id: sourceTask.id, learner_task_id: learnerTask.id, competency_atom_id: atomId, expected_learning_result: '...' }` → **201**; `status === 'proposed'`; `teacherConsent === true`; `learnerConsent === false`; `practiceId`.
+- **Секция 3 (дубликат):** повторный create → **409**.
+- **Секция 4 (consent FA):** `POST /learning/task-practices/:id/consent` → **200**; `status === 'proposed'` (идемпотентно; FA уже consent).
+- **Секция 5 (consent learner):** TOKEN=learner: `POST .../consent` → **200**; `learnerConsent === true`; `status === 'active'`.
+- **Секция 6 (submit FA):** TOKEN=admin: `POST .../submit` → **403** (submit — только learner).
+- **Секция 7 (submit learner):** TOKEN=learner: `POST .../submit` → **200**; `status === 'submitted'`.
+- **Секция 8 (complete teacher):** TOKEN=admin: `POST .../complete` → **200**; `status === 'completed'`; `completedAt` — строка.
+- **Секция 9 (cancel completed):** `POST .../cancel { reason: '...' }` → **409** (терминальный `completed`).
+- **Секция 10 (listMyPractices asTeacher):** `GET /learning/task-practices/me` → 200; `asTeacher.some(x => x.id === practiceId)`.
+- **Секция 11 (listMyPractices asLearner):** TOKEN=learner: `GET .../me` → 200; `asLearner.some(x => x.id === practiceId)`.
+- **Секция 12 (вторая практика → cancel):** `POST /learning/task-practices { ..., expected_learning_result: 'cancel test' }` → **201**; `POST .../cancel { reason: 'тестовая отмена' }` → **200**; `status === 'cancelled'`; `cancelReason === 'тестовая отмена'`; повторный cancel → **200** (идемпотентно).
+- **Cleanup** — `DELETE FROM tasks WHERE plan_id AND id NOT IN (SELECT task_id FROM task_profiles)`; `plan_versions`; `plans`.
+- **`main().catch`** — `process.exitCode = 1`; `.finally` — `gracefulShutdown`. |
+|Примечания:
+СОЗДАН (новый блок; тест упоминается в спеке C.0.07.02 (ТЕСТОВОЕ ПОКРЫТИЕ: I.9.09.43) как косвенное; A.1.31.01 (ТЕСТОВОЕ ПОКРЫТИЕ: I.9.09.05) — teaching-practice).
+СВЕРХ СТАРОЙ СПЕКИ: **C.1.09.02 полный цикл** (`proposed → active → submitted → completed`; `cancelled`; идемпотентный cancel); **§7.5** — в связке с `C.0.07.02` (`isTeacherOfLearnerTask` → 403 в accept).
+СВЯЗЬ С C.1.09.02: `createPractice` (негативы: `teacher=learner` — 400/422; `source` не назначена на teacher — 403/409; атом не существует — 400/404/422; teacher без readiness — 403/409); `giveConsent` (`proposed → active` после обоих consent); `submitPractice` (active → submitted; только learner); `completePractice` (submitted → completed; только teacher); `cancelPractice` (proposed/submitted → cancelled; идемпотентный на cancelled); `listMyPractices` (asTeacher/asLearner); `getById`.
+СВЯЗЬ С A.1.31.01: 7 эндпоинтов (`create`, `consent`, `submit`, `complete`, `cancel`, `getById`, `listMyPractices`).
+СВЯЗЬ С A.1.07.01: `POST /tasks/:id/assign` — `source`/`learner` задачи назначены (`makeDeliverable` → `assign`).
+СВЯЗЬ С C.0.07.02: `createTaskService` + `assignTaskService` — предусловие для practice.
+СВЯЗЬ С C.0.01.05 (audit) — `logAction` (через `createPractice`/`giveConsent`/... — внутри C.1.09.02).
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **readiness для FA** — прямой SQL (`person_atom_states` upsert; P=7, X=5, E=5, `confirmed`), т.к. API для assessment требует отдельного assessor-flow; в тесте — shortcut.
+АРХИТЕКТУРНОЕ РЕШЕНИЕ: **`learner` — `ensureActor`** + `UPDATE participants.direction_id` — выравнивание по FA (ensureActor кладёт в первое активное направление, а у FA может быть другое).
+ТЕХДОЛГ:
+- **`person_atom_states`** — прямой SQL для readiness; `ON CONFLICT DO UPDATE` — идемпотентность; `atom` — по `P applicable`.
+- **`ensureActor`** — создание learner через `passport-fixtures`; `direction_id` — через SQL.
+- **Негативы `teacher=learner`** — 400/422 (Zod: `teacher_id !== learner_id` — не в схеме; проверка в C.1.09.02 → `ValidationError` 422 или `BadRequest` 400); **`source` не назначена на teacher** — 403/409 (`ForbiddenError`/`ConflictError`); **атом не существует** — 400/404/422; **teacher без readiness** — 403/409.
+- **`complete` от teacher** — `completedAt` — ISO; `submittedAt` (если есть) — не проверяется.
+- **`cancel` completed → 409** — терминальный статус.
+- **`listMyPractices` asTeacher/asLearner** — `{ asTeacher, asLearner }` (контракт A.1.31.01: `listMyPractices` возвращает `{ data: { asTeacher, asLearner } }`; тест читает `d.asTeacher`/`d.asLearner` — на верхнем уровне `r.data`; если контракт — `{ data: { asTeacher, ... } }` — тест бы упал; в коде `reply.send({ ...data })` — `data` = `{ asTeacher, asLearner }`, поэтому `r.data.asTeacher` — ок).
+- **`practice` cleanup** — «каскадно через tasks»: в C.1.09.02 `task_practices` FK на `source_task_id`/`learner_task_id` — ON DELETE CASCADE; при удалении `tasks` (кроме `task_profiles`) — практики удаляются.
+ТЕСТОВОЕ ПОКРЫТИЕ: сам I.9.09.43 (приёмочный); косвенно — C.1.09.02 (полный цикл), A.1.31.01 (7 эндпоинтов), §7.5 (accept в C.0.07.02).
+
 |I.10.01.01|Infra|Config|Text|.gitignore|—|v.0.0.01|Draft|—|
 |Описание: Единый .gitignore для монорепо XartIA Charter 5.0. Исключает артефакты сборки, секреты, IDE/OS-файлы, локальные docker-тома, terraform/k8s-конфиги, мобильные артефакты и подписи целостности. Обеспечивает обязательное требование «секреты вне git» (I.10.02.01) и оставление .env.example в репозитории как контракта конфигурации.|
 |Публичный API (элементы):
@@ -33177,7 +34294,7 @@ REMOVED. Файл удалён при миграции на ESLint 9 flat config
 - `rowToJob(r)` — snake_case → camelCase; `payload ?? {}`, `errors ?? []`, Date → ISO, null-safe для started_at/finished_at.
 - `JOB_COLS` — строка с перечнем колонок (используется в SELECT и RETURNING).
 - `enqueue`: `newUUID()` → INSERT (id, type, payload, status='queued', created_by) → return id.
-- `claim`: 
+- `claim`:
 - Один SQL: `UPDATE jobs SET status='running', started_at=now() WHERE id = (SELECT id FROM jobs WHERE status='queued' ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING ${JOB_COLS}`.
 - Комментарий: «Один SQL-запрос, без явной транзакции: Postgres выполняет UPDATE с подзапросом атомарно».
 - `rows[0]` → `rowToJob` или null.
@@ -36786,101 +37903,61 @@ REMOVED. Файл удалён при миграции на ESLint 9 flat config
 |X.0.01.39|DOCS|Catalog|Excel|docs/XartIA_Skill_Catalog.xlsx|-|v.0.0.1|Draft|-|
 
 |X.0.01.40|Docs|Charter/CoreRegulation|Markdown|xartia.md|C.0.01.01, C.0.01.06, X.0.01.37, X.0.01.33, I.9.01.10|v.5.0|Draft|—|
-|Описание: **ХАРТИЯ 5.0 — СВОДНЫЙ РЕГЛАМЕНТ (МОДУЛЬНАЯ ВЕРСИЯ)** — ~449 KB, **8 книг**, ~200 статей, сводный конституционный документ XartIA. Открывается **эпиграфом** Первого Архитектора («Мир — тюрьма; два начальника — власть и деньги; освобождение начинается с лишения их власти…»). **КНИГА I «ОСНОВЫ И АРХИТЕКТУРА»** (6 частей): преамбула + 10 неизменяемых принципов (§1.10), глоссарий, **система ID** (`А00001-1`, `4×5-017-строители`, `SIG-…`, `PLAN-…`, `СТР-…`), **17 направлений** (D01–D17, включая временные D15 «Внешний шлюз» и D16 «Сетевая экосистема»), **архитектура ячеек N×5** (1×5=5, 2×5=25, …, 12×5=244 млн), **17 ролей** (Стажёр, Исполнитель, Наставник, Наставник-интегратор, Мастер, ОТК-контролёр, Координатор смен, Резервист, Член Совета, Отказник, Связной, Цифровой наставник, Удалённый участник, Координатор расширения, Оператор автоматизированного участка, Координатор кризисного сектора, Когнитивный агрегатор). **КНИГА II «ПРОЦЕССЫ И ПРОЦЕДУРЫ»** (8 частей): жизненный цикл сигнала (SIG), Всеобщий прогон, профессиональный Коннект, План реализации (PLAN), реализация/дневные задачи, материализация благ, обработка сбоев, избыточное производство. **КНИГА III «УПРАВЛЕНИЕ И КОНТРОЛЬ»** (5 частей): Балансировка (D08), Верификация/ОТК (D13), Жюри случайной выборки, Инженерия Обнуления (D07), Хранители Протокола. **КНИГА IV «РАЗВИТИЕ И САМОКОРРЕКЦИЯ»** (7 частей): новые профессии/направления, 5-летний пересмотр, квантовое развитие (микро/процесс/технология/стандарт/направление/архитектура), самообнаружение ошибок (сигналы энтропии/гомеостаза/подавления разнообразия/насилия), контролируемые вызовы, глобальная конвергенция (70%→референдум, 90%→упразднение Шлюзов), планетарное масштабирование. **КНИГА V «ЧЕЛОВЕК, СООБЩЕСТВА И ВНЕШНИЙ МИР»** (8 частей): когнитивно-поведенческая диагностика + **7 неизменяемых заветов** (§1.0.6), программа знакомства (30–90 дней), мастерство (15 лет), нулевое наследство, защита от концентрации власти, **Внешний Шлюз** (D15), множественность сообществ, ускоренная конвергенция государств (5 этапов), переходный период. **КНИГА VI «ЭКСТРЕННЫЕ РЕЖИМЫ И БЕЗОПАСНОСТЬ»** (5 частей): Красный Контур, **Стальной Колокол** (≤90 суток, автопересчёт сроков «Квант ускорения»), Квант оружия угрозы (асимметричное превосходство), ПТТ (Проекты Тотальной Трансформации), Квант стихийной адаптации. **КНИГА VII «ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ»** (4 части): языковой протокол (**русский — стержневой**), санкции и восстановительное правосудие (включая **Необратимое отчуждение**), порядок изменения Хартии (ядро 2/3 + 6 мес + референдум, 25-летний/50-летний пересмотр), философские заключения. **КНИГА VIII «ЭКСПЕРИМЕНТАЛЬНЫЕ ПРОТОКОЛЫ»** (2 части): общие принципы (EXP-код, ≤5 лет), **EXP-001-2026 «Цифровое ядро Первой сотни»** (100 участников, цепная реакция обучения, защита ядра 90% голосов, коммерциализация через Шлюз, масштабирование до 500). |
-|Публичный API (документ, структура):
-- **Эпиграф** — кредо Первого Архитектора (свобода, власть, деньги, «мудрый бунт»).
-- **КНИГА I «ОСНОВЫ И АРХИТЕКТУРА»**:
-  - **Ч.1. Преамбула, ценности, неизменяемое ядро** (§1.1–§1.11): §1.1 преамбула (конечная цель — планетарный уровень 12×5); §1.2 переходный характер (временный D15 «Внешний шлюз»); §1.3 базовые постулаты (уникальные ID; один участник — одно направление, но задачи в любом; управленцев 2–5%; сквозная экспертиза; сбой = сигнал, не наказание); §1.4 человек и цивилизация (равенство достоинства); §1.5 блага (единый стандарт достаточности, базовые блага независимы от Потока, проектные ресурсы — тройная подпись); §1.6 отсутствие денег (Поток ≠ деньги, внешние деньги не конвертируются); §1.7 власть и ответственность (мандат временный, ротация); §1.8 саморазвитие и плато (право на паузу, вертикальные траектории, **1.8.10 инновационная ересь — 1% подписей → диссидентский проект**); §1.9 без наказаний при соблюдении процедур; **§1.10 неизменяемое ядро** — 10 принципов (достоинство, нулевое наследство, ротация, разделение функций, независимость Балансировки/Верификации, право на рефлексию, право на сигнал, предохранители от узурпации, Семантический Страж, Квант оружия угрозы) — только сокращение (2/3 + 6 мес + референдум), 25-летний/50-летний пересмотр; §1.11 минимально достаточная эскалация.
-  - **Ч.2. Глоссарий** (§2.1) — ID, Ячейка, Сигнал, Коннективность, Всеобщий прогон, План реализации, **Поток** (не деньги), **Квант**, Мета-поток, **Капсула** (≤180), **Отложенный Поток** (≤7%), Коннект, Красный Контур, Стальной Колокол, Арбитраж.
-  - **Ч.3. Идентификация** (§3.1–§3.6): **§3.1 участник** — `<буква><5 цифр>-<направление>[:<поднапр>]`, напр. `А00001-1`; §3.1.4 глобальная маршрутизация при множественности сообществ (двухбуквенный код сообщества, `код-внутреннийID`); **§3.2 ячейка** — `<уровень>×5-<номер>-<профиль>`, `4×5-017-строители`; **§3.3 задача** — `<тип>-<дата>-<номер>`, `СТР-2026-08-13-042`; **§3.4 сигнал** — `SIG-<дата>-<номер>`; **§3.5 план** — `PLAN-<дата>-<номер>`; §3.6 сводная таблица.
-  - **Ч.4. 17 направлений** (§4.0–§4.18): §4.0 общие положения (перечень не вечен; **ЗПО** — зона профессиональной ответственности; внесетевая деятельность); **D01 Жизнеобеспечение** (пища, жильё, инфраструктура); **D02 Здравие** (клинический уровень); **D03 Энергия и Среда**; **D04 Трансляция Контекста** (передача опыта); **D05 Когнитивная Логистика** (движение знаний); **D06 Ноология** (фундаментальные вопросы; **§4.6.1 Семантический Страж** — 5 Мастеров, мониторинг дрейфа, «Семантическая тревога», вето 3 дня); **D07 Инженерия Обнуления** (демонтаж устаревшего, «Канализация» для деструктивных); **D08 Балансировка** (наблюдение, не управление); **D09 Кибернетика и Протокол** (цифровая инфраструктура; **физическая изоляция от Шлюза**); **D10 Искусство и Резонанс**; **D11 Социальная Инкубация** (вход, адаптация); **D12 Психоэкология** (психогигиена, не лечение); **D13 Верификация и Надёжность** (аудит, независимость); **D14 Знание и Образование** (Центральный архив); **D15 Внешний шлюз** (временное — конвертация, армия, дипломатия); **D16 Сетевая экосистема** (временное, ИИ-наставники, блокчейн); **D17 Правозащита и Восстановление** (расследования, изоляция, помощь жертвам); §4.18 таблица распределения 100 000 участников (D01=30%, D02=15%… D15=0%).
-  - **Ч.5. Архитектура ячеек N×5** (§5.1–§5.3): §5.1 базовая 1×5 (4 исполнителя + 1 координатор); §5.2 уровни 1×5 (5) → 12×5 (244 140 625), таблица добавляемых ролей; §5.3 ротация и минимальный управленческий слой (2–5%).
-  - **Ч.6. Роли** (§6.0–§6.17): §6.0 общие (профессия не пожизненна, совмещение допустимо); **17 ролей**: **Стажёр** (7 дней–3 мес), **Исполнитель** (дневной план), **Наставник** (≤3 стажёров, ≥50% времени в сменах), **Наставник-интегратор** (сопровождение Когнитивного маршрута), **Мастер** (15+ лет, без админ-полномочий), **ОТК-контролёр** (стаж ≥6 мес, мандат 6 мес), **Координатор смен** (мандат 3 мес, ≤2 раза/год), **Резервист** (частичный Поток), **Член Совета** (2 года, ≤2 сроков, ≥25% времени исполнителем), **Отказник** (временная пауза, мини-стажировка 3 дня), **Связной** (маршрутизация, мандат 12 мес, ≤2 сроков, **§6.11.12 запрет на «уточнительную бесконечность»** — 3 возврата → Арбитраж), **Цифровой наставник** (ИИ, ≤50 стажёров, без голоса), **Удалённый участник** (цифровой интерфейс), **Координатор расширения** (3 года, ≤2 сроков), **Оператор автоматизированного участка** (мандат 6 мес, утверждает/отклоняет решения ИИ), **Координатор кризисного сектора** (≤7 дней, информирует, не приказывает), **Когнитивный агрегатор** (D05, 2 года, ≤2 сроков).
-- **КНИГА II «ПРОЦЕССЫ И ПРОЦЕДУРЫ»**:
-  - **Ч.1. Жизненный цикл сигнала** (§1.1–§1.7): §1.1 определение; §1.2 инициация (поля, **право подать с любым приоритетом независимо от Потока**, предварительное ведущее направление); §1.3 префильтрация + маршрутизация (SIG-ID, формат/этикет); §1.4 атрибуты (скорость/формат/этикет/приоритет): **Критический 1 мин / Высокий 1 ч / Стандартный 3 ч / Фоновый 1 сутки**; §1.5 лимит итераций (≤3 возврата → Арбитраж); §1.6 мета-поток и самодиагностика (ежеквартальный пересчёт −5%); §1.7 защита от «отсутствия влияния» (3 нарушения/квартал → компетентностный риск).
-  - **Ч.2. Всеобщий прогон** (§2.1–§2.7): §2.1 целевой/общий; §2.2 первичные ответы (5 вариантов + 5 обязательных элементов); §2.3 отсутствие ответа ≠ согласие; §2.4 сроки + автоуведомления (25% времени); §2.5 параллельный многопроходный прогон (Высокий/Критический — сроки вдвое короче); §2.6 ускоренный кризисный прогон (1 мин на ответ, экстренный Коннект 3 мин, Арбитраж 5 мин); §2.7 ведущее направление (держатель задачи).
-  - **Ч.3. Профессиональный Коннект** (§3.1–§3.7): §3.1 назначение; §3.2 диагностический этап (1 час); §3.3 обязательные элементы позиции; §3.4 4 результата; §3.5 при несовместимости — альтернатива/поэтапно/эксперимент; §3.6 протокол; §3.7 Арбитраж (3 ч, процедурный).
-  - **Ч.4. План реализации** (§4.1–§4.5): §4.1 переформулировка + утверждение; §4.2 структура (7 обязательных элементов + §4.2.8 ведущее направление + §4.2.9 распределение ролей); §4.3 Хранитель оформляет; §4.4 предварительная материализация (экспериментальные, 24-часовое вето); §4.5 Кризисный план (сценарий мобилизации, до 10% неявки, ≤7 дней).
-  - **Ч.5. Реализация и дневные задачи** (§5.1–§5.4): §5.1 дневной план; §5.2 исполнение (+1 Основной Поток); §5.3 ОТК (критерии до начала работы, запрет проверки своей работы); §5.4 массовая мобилизация (без принуждения, «Готов прибыть», ≤10% неявки).
-  - **Ч.6. Материализация благ** (§6.1–§6.7): §6.1 материальные/нематериальные; §6.2 жизненный цикл (7 шагов); §6.3 роли направлений (таблица 15×2); §6.4 критерии приёмки (воспроизводимость, применимость, безопасность, долгосрочный эффект); §6.5 тройная подпись; §6.6 интеграция в среду; §6.7 обратная связь через мета-потоки.
-  - **Ч.7. Обработка сбоев** (§7.1–§7.7): §7.1 фиксация; §7.2 диагностика (Балансировка + Верификация); §7.3 временные/долгосрочные меры; §7.4 пример «нет учебного заведения»; §7.5 ретроспектива; §7.6 без наказаний; §7.7 пост-кризисная рефлексия (>30% мобилизации — 3 дня).
-  - **Ч.8. Избыточное производство** (§8.1–§8.10): §8.1 определение; §8.2 ИИЕ (>0,7 → расширение; <0,4 → фокус на эффективность); §8.3 ПИП (ускоренный прогон 48 ч); §8.4 упрощённая приёмка (≤2 дней); §8.5 стимулы (двойной Поток, «Производственный донор»); §8.6 распределение 60/20/20; §8.7 предохранители (>300% → стоп); §8.8 отчётность; §8.9 переходный период; §8.10 вступление в силу при 6×5 или ИИЕ ≥0,7.
-- **КНИГА III «УПРАВЛЕНИЕ И КОНТРОЛЬ»**:
-  - **Ч.1. Балансировка** (§1.1–§1.14): §1.1 статус; §1.2 функции наблюдения (16 подпунктов, включая **§1.2.11–.16 кризисная мобилизация, смена ведущего, планетарный пульс**); §1.3 мониторинг Шлюза; §1.4 внешние данные; §1.5 императивный мониторинг жизнеобеспечения (≤1 дня); §1.6 мета-запросы; §1.7 пересчёт −5%; §1.8 реестр компетентностного риска; **§1.9 «Информационная блокада»** (автозапуск при >1 ч без данных или «красной кнопке»); §1.10 автопонижение приоритета Шлюза; §1.11 защита целостности алгоритмов; §1.12 защитная готовность; §1.13 специализированный мониторинг ИИ-участков; §1.14 планетарная группа (21 балансировщик при >1 млн).
-  - **Ч.2. Верификация, аудит и ОТК** (§2.1–§2.15): §2.1 статус (не решает, устанавливает); §2.2 независимость; §2.3 внутренняя структура (Совет + ОТК); §2.4 открытость; §2.5 аудит автоматики; §2.6 компетентностный риск; §2.7 аудит Шлюза (внеплановый при 3+ сигналах); §2.8 процессуальный аудит Правозащиты; §2.9 ОТК направления (мандат ≤6 мес, **§2.9.1 упрощённый ОТК в «Критический»**); §2.10 критерии до начала; §2.11 +1 Поток; §2.12 запрет проверки своей работы; §2.13 апелляция; §2.14 публикация статистики; §2.15 независимая перепроверка.
-  - **Ч.3. Жюри случайной выборки** (§3.1–§3.8): §3.1 назначение; §3.2 12 человек, криптовыбор, явка за 1 ч; §3.3 полномочия (**§3.3.8 арбитраж принадлежности**); §3.4 вето (расширенный состав 24, 19/24, до завершения Коннекта); §3.5 обязательность; §3.6 ограничения; §3.7 «вне сети доверия» (9/12); §3.8 тяжкие преступления (24, 18/24, апелляция 24 ч).
-  - **Ч.4. Инженерия Обнуления** (§4.1–§4.7): §4.1 определение; §4.2 «Канализация» (перевод деструктивной энергии); §4.3 отказ → Жюри; §4.4 «вне сети доверия» (сохраняет базовые блага, минимальный приоритет); §4.5 аудит статуса; §4.6 принципы обнуления систем; §4.7 проверяемость.
-  - **Ч.5. Хранители Протокола** (§5.1–§5.9): §5.1 статус (временный); §5.2 функции (фиксация, история, атрибуты); §5.3 План реализации (подписывает Совет + Хранитель; **не заверяет при незавершённом Коннекте**); §5.4 передача в 1 час; §5.5 не определяет содержание; §5.6 неизменность архивов; §5.7 восстановление цепочки; §5.8 передача в Центральный архив; §5.9 защита от давления.
-- **КНИГА IV «РАЗВИТИЕ И САМОКОРРЕКЦИЯ»**:
-  - **Ч.1. Новые профессии и направления** (§1.1–§1.3): §1.1 профессия; §1.2 условия нового направления; §1.3 процедура (сигнал → Всеобщий прогон → 2/3 → номер 18+).
-  - **Ч.2. 5-летний пересмотр** (§2.1–§2.7): §2.1 периодичность; §2.2 материалы (включая **§2.2.9 анализ «отсутствия влияния»**); §2.3 участники; §2.4 решения (сохранить/изменить/разделить/объединить/создать/упразднить); **§2.4.5 Стальной Колокол >50% → автоматическая мобилизация + Квант ускорения**; §2.5 правило обязательного горизонта (50 лет); §2.6 пересмотр Шлюза; §2.7 доклад о ёмкости роста.
-  - **Ч.3. Квантовое развитие** (§3.1–§3.7): §3.1 определение (минимальная автономная единица); §3.2 уровни (микро/процесс/технология/стандарт/направление/архитектура); §3.3 принцип работы (7 шагов + **§3.3.7 глобальный каталог квантов** + **§3.3.8 обязательное тиражирование**); §3.4 критерии (качество + эффективность + устойчивость + побочные + применимость); §3.5 условия масштабирования (8 подпунктов, включая механизм прекращения); §3.6 оценка ячеек (не по процентилям); §3.7 пример в строительстве.
-  - **Ч.4. Самообнаружение ошибок** (§4.1–§4.8): §4.1 принцип; §4.2 типы сигналов (6); §4.3 смысловая энтропия; §4.4 гомеостаз (опасная стагнация); §4.5 смысловая ревизия; §4.6 подавление разнообразия (>90% решений без возражений → сигнал); §4.7 переходный период («зависимость» >30% импорта, «инфильтрация»); §4.8 систематическое насилие (>3 случаев/год/направление).
-  - **Ч.5. Контролируемые вызовы** (§5.1–§5.5): §5.1 цель; §5.2 формы; §5.3 условия; §5.4 доклад о горизонте (каждые 50 лет); §5.5 инженерные вызовы (каждые 5 лет Ноология формулирует предельную угрозу).
-  - **Ч.6. Глобальная конвергенция** (§6.1–§6.4): §6.1 доклад; §6.2 70% → Глобальный референдум; §6.3 90% → упразднение Шлюзов; §6.4 ускоренный переход.
-  - **Ч.7. Планетарное масштабирование** (§7.1–§7.3): §7.1 «Рождение общины» (≥500 участников, 3% резерва, 5000 га на 50 000, 2 года инкубации, 5% кадров); §7.2 пороговые уровни (2–10 / 11–50 / 51–500 / >500 общин); §7.3 заморозка расширения (задержка >5 сек или отклонение >10%).
-- **КНИГА V «ЧЕЛОВЕК, СООБЩЕСТВА И ВНЕШНИЙ МИР»**:
-  - **Ч.1. Путь участника** (§1.0–§1.13): **§1.0 когнитивно-поведенческая диагностика** (4 аспекта + 3 исхода: Совместим/Условно совместим/Несовместим; запрет евгеники); **§1.0.6 7 неизменяемых заветов** (истина проверяется реальностью; власть — временная функция; диалог только между равными; развитие = способность пересматривать; благо каждого — условие блага всех; не наследуешь статус; ошибка — повод для анализа); §1.1 общие принципы (первый год — щадящий режим 1/60, 200 Потоков); §1.2 программа знакомства (30–90 дней, 3 мини-стажировки по 3 дня); §1.3 выбор направления (60–180 дней, **Когнитивный маршрут** 30 дней, ≤1% экскурсантов); §1.4 наставничество (≤10 новичков); §1.5 индикаторы; §1.6 фазы жизни; §1.7 обратная связь; §1.8 внешние участники (3 года двойной адаптации); **§1.9 входная конвертация активов** (3 варианта: полная/целевой фонд/внешнее управление); §1.10 «Уважение и границы»; §1.11 горизонтальное понимание; §1.12 право на познание всех направлений (Когнитивный Маршрут каждые 5 лет, **Интегратор** после 5 маршрутов + 15 лет); §1.13 ускоренная адаптация первопроходцев.
-  - **Ч.2. Мастерство** (§2.1–§2.3): §2.1 Мастер (15+ лет, без админ-полномочий, не наследуется); §2.2 Интегратор (5 маршрутов + 15 лет); §2.3 «вне сети доверия» (перекрёстно из Кн. III ч.4).
-  - **Ч.3. Дети и нулевое наследство** (§3.1–§3.2): §3.1 нулевое наследство (Потоки, Капсулы, мандаты, Мастерство, Советы — не передаются); §3.2 образование (не воспроизведение структуры, а подготовка к её изменению).
-  - **Ч.4. Защита от концентрации власти** (§4.1–§4.2): §4.1 ротация (+ **§4.1.8 «эффект холодного периода»** — после мандата такой же период без руководящих ролей); §4.2 запрет превращения ответственности в привилегию.
-  - **Ч.5. Внешний Шлюз** (§5.1–§5.7): §5.1 функции; §5.2 временный характер; §5.3 Совет Шлюза (7 чел., 5 лет, ≤1 переизбрание; **§5.3.6 автоматическая ротация**); **§5.4 Гарант Перехода** (5 лет без переизбрания; критерии самодостаточности — импорт <5%, замкнутый цикл, 0 внешней валюты); §5.5 внешние деньги (конвертируются только в ресурсы); **§5.6 Внешние Свидетели** (≥2 сообщества; при отсутствии >1 года — приостановка контрактов); §5.7 доктрина асимметричного сдерживания.
-  - **Ч.6. Множественность сообществ** (§6.1–§6.5): §6.1 признание; §6.2 аккредитованные дочерние общины (≥50 чел., упрощённая Хартия; 500 чел. → полное членство); §6.3 протокол взаимного признания (3 этапа + мост Потоков + презумпция совместимости); §6.4 Совет Протоколов (делегаты + 3 эксперта + Семантический Страж; Планетарный план); §6.5 Планетарный пульс (реальное время, ≤1 сек).
-  - **Ч.7. Ускоренная конвергенция государств** (§7.1–§7.8): §7.1 принципы (добровольность, безболезненность, постепенность, культурная идентичность, полная передача активов, неотвратимость); **§7.2 5 этапов** (0 референдум → 1 Шлюз+конверсия → 2 цифровая интеграция → 3 соцадаптация → 4 технологический обмен → 5 завершение+роспуск, 36–60 мес); §7.3 Совет конвергенции; §7.4 конверсия активов/долгов/вооружений; §7.5 соцадаптация + культурное наследие; §7.6 интеграция науки; §7.7 гарантии; §7.8 критерии завершения (импорт <5% ×3 года, замкнутый цикл, 0 внешней валюты, ≥80% прошли Когнитивный маршрут).
-  - **Ч.8. Переходный период** (§8.1–§8.3): §8.1 первые общины (до 100 000 чел., 1,5 трлн руб + 10 000 га, временный Совет 7 чел.); §8.2 конверсия активов; §8.3 наставники-экспансионисты.
-- **КНИГА VI «ЭКСТРЕННЫЕ РЕЖИМЫ И БЕЗОПАСНОСТЬ»**:
-  - **Ч.1. Красный Контур** (§1.1–§1.5): §1.1 назначение (временный, не создаёт класса); §1.2 обязательная проверка; §1.3 промежуточный аудит (14 дней); §1.4 внешний/внутренний; §1.5 применение силы.
-  - **Ч.2. Стальной Колокол** (§2.1–§2.7): §2.1 определение (все направления → единый оборонный протокол, включая «неизвестный патоген», «контакт с внеземным»); §2.2 условия активации (4 триггера + «триггер непредвиденного»; без голосования в момент угрозы + 1-часовой аудит при «Ложной тревоге»); **§2.3 Квант ускорения** (6 сек / 6 мин / 18 мин / 2,4 ч; ежедневно −5%; при пределе — ИИ с пост-верификацией); §2.4 трансформация ролей (Мобилизованный, штабы, приоритет Обнулению, «Экстренная консолидация»); §2.5 автоперепроверка (каждые 24 ч; 5% подписей → голосование; **≤90 суток непрерывно**); §2.6 пост-режимная реабилитация (≥5 дней + 30 дней аудит); §2.7 **неизменяемые ограничения** (базовые блага, запрет пыток, ротация ≤7 дней, независимость Верификации/Балансировки, Семантический Страж) — нарушение → «Узурпация».
-  - **Ч.3. Квант оружия угрозы** (§3.1–§3.8): §3.1 определение (опережающая нейтрализация ×10); §3.2 принцип (фиксация → классификация 1–10 → «Квантовый ответ» при ≥3); §3.3 примеры (пули/лазер, химоружие/нанофильтры, атом/ПРО, кибер/квантовое шифрование, внеземное/экранирующий периметр); §3.4 приоритет (15% Отложенного + 5% жизнеобеспечения); §3.5 постоянное улучшение (доклад раз в 5 лет); §3.6 ограничения (только оборонительный, верификация); §3.7 интеграция со Шлюзом; §3.8 ответственность (≤1/10 типичного срока).
-  - **Ч.4. ПТТ** (§4.1–§4.8): §4.1 определение (≤90 дней); §4.2 условия (3 одновременно); §4.3 «Компрессия» (3 дня, 99% за 30 дней); §4.4 материализация (≤7 дней); §4.5 реинтеграция (30 дней); §4.6 ограничения (≤1 раз/5 лет, право отказа); §4.7 ≠ ограничение прав; §4.8 ≠ Красный Контур.
-  - **Ч.5. Квант стихийной адаптации** (§5.1–§5.4): §5.1 определение (стихийные бедствия); §5.2 принцип (Массовость ≥5 → проект); §5.3 приоритет (5% Отложенного); §5.4 пример («Капельный периметр»).
-- **КНИГА VII «ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ»**:
-  - **Ч.1. Языковой протокол** (§1.1–§1.6): §1.1 **русский — стержневой**; §1.2 свобода локальных; §1.3 приоритет при расхождениях; §1.4 глобальная служба перевода; §1.5 мониторинг Семантическим Стражем; §1.6 ускоренный курс.
-  - **Ч.2. Санкции и восстановительное правосудие** (§2.1–§2.6): §2.1 градация (беседа → изоляция ≤1 года → ресоциализация 2–5 лет → исключение); **§2.1.1 кризисная некомпетентность — без наказания, если по процедуре**; §2.2 права жертвы; §2.3 презумпция невиновности (14+14 дней); §2.4 запрет коллективной ответственности; **§2.5 Необратимое отчуждение** (умышленное убийство, 20/24 + Верификация; пересмотр через 25 лет); §2.6 процессуальное уклонение (3 предупреждения → ограничение голоса 3 мес).
-  - **Ч.3. Порядок изменения** (§3.1–§3.10): §3.1 общий; §3.2 ядро (2/3 + 6 мес); §3.3 сигнал о нарушении; §3.4 только сокращение; §3.5 временное включение (≤25 лет); §3.6 25-летний пересмотр; §3.7 общий механизм; §3.8 правило 50 лет; §3.9 пересмотр Шлюза; **§3.10 50-летний референдум**.
-  - **Ч.4. Заключительные** (§4.1–§4.7): §4.1 философия; §4.2 принципы развития (5/25/50-летние вопросы); §4.3 переходный период; §4.4 место для развития; §4.5 вступление в силу; §4.6 открытость архитектуры; §4.7 глобальная конвергенция.
-- **КНИГА VIII «ЭКСПЕРИМЕНТАЛЬНЫЕ ПРОТОКОЛЫ»**:
-  - **Ч.1. Общие принципы** (§1.1–§1.4): §1.1 определение (EXP-код, ≤5 лет); §1.2 утверждение (75%); §1.3 права участников (сохранение всех прав); §1.4 архивация.
-  - **Ч.2. EXP-001-2026 «Цифровое ядро Первой сотни»** (§2.1–§2.6): §2.1 цель (100 участников); §2.2 статус (добровольцы + Кураторы); §2.3 обучение (L0–L3, цепная реакция); §2.4 защита ядра (90% голосов); §2.5 коммерциализация через Шлюз (без распределения денег участникам); §2.6 масштабирование (500 → пересмотр). |
-|Примечания:
-**Объём — ~449 KB**, самый большой файл проекта. **8 книг, ~200 статей**, ~150 подпунктов. **Не является утверждённым стандартом** (в шапке — эпиграф Первого Архитектора, не формальный дисклеймер). **Дублирование в структуре**: сначала полное **оглавление** (все статьи с номерами), затем — **полный текст с самого начала** (Кн. I ч. 1); это **нормально** для модульного регламента, но создаёт избыточность.
-**Статья 1.10 — неизменяемое ядро**: 10 принципов, **только сокращение** (2/3 + 6 мес + Жюри); 25-летний пересмотр ядра требует **референдума + 50% явки**; **временное включение нового** (≤25 лет) — 3 Совета + 2/3 + референдум. **Центральный инвариант всей системы** — при code review (C.0.01.01 `roles`, C.0.01.06 `rights`) нужно сверяться с этими 10 принципами.
-**Дубли в тексте** (артефакты склейки): §1.0.6 — дублируется в §1.0.5 (конец «Процедура диагностики пересматривается…» → §1.0.6 заветы); §4.4.6 (2×«**assessment_criteria:**» — в каталоге, здесь аналог: §6.11.11 + §6.11.12); §2.4.5 (Стальной Колокол) вставлен **в середину** §2.4 (пятилетний пересмотр) — семантически не туда; **Кн. VIII ч. 2** — только EXP-001, **другие протоколы не расписаны**. Техдолг документации: устранить при следующей ревизии.
-**Формат ID** — **кириллические буквы** (`А`, `Б`, `В`…) для волн, **5 цифр**, направление (`1–17`), опционально поднаправление (`:3`). В коде (`I.9.01.10 ws_launch_workspace.py` и др.) используется **UNC-путь** и **кириллица в bat-префиксах** — это **соответствует** Хартии; но в Passport ID — `CYB.ATOM.NNNN` (из `X.0.01.35` каталог) — **другая система**, не путать: атом ≠ участник ≠ ячейка ≠ задача.
-**Архитектура N×5** — от 1×5 (5) до 12×5 (244 млн); для 100 000 участников достаточно уровня 6×5 (78 125) + доп. ячейки; **верхние уровни — координационные, не управленческие** (≥25% времени в своих ячейках). Это **согласовано** с `X.0.01.37` (паспорт, §3.5 «Профессия, специализация и роль» — роль из задачи, не из названия профессии).
-**D15 «Внешний шлюз» — временный** (проверка каждые 5 лет, 50-летний референдум, роспуск ≤5 лет). **§1.10.8**: существование D15 **не нарушает** ядро при условиях (а)–(е), включая **физическую изоляцию цифровой инфраструктуры** 14 направлений от D15 (`Кн. I ч. 4 §4.9`). Это **прямо реализовано** в `A.1.00.01` (`METRICS_TOKEN`, отдельные хосты) — но **формально** не проверяется (техдолг: k8s-network policy между namespace'ами).
-**§1.8.10 «Инновационная ересь»** — **1% подписей** → «диссидентский проект» (≤1% Отложенного Потока, не закрывается 2 года, отчёт каждые 2 мес). **Если подавляется Советами** — получает ресурсы из **«резерва свободы»** (2% от всех Потоков, недоступен для блокировки). Это **ключевой механизм** против монополизации истины; в коде (`C.0.01.06 rights`, `A.1.48.01 passport`) **не реализован** — техдолг (отмечен в `X.0.01.33` «Strategic 5.1» — но лишь частично).
-**§4.6.1–.4 Семантический Страж** — 5 Мастеров, мониторинг дрейфа, «Семантическая тревога» (высший приоритет), вето 3 дня, физическая защита (силовое давление → «Информационная блокада» с изоляцией Шлюза). **В коде** — `A.1.06.01`? **не реализовано**; техдолг: cron/агент мониторинга не создан.
-**§5.3.6 автоматическая ротация Совета Шлюза** — 3 триггера (нет данных >30 дней; вмешательство в блага; 5 лет без пересмотра). **В коде** — `C.0.01.01 roles`/`C.0.01.06 rights` — нет механизма авто-ротации; техдолг.
-**§2.3 Квант ускорения** (Стальной Колокол) — 6 сек / 6 мин / 18 мин / 2.4 ч; ежедневно −5%; ИИ при пределе. **В коде** — `A.1.99.05 rate-limit`? **не реализовано** (это emergency-режим; `A.1.00.01 server.ts` не имеет глобального «Кванта»); техдолг: стратегический (не для текущего пилота).
-**§2.5 ≤90 суток** — максимальная длительность Стального Колокола; **в коде** — не реализовано (нет state-машины); техдолг.
-**§3 Квант оружия угрозы** — асимметричное превосходство; **не реализовано** и **не будет** в пилоте (это стратегический уровень); техдолг «Strategic».
-**§2.5.1 ИИЕ >0,7 → расширение; <0,4 → фокус** — в коде `C.1.02.01`/`C.1.14.01` — **не реализовано**; техдолг.
-**§4.6.2 «Семантическая тревога» → Форум за 3 часа** — не реализовано (нет эскалации); техдолг.
-**§1.9.1–.4 входная конвертация активов** — 3 варианта (полная/целевой фонд/внешнее управление), запрет Потоков за активы. **В коде** — `C.0.02.02 participants` — **не реализовано**; техдолг (для пилота — не критично, но для перехода из Шлюза — да).
-**§2.5 Необратимое отчуждение** — расширенное Жюри 24, 20/24; пересмотр через 25 лет. **В коде** — `C.0.01.02 errors` `ForbiddenError` / `A.1.35.01 admin` `excluded` — **частично** (статус `excluded` есть, но **процедуры расширенного Жюри нет**); техдолг.
-**§6.11.12 «уточнительная бесконечность»** — 3 возврата → Арбитраж. **В коде** — `C.1.10.01 matching`? **не реализовано**; техдолг: `A.1.48.01` `passport` не считает возвраты.
-**§3.3.7 глобальный каталог квантов** — в коде `C.1.15.01 catalog-proposals` есть merge, но **глобального каталога квантов** (с областью применимости, критериями успеха) **не создано**; техдолг.
-**§7.2.1 Планетарный пятилетний план** — в коде `C.1.12.01 teams` / `C.1.15.01` — **не реализовано**; техдолг (стратегический).
-**§6.3.4 презумпция совместимости** — в коде нет; техдолг.
-**§1.0.6 7 заветов** — философский манифест; **в коде** не реализован (это onboarding-материал); техдолг: `X.0.01.34 troubleshooting` — не упоминает.
-**СВЯЗЬ С C.0.01.01 `roles`**: роли (Стажёр/Исполнитель/Наставник/…/Мастер) — прямые аналоги; в коде используются **английские имена** (STAGER, EXECUTOR, MENTOR, …) — техдолг: единый словарь RU↔EN.
-**СВЯЗЬ С C.0.01.06 `rights`**: «Матрица прав» — реализует §1.10 (разделение функций), §4.2 (ротация), §19 (утверждение); но **не все** принципы (например, «Квант оружия угрозы» — нет).
-**СВЯЗЬ С C.1.15.01 `catalog-proposals`**: workflow §16.1 (создание/изменение атома) — **прямая реализация** §16.1 (создание/изменение атома) — согласовано.
-**СВЯЗЬ С C.1.13.01 `calibration`**: §6.5 (калибровка 0–9) — **прямая реализация** §6.5 — согласовано.
-**СВЯЗЬ С A.1.00.01 `server.ts`**: §1.10.8 (физическая изоляция Шлюза) — частично (через `METRICS_TOKEN`); `TRUST_PROXY`/`parseTrustProxy` — согласовано с §1.10.8.1(б) (внутренние механизмы не тронуты).
-**СВЯЗЬ С A.1.39.01 dev**: `/dev/impersonate` — **противоречит** §1.10 (неизменяемое ядро — не должно быть admin-обхода); техдолг: gate `NODE_ENV !== 'production'` (комментарий в `I.9.09.21` — есть, но не в этом файле).
-**СВЯЗЬ С X.0.01.37 `паспорт.md`**: терминология (атом, измерения U/X/D/P/E, Поток, Капсула, Отложенный Поток, разрешения) — **согласовано**; но `паспорт.md` — про **индивидуальную проекцию** (Passport), Хартия — про **архитектуру сообщества** (Cells/Directions/Charter). Пересечение — в §6.6 (width/depth) и §7 (доказательства).
-**СВЯЗЬ С X.0.01.35 `каталог_атомов`**: атомы — часть D09 (Кибернетика), но каталог — **не** Хартия; `CYB.ATOM.NNNN` — другая ID-система.
-**СВЯЗЬ С X.0.01.33 `tech-debt`**: частично пересекается (3e/3f); но Хартия — **мета-уровень** (конституция), `tech-debt` — **операционный** техдолг паспорта. **Не путать**.
-**СВЯЗЬ С X.0.01.26–32**: `phase3a–3e` — реализация **подмножества** Хартии (D09 Passport), не всей Хартии.
-**СВЯЗЬ С I.9.01.10 `ws_launch_workspace.py`**: dev-tool, **не** связан с Хартией (это внутренний инструмент разработчика).
-**ТЕХДОЛГ (документация)**: дубли (§1.0.5/§1.0.6, §2.4.5 в середине §2.4); Кн. VIII ч. 2 — только EXP-001 (другие не расписаны); нет сводного глоссария-индекса (все термины только в §2.1); нет явных cross-references между статьями (только номера, но не hyperlinks).
-**ТЕХДОЛГ (реализация)**: большинство стратегических механизмов **не реализовано** в пилоте: Семантический Страж, «Инновационная ересь» (1% подписей), «Резерв свободы» (2%), авто-ротация Шлюза, ИИЕ-триггеры, «Квант ускорения», Квант оружия угрозы, глобальный каталог квантов, планетарный план, презумпция совместимости, «эффект холодного периода». Это **нормально** для пилота (D09 Passport — фокус), но **при переходе к планетарному масштабу** — потребуется.
-**ТЕХДОЛГ (риски)**: §1.8.10 — механизм 1%-подписей может быть **скомпрометирован** (боты/накрутка); нет anti-Sybil-защиты в описании — техдолг.
-**ТЕХДОЛГ (риски)**: §4.6.1–.4 — Семантический Страж с правом вето 3 дня **может блокировать** решения; нет ограничения на количество вето за период — техдолг.
-**ТЕХДОЛГ (риски)**: §2.5 (Стальной Колокол ≤90 суток) — **при повторной активации** через полную процедуру — механизм **может стать постоянным** (90 дней + 1 день + 90 дней …); нет ограничения на **количество** активаций за 5 лет — техдолг.
-**СВЯЗЬ С A.1.99.05 `rate-limit`**: §1.4.1 (дедлайны по приоритетам: 1 мин / 1 ч / 3 ч / 1 сутки) — **прямая реализация** в `rate-limit`; но в коде `rate-limit` — **per-endpoint**, не **per-priority**; техдолг: привести к единой семантике (сейчас `mustGetLimit` в `S.0.01.06`).
-**СВЯЗЬ С I.9.02.18 `ci-local.ps1`**: «Preflight»/«Health check» — не связаны с Хартией (это dev-tool).
-**Статус** — `Draft` v5.0 (по заголовку; но версионирование не указано в шапке файла — только «ХАРТИЯ 5.0»). В `docs/` есть `xartia.md` (~449 KB) — это **основной** документ, на который ссылаются остальные (`passport.md`, `roadmap.md`, `charter-implementation-map.md`). **Версия 5.0** — текущая; история версий **не ведётся** в файле (в отличие от `паспорт.md` и `каталог_атомов`). Техдолг документации: добавить раздел «История документа».
-**Эпиграф** — «Мир, в котором мы живём, — тюрьма… Освобождение начинается с лишения их власти над человеком… Мудрый бунт — высший пилотаж свободы.» — **не** формальный дисклеймер, а **философское кредо**; в коде не реализуется; техдолг: не путать с §1.10 (неизменяемое ядро). |
+|Описание: **Хартия 5.0 — сводный регламент** — конституционный документ проекта XartIA. Определяет архитектуру сообщества: ценности, неизменяемое ядро, направления, ячейки, роли, процессы, управление, безопасность, переходные и экспериментальные механизмы. ~8 книг, ~200 статей. Открывается эпиграфом Первого Архитектора — философским кредо, а не формальным дисклеймером. Статус — **Draft**; утверждённым стандартом не является. Документ **мета-уровня**: описывает архитектуру сообщества, а не индивидуальную проекцию участника. |
+|Публичный API (навигация и опорные точки):
+- **Эпиграф** — философский контекст (свобода, власть, деньги, «мудрый бунт»). Не путать с §1.10 (неизменяемое ядро).
+- **§1.10 «Неизменяемое ядро»** — 10 принципов, только сокращение (2/3 + 6 мес + Жюри); 25-летний пересмотр ядра требует референдума (явка ≥50%); временное включение нового — ≤25 лет. Центральный инвариант всей системы: при любом code review сверяться с этим списком.
+- **§4.0.5 ЗПО** (зона профессиональной ответственности направления) — ключ к разграничению компетенций; используется во всех процессах (Связной, Всеобщий прогон, Арбитраж принадлежности).
+- **Кн. I ч.5** — архитектура N×5; для 100 тыс. участников достаточно 6×5; верхние уровни (9×5+) — координационные, ≥25% времени в ячейках.
+- **Кн. II ч.1** — жизненный цикл сигнала; §1.4.1 — дедлайны по приоритетам (1 мин / 1 ч / 3 ч / 1 сут).
+- **Кн. II ч.4** — План реализации; тройная подпись (Совет + Балансировка + Верификация) — обязательна для проектных ресурсов.
+- **Кн. III ч.5** — Хранители Протокола; не заверяют План при незавершённом Коннекте.
+- **Кн. V ч.1** — путь участника (диагностика, программа знакомства 30–90 дней, Когнитивный маршрут, Интегратор).
+- **Кн. V ч.5** — Внешний Шлюз (D15): временный, изолирован от 14 направлений, роспуск ≤5 лет после 50-летнего референдума.
+- **Кн. VI** — экстренные режимы; §2.5 — Стальной Колокол ≤90 суток; §2.7 — неизменяемые ограничения даже в режиме.
+- **Кн. VII ч.3** — порядок изменения Хартии; §3.2 — изменение ядра.
+- **Кн. VIII** — экспериментальные протоколы; EXP-код, срок ≤5 лет.
+- **Структура книги/части/статьи** — единая: `Кн. X → ч. Y → §Z.§§`. Внешние ссылки — по номеру статьи, не по смещению.
+|Ключевые инварианты (нельзя нарушать):
+- **Поток ≠ деньги.** Поток не обменивается на блага, не создаёт привилегий в доступе к стандарту достаточности.
+- **Базовые блага** не зависят от Потока, должности, мандата; не отнимаются как наказание.
+- **Нулевое наследство** — Потоки, Капсулы, мандаты, статус Мастера, членство в Советах не передаются.
+- **Ротация и временность** мандатов; «эффект холодного периода» — после мандата равный срок без руководящих ролей.
+- **Разделение функций:** Балансировка наблюдает (не решает), Верификация устанавливает (не властвует), Советы решают (не управляют ресурсами напрямую).
+- **D15 (Шлюз) — временный** и физически изолирован от 14 направлений; существование D15 не нарушает ядро при выполнении §1.10.8.1 (а)–(е).
+- **Верхние уровни N×5** — координационные; члены продолжают работать в ячейках ≥25% времени.
+- **Сбой = сигнал, не наказание** (при соблюдении процедур).
+|Связи:
+- `X.0.01.37 passport.md` — индивидуальная проекция; согласовано, но это другой уровень.
+- `X.0.01.35 каталог_атомов` — атомы D09, другая ID-система (`CYB.ATOM.NNNN`); не путать с ID участника/ячейки/задачи.
+- `X.0.01.33 tech-debt.md` — операционный долг паспорта; Хартия — мета-уровень.
+- `X.0.01.26–32 phase3a–3e` — реализуют подмножество Хартии (D09 Passport), не всю Хартию.
+- `C.0.01.01 roles`, `C.0.01.06 rights` — прямые аналоги ролей и матрицы прав; в коде используются английские имена (STAGER, EXECUTOR, MENTOR, …) — нужен единый словарь RU↔EN.
+- `C.1.15.01 catalog-proposals` — workflow создания/изменения атома; согласовано.
+- `C.1.13.01 calibration` — калибровка 0–9; согласовано.
+- `A.1.00.01 server.ts` — `METRICS_TOKEN`, `TRUST_PROXY`/`parseTrustProxy`; частично реализует §1.10.8.1(б).
+- `I.9.01.10 ws_launch_workspace.py` — dev-tool, с Хартией не связан.
+|Статус и версионирование:
+**Draft v5.0.** Версия зафиксирована в заголовке; отдельной истории версий в файле нет. В `docs/` — основной документ, на который ссылаются `passport.md`, `roadmap.md`, `charter-implementation-map.md`. Техдолг документации: добавить раздел «История документа».
+|Технический долг (актуальный, документация):
+- **§4.4.6** — дубль `**assessment_criteria:**` (артефакт склейки).
+- **Кн. VIII ч.2** — описан только EXP-001; остальные экспериментальные протоколы не расписаны.
+- Нет сводного глоссария-индекса (все термины — в §2.1).
+- Нет hyperlinks/cross-references между статьями — только номера.
+- Нет раздела «История документа».
+|Технический долг (реализация, стратегический уровень — нормально для пилота, критично при переходе к планетарному масштабу):
+Семантический Страж (§4.6.1–.4), «Инновационная ересь» §1.8.10 (1% подписей, «резерв свободы» 2%), авто-ротация Совета Шлюза (§5.3.6), ИИЕ-триггеры §2.5.1, «Квант ускорения» Стального Колокола (§2.3), Квант оружия угрозы (Кн. VI ч.3), глобальный каталог квантов (§3.3.7), планетарный пятилетний план (§6.4.7), презумпция совместимости (§6.3.4), «эффект холодного периода» (§4.1.8), входная конвертация внешних активов (§1.9), процедура расширенного Жюри для «Необратимого отчуждения» (§2.5), подсчёт возвратов для §6.11.12.
+|Риски механизмов (актуальные):
+- **§1.8.10** — 1% подписей через петицию может быть скомпрометирован (боты/накрутка); anti-Sybil в описании не проработан.
+- **§4.6.1–.4** — Семантический Страж с правом вето 3 дня может блокировать решения; нет лимита вето за период.
+- **§2.5** — при повторной активации Стальной Колокол может стать перманентным (90 + 1 + 90 …); нет лимита активаций за 5 лет.
+- **§1.10.8 / §4.9** — физическая изоляция D15 от 14 направлений формально не проверяется (частично реализовано через `METRICS_TOKEN`; нет k8s-network policy между namespace).
+- **`A.1.39.01 dev` `/dev/impersonate`** — противоречит §1.10 (admin-обход); нужен gate `NODE_ENV !== 'production'`.
+- **`A.1.99.05 rate-limit`** — реализует per-endpoint, а не per-priority (§1.4.1); нужна единая семантика.
+- **`A.1.48.01 passport`** — не считает возвраты для §6.11.12; `C.1.10.01 matching` не реализует Арбитраж после 3 возвратов.
+- **`A.1.35.01 admin`** — статус `excluded` есть, но процедуры расширенного Жюри 24 / 20 голосов нет.
+|Правила работы с документом:
+- При изменении тела Хартии — синхронизировать с этой спекой (структура, точки входа, инварианты).
+- При code review — сверяться с §1.10 и разделом «Ключевые инварианты».
+- Не путать ID-системы: участник (`А00001-1`), ячейка (`4×5-017-…`), задача (`СТР-…`), сигнал (`SIG-…`), план (`PLAN-…`), атом (`CYB.ATOM.NNNN`) — разные пространства.
+- При ссылках на статьи использовать формат `Кн. X, ч. Y, §Z` — не по смещению. |

@@ -14,17 +14,16 @@ import 'dotenv/config';
 
 import { writeFile } from 'node:fs/promises';
 
+import { processExpired } from '../core/mandates/service.js';
+import { escalateOverdue } from '../core/otc/service.js';
+import { flagOverdueProposals } from '../core/proposals/service.js';
+import { escalateOverdueQuestions } from '../core/questions/service.js';
 import {
   claim,
   fail,
   cleanupOldJobs,
   type Job,
 } from '../lib/jobs.js';
-import { escalateOverdue } from '../core/otc/service.js';
-import { processExpired } from '../core/mandates/service.js';
-import { escalateOverdueQuestions } from '../core/questions/service.js';
-import { flagOverdueProposals } from '../core/proposals/service.js';
-import { runPermitsExpire } from './jobs/permits-expire.js';
 import { logger } from '../lib/logger.js';
 import { gracefulShutdown } from '../lib/shutdown.js';
 
@@ -47,6 +46,7 @@ import {
   handleImportGoods,
   handleImportDictionary,
 } from './handlers/imports.js';
+import { runPermitsExpire } from './jobs/permits-expire.js';
 
 // ─── Константы ───────────────────────────────────────────────────
 

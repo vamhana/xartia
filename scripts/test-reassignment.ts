@@ -1,4 +1,4 @@
-// scripts/test-reassignment.ts
+// |I.9.04.68|Infra|Test|TypeScript|scripts/test-reassignment.ts|C.0.04.13|v.0.0.01|Draft|—|
 // Сигналы перестановки L0–L3: создать → эскалировать → решить/отклонить.
 //
 // Запуск: pnpm tsx scripts/test-reassignment.ts <phone> <password>

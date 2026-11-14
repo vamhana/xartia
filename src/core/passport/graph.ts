@@ -8,6 +8,7 @@
 
 import { query } from '../../lib/db.js';
 import type { UUID } from '../types.js';
+
 import type {
   AtomCluster,
   AtomDirection,
@@ -58,7 +59,7 @@ async function getDirectionsByAtomBatch(
   for (const id of atomIds) {
     map.set(id, { home: null, main: null, related: [] });
   }
-  if (atomIds.length === 0) return map;
+  if (atomIds.length === 0) {return map;}
 
   const rows = await query<DirectionBatchRow>(
     `SELECT m.atom_id,
@@ -76,7 +77,7 @@ async function getDirectionsByAtomBatch(
 
   for (const r of rows) {
     const entry = map.get(r.atom_id);
-    if (!entry) continue;
+    if (!entry) {continue;}
     const item: AtomDirection = {
       directionId: r.direction_id,
       directionNumber: r.direction_number,
@@ -84,9 +85,9 @@ async function getDirectionsByAtomBatch(
       role: r.role,
       note: r.note,
     };
-    if (r.role === 'home') entry.home = item;
-    else if (r.role === 'main') entry.main = item;
-    else entry.related.push(item);
+    if (r.role === 'home') {entry.home = item;}
+    else if (r.role === 'main') {entry.main = item;}
+    else {entry.related.push(item);}
   }
   return map;
 }
@@ -208,13 +209,13 @@ export async function getGraph(
         const s = atomStates.find((x) => x.dimension === d);
         return s?.status === 'confirmed';
       });
-      if (!hasConfirmed) continue;
+      if (!hasConfirmed) {continue;}
     } else if (opts.filter === 'not_assessed') {
       const anyAssessed = applicable.some((d) => {
         const s = atomStates.find((x) => x.dimension === d);
         return s !== undefined && s.status !== 'not_assessed' && s.status !== 'not_applicable';
       });
-      if (anyAssessed) continue;
+      if (anyAssessed) {continue;}
     }
 
     const dirs = directionsByAtom.get(atom.atom_id) ?? {

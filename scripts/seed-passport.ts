@@ -40,8 +40,8 @@ import { gracefulShutdown } from '../src/lib/shutdown.js';
 import { ATOM_SEEDS, type AtomSeed } from './seed-data/atoms.js';
 import { CLUSTER_RELATED_DIRECTIONS, HOME_DIRECTION_NUMBER, MAIN_DIRECTION_NUMBER } from './seed-data/direction_map.js';
 import { DIRECTION_SEEDS } from './seed-data/directions.js';
-import { RELATION_SEEDS } from './seed-data/relations.js';
 import { PROFILE_SEEDS } from './seed-data/profiles.js';
+import { RELATION_SEEDS } from './seed-data/relations.js';
 
 interface UpsertCounts {
   atomsInserted: number;
@@ -75,8 +75,8 @@ function compareSemver(a: string, b: string): number {
   };
   const [a1, a2, a3] = parse(a);
   const [b1, b2, b3] = parse(b);
-  if (a1 !== b1) return a1 - b1;
-  if (a2 !== b2) return a2 - b2;
+  if (a1 !== b1) {return a1 - b1;}
+  if (a2 !== b2) {return a2 - b2;}
   return a3 - b3;
 }
 
@@ -300,7 +300,7 @@ async function upsertDirectionMap(client: PoolClient): Promise<DirectionMapCount
   );
   const byNumber = new Map<number, string>();
   for (const d of dirRows.rows) {
-    if (d.status === 'active') byNumber.set(d.number, d.id);
+    if (d.status === 'active') {byNumber.set(d.number, d.id);}
   }
 
   if (dirRows.rows.length !== DIRECTION_SEEDS.length) {
@@ -339,8 +339,8 @@ async function upsertDirectionMap(client: PoolClient): Promise<DirectionMapCount
        RETURNING id`,
       [atomId, directionId, role],
     );
-    if (res.rows.length > 0) inserted++;
-    else skipped++;
+    if (res.rows.length > 0) {inserted++;}
+    else {skipped++;}
   };
 
   const homeDirId = byNumber.get(HOME_DIRECTION_NUMBER)!;

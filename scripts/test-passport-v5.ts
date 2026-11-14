@@ -9,6 +9,7 @@
 import 'dotenv/config';
 
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+
 import {
   BASE,
   createMentorQuestion,
@@ -35,8 +36,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 // Уникальный permitId на каждый прогон.
@@ -216,8 +217,8 @@ async function main(): Promise<void> {
     // 4d. выдаём permit с validUntil в прошлом → expired gap
     const past = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const r = await issuePermit(admin.token, subject.id, permitId, past);
-    if (r.status === 201) pass('4d. issue expired 201');
-    else fail('4d. issue expired 201', { status: r.status, data: r.data });
+    if (r.status === 201) {pass('4d. issue expired 201');}
+    else {fail('4d. issue expired 201', { status: r.status, data: r.data });}
 
     const m = await request<{
       status?: string;

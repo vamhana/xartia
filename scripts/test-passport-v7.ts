@@ -7,6 +7,7 @@
 import 'dotenv/config';
 
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+
 import {
   BASE,
   assignAnchor,
@@ -37,8 +38,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 async function main(): Promise<void> {

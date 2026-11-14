@@ -7,19 +7,19 @@
 // Контракт PATCH: { scope, visibility, consent } (consent обязателен).
 // Ответ: PassportVisibilityState + audit_id (без обёртки data).
 
-import { useEffect, useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState, type ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { colors, fontSize, spacing } from '../../theme';
 import { apiPatch } from '../../api/client';
+import { colors, fontSize, spacing } from '../../theme';
 import type {
   PassportAccessLogItem,
   PassportVisibilityLevel,
   PassportVisibilityScope,
   PassportVisibilityState,
 } from '../../types';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 
 const SCOPES: PassportVisibilityScope[] = ['public', 'mentor', 'assessor', 'task'];
 const LEVELS: PassportVisibilityLevel[] = ['private', 'summary', 'levels', 'full'];

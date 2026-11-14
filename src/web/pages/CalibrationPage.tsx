@@ -13,14 +13,14 @@ import type { PassportCalibrationReport } from '../types';
 
 export function CalibrationPage(): ReactElement {
   const { id } = useParams<{ id: string }>();
-  if (!id) return <div style={{ color: colors.danger }}>sessionId missing</div>;
+  if (!id) {return <div style={{ color: colors.danger }}>sessionId missing</div>;}
 
   const q = useApiQuery<PassportCalibrationReport>(
     ['passport', 'calibration', 'report', id],
     `/passport/calibration/sessions/${id}/report`,
   );
 
-  if (q.isLoading) return <Spinner label="Загрузка отчёта…" />;
+  if (q.isLoading) {return <Spinner label="Загрузка отчёта…" />;}
   if (q.isError || !q.data) {
     return (
       <Card title="Ошибка" variant="outlined">

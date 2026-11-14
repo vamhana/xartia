@@ -2,8 +2,8 @@
 // Обёртка над fetch. Автоматическая авторизация, refresh 401, idempotency key
 // для POST. Единый формат ошибок ApiError.
 
-import type { UUID } from '../types';
 import { safeUuid } from '../lib/uuid';
+import type { UUID } from '../types';
 // -------- Типы --------
 
 export interface ApiError {

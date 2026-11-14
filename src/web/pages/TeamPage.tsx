@@ -5,10 +5,10 @@
 import type { ReactElement } from 'react';
 import { useParams } from 'react-router-dom';
 
+import { TeamAssessmentPanel } from '../components/passport/TeamAssessmentPanel';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { Spinner } from '../components/ui/Spinner';
-import { TeamAssessmentPanel } from '../components/passport/TeamAssessmentPanel';
 import { useApiQuery } from '../hooks/useApi';
 import { colors, fontSize, spacing } from '../theme';
 import type {
@@ -38,7 +38,7 @@ export function TeamPage(): ReactElement {
     `/passport/teams/${id}`,
   );
 
-  if (q.isLoading) return <Spinner label="Загрузка команды…" />;
+  if (q.isLoading) {return <Spinner label="Загрузка команды…" />;}
   if (q.isError || !q.data) {
     return (
       <Card title="Ошибка" variant="outlined">

@@ -21,10 +21,9 @@
 //     сервисных функций в C.0.02.02 нет, реализация = новая разработка.
 
 import type { FastifyInstance } from 'fastify';
-
-import { getPersonCard } from '../../core/cards/service.js';
 import { z } from 'zod';
 
+import { getPersonCard } from '../../core/cards/service.js';
 import {
   getById,
   getPassport,

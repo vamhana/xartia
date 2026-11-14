@@ -1139,10 +1139,10 @@ export function atomCountsForWidth(
   applicability: DimensionApplicability,
 ): boolean {
   const applicable = DIMENSIONS.filter((d) => isDimensionApplicable(applicability, d));
-  if (applicable.length === 0) return false;
+  if (applicable.length === 0) {return false;}
   for (const d of applicable) {
     const s = states.find((x) => x.dimension === d);
-    if (!s || s.status !== 'confirmed' || s.level === null || s.level < 4) return false;
+    if (!s || s.status !== 'confirmed' || s.level === null || s.level < 4) {return false;}
   }
   return true;
 }
@@ -1152,7 +1152,7 @@ export function atomCountsForDepthExecution(
   states: PersonAtomStateRow[],
   applicability: DimensionApplicability,
 ): boolean {
-  if (!isDimensionApplicable(applicability, 'P')) return false;
+  if (!isDimensionApplicable(applicability, 'P')) {return false;}
   const s = states.find((x) => x.dimension === 'P');
   return !!s && s.status === 'confirmed' && s.level !== null && s.level >= 7;
 }
@@ -1164,10 +1164,10 @@ export function atomCountsForDepthUnderstanding(
 ): boolean {
   const required: Dimension[] = ['U', 'X', 'D', 'E'];
   const applicable = required.filter((d) => isDimensionApplicable(applicability, d));
-  if (applicable.length === 0) return false;
+  if (applicable.length === 0) {return false;}
   for (const d of applicable) {
     const s = states.find((x) => x.dimension === d);
-    if (!s || s.status !== 'confirmed' || s.level === null || s.level < 7) return false;
+    if (!s || s.status !== 'confirmed' || s.level === null || s.level < 7) {return false;}
   }
   return true;
 }

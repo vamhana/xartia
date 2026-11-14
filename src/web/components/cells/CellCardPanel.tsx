@@ -1,13 +1,14 @@
 // F.4.02.37 — Карточка ячейки: состав, общий план, дневной план.
 // Клик по человеку открывает его паспорт.
 
+import { useQuery } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 
 import { apiGet } from '../../api/client';
-import { Badge } from '../ui/Badge';
 import { colors, fontSize, spacing } from '../../theme';
+import { Badge } from '../ui/Badge';
+
 import { PersonCardModal } from './PersonCardModal';
 
 export interface CellCardData {

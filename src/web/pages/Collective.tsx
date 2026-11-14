@@ -7,13 +7,14 @@
 // Данные: GET /collective (A.1.40.01). Персональных данных нет — только ID,
 // имя, статус, направление, роли и события.
 
+import type { ReactElement } from 'react';
+
 import { Badge, type BadgeTone } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Spinner } from '../components/ui/Spinner';
 import { useApiQuery } from '../hooks/useApi';
 import { colors, fontSize, radius, spacing } from '../theme';
-import type { ReactElement } from 'react';
 
 interface Person {
   id: string;

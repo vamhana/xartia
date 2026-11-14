@@ -12,15 +12,15 @@
 // Попасть на страницу: /catalog/proposals/:id (прямая ссылка).
 // Список предложений — TODO 3f.
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, type ReactElement } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { apiPatch, apiPost } from '../api/client';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Spinner } from '../components/ui/Spinner';
-import { apiPatch, apiPost } from '../api/client';
 import { useApiQuery } from '../hooks/useApi';
 import { useUser } from '../store';
 import { colors, fontSize, spacing } from '../theme';
@@ -103,7 +103,7 @@ export function CatalogProposalPage(): ReactElement {
     },
   });
 
-  if (q.isLoading) return <Spinner label="Загрузка предложения…" />;
+  if (q.isLoading) {return <Spinner label="Загрузка предложения…" />;}
   if (q.isError || !q.data) {
     return (
       <Card title="Ошибка" variant="outlined">

@@ -11,10 +11,10 @@ import type { ReactElement } from 'react';
 import { z } from 'zod';
 
 import { apiPost, apiDelete } from '../api/client';
+import { CellCardPanel } from '../components/cells/CellCardPanel';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { CellCardPanel } from '../components/cells/CellCardPanel';
 import {
   Form,
   FormInput,

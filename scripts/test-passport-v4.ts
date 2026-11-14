@@ -9,6 +9,7 @@
 import 'dotenv/config';
 
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+
 import {
   BASE,
   ensureActor,
@@ -34,8 +35,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 async function main(): Promise<void> {
@@ -113,8 +114,8 @@ async function main(): Promise<void> {
 
     // 2b. 201 создание
     const c = await createTaskProfile(admin.token, taskId, profileAtoms);
-    if (c.status === 201) pass('2b. create profile 201');
-    else fail('2b. create profile 201', { status: c.status, data: c.data });
+    if (c.status === 201) {pass('2b. create profile 201');}
+    else {fail('2b. create profile 201', { status: c.status, data: c.data });}
 
     // 2c. повтор → 409
     const dup = await createTaskProfile(admin.token, taskId, profileAtoms);
@@ -128,8 +129,8 @@ async function main(): Promise<void> {
 
     // 2e. PATCH version = 2
     const p = await patchTaskProfile(admin.token, taskId, profileAtoms);
-    if (p.status === 200) pass('2e. patch profile 200');
-    else fail('2e. patch profile 200', { status: p.status, data: p.data });
+    if (p.status === 200) {pass('2e. patch profile 200');}
+    else {fail('2e. patch profile 200', { status: p.status, data: p.data });}
     const g2 = await request<{ version?: number }>(
       'GET', `/passport/tasks/${taskId}/profile`, undefined, admin.token,
     );

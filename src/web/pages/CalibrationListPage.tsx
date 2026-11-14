@@ -26,7 +26,7 @@ export function CalibrationListPage(): ReactElement {
     '/passport/calibration/sessions',
   );
 
-  if (q.isLoading) return <Spinner label="Загрузка сессий…" />;
+  if (q.isLoading) {return <Spinner label="Загрузка сессий…" />;}
   if (q.isError) {
     return (
       <Card title="Ошибка" variant="outlined">

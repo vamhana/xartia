@@ -6,6 +6,7 @@
 import 'dotenv/config';
 
 import { existsSync } from 'node:fs';
+
 import { query } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
 

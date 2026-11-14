@@ -7,9 +7,6 @@
 
 import type { ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Spinner } from '../ui/Spinner';
 import { useApiQuery } from '../../hooks/useApi';
 import { colors, fontSize, spacing } from '../../theme';
 import type {
@@ -17,16 +14,19 @@ import type {
   PassportTaskCandidate,
   PassportTaskMatching,
 } from '../../types';
+import { Badge } from '../ui/Badge';
+import { Card } from '../ui/Card';
+import { Spinner } from '../ui/Spinner';
 
 function statusTone(s: PassportMatchStatus): 'success' | 'warning' | 'danger' {
-  if (s === 'match') return 'success';
-  if (s === 'partial') return 'warning';
+  if (s === 'match') {return 'success';}
+  if (s === 'partial') {return 'warning';}
   return 'danger';
 }
 
 function statusLabel(s: PassportMatchStatus): string {
-  if (s === 'match') return 'соответствует';
-  if (s === 'partial') return 'частично';
+  if (s === 'match') {return 'соответствует';}
+  if (s === 'partial') {return 'частично';}
   return 'не соответствует';
 }
 

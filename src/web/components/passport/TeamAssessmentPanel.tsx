@@ -2,13 +2,9 @@
 // GET /passport/teams/:id/history, POST /passport/teams/:id/assess.
 // Роли: FA | VERIFIER; assessor ∉ participants (валидируется на бэке + триггер).
 
-import { useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, type ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { Spinner } from '../ui/Spinner';
 import { apiPost } from '../../api/client';
 import { useApiQuery } from '../../hooks/useApi';
 import { colors, fontSize, spacing } from '../../theme';
@@ -17,6 +13,10 @@ import type {
   PassportTeamCapability,
   PassportTeamCapabilityAssessment,
 } from '../../types';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Spinner } from '../ui/Spinner';
 
 interface Props {
   teamId: string;
@@ -46,7 +46,7 @@ export function TeamAssessmentPanel({ teamId, team }: Props): ReactElement {
   const [level, setLevel] = useState(5);
   const [scores, setScores] = useState<Record<string, number>>(() => {
     const m: Record<string, number> = {};
-    for (const k of Object.keys(team.criteria)) m[k] = 5;
+    for (const k of Object.keys(team.criteria)) {m[k] = 5;}
     return m;
   });
 

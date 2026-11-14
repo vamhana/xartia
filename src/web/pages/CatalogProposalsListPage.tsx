@@ -135,13 +135,13 @@ export function CatalogProposalsListPage(): ReactElement {
 
 function summarizePayload(payload: Record<string, unknown>): string {
   const name = payload['name'];
-  if (typeof name === 'string') return name;
+  if (typeof name === 'string') {return name;}
   const def = payload['definition'];
-  if (typeof def === 'string') return def.slice(0, 60);
+  if (typeof def === 'string') {return def.slice(0, 60);}
   const reason = payload['reason'];
-  if (typeof reason === 'string') return reason.slice(0, 60);
+  if (typeof reason === 'string') {return reason.slice(0, 60);}
   const keys = Object.keys(payload);
-  if (keys.length === 0) return '(пусто)';
+  if (keys.length === 0) {return '(пусто)';}
   return keys.join(', ');
 }
 

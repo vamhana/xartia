@@ -8,16 +8,16 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { getCapacity } from '../../core/capacity/service.js';
 import {
   listCompetencies,
   setCompetency,
   removeCompetency,
 } from '../../core/capacity/competencies.js';
+import { getCapacity } from '../../core/capacity/service.js';
 import { ForbiddenError, ConflictError } from '../../core/errors.js';
 import { Role } from '../../core/roles.js';
-import { hasRole } from '../../security/rbac.js';
 import { uuidIdParams, uuidSchema } from '../../lib/validators.js';
+import { hasRole } from '../../security/rbac.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.js';
 

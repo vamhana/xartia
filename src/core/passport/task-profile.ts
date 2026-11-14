@@ -14,11 +14,12 @@
 //   'task_profile_created' / 'task_profile_updated'.
 
 import { queryOne, transaction } from '../../lib/db.js';
+import { newUUID } from '../../lib/id.js';
 import {
   ConflictError, ForbiddenError, NotFoundError, ValidationError,
 } from '../errors.js';
-import { newUUID } from '../../lib/id.js';
 import type { UUID } from '../types.js';
+
 import type {
   Dimension,
   RequiredAtom,

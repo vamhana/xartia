@@ -2,9 +2,9 @@
 //
 // Список, создание, обсуждение, возражения, решение, PR, принятие.
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiGet, apiPost } from '../api/client';
 import { Badge } from '../components/ui/Badge';

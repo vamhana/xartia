@@ -15,8 +15,8 @@ import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { apiGet, apiPost } from '../../api/client';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { colors, fontSize, radius, spacing } from '../../theme';
 import { safeCopy } from '../../lib/clipboard';   // путь проверь
+import { colors, fontSize, radius, spacing } from '../../theme';
 
 
 interface RegistrationRequest {

@@ -5,14 +5,14 @@
 
 import { useState, type ReactElement, type ReactNode } from 'react';
 
+import { useApiQuery } from '../../hooks/useApi';
+import { safeCopy } from '../../lib/clipboard';
+import { colors, spacing, fontSize, radius } from '../../theme';
+import type { PassportFull } from '../../types';
 import { Badge, type BadgeTone } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { safeCopy } from '../../lib/clipboard'; 
 import { Spinner } from '../ui/Spinner';
-import { useApiQuery } from '../../hooks/useApi';
-import { colors, spacing, fontSize, radius } from '../../theme';
-import type { PassportFull } from '../../types';
 
 // ─── Утилиты (перенос без изменений) ──────────────────────────────────
 

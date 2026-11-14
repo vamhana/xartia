@@ -9,13 +9,9 @@
 //
 // Эмитент проверяется на бэке (403), UI не блокирует попытки.
 
-import { useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, type ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { Spinner } from '../ui/Spinner';
 import { apiPost } from '../../api/client';
 import { useApiQuery } from '../../hooks/useApi';
 import { colors, fontSize, spacing } from '../../theme';
@@ -24,6 +20,10 @@ import type {
   PassportPermit,
   PassportPermitStatus,
 } from '../../types';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Spinner } from '../ui/Spinner';
 
 const STATUS_TONE: Record<
   PassportPermitStatus,

@@ -5,15 +5,15 @@
 
 import { useMemo, useState, type ReactElement } from 'react';
 
-import { Badge } from '../ui/Badge';
-import { Card } from '../ui/Card';
-import { Spinner } from '../ui/Spinner';
 import { useApiQuery } from '../../hooks/useApi';
 import { colors, fontSize, radius, spacing } from '../../theme';
 import type {
   PassportGraphNode,
   PassportGraphPayload,
 } from '../../types';
+import { Badge } from '../ui/Badge';
+import { Card } from '../ui/Card';
+import { Spinner } from '../ui/Spinner';
 
 const VIEWBOX_W = 900;
 const VIEWBOX_H = 600;
@@ -34,7 +34,7 @@ function layoutGraph(
 ): Map<string, Pos> {
   const n = nodes.length;
   const out = new Map<string, Pos>();
-  if (n === 0) return out;
+  if (n === 0) {return out;}
 
   // Детерминированный seed по индексу атома — стабильный layout между рендерами.
   const pos: Pos[] = nodes.map((_, i) => {
@@ -124,7 +124,7 @@ function nodeRadius(node: PassportGraphNode): number {
   const levels = node.dimensions
     .map((d) => d.level)
     .filter((v): v is number => v !== null);
-  if (levels.length === 0) return 4;
+  if (levels.length === 0) {return 4;}
   const max = Math.max(...levels);
   return 4 + max * 1.2;
 }
@@ -146,11 +146,11 @@ export function GraphView({ onSelectAtom }: Props): ReactElement {
   );
 
   const positions = useMemo(() => {
-    if (!q.data) return new Map<string, Pos>();
+    if (!q.data) {return new Map<string, Pos>();}
     return layoutGraph(q.data.nodes, q.data.edges, VIEWBOX_W, VIEWBOX_H);
   }, [q.data]);
 
-  if (q.isLoading) return <Spinner label="Загрузка графа…" />;
+  if (q.isLoading) {return <Spinner label="Загрузка графа…" />;}
   if (q.isError || !q.data) {
     return (
       <Card title="Ошибка" variant="outlined">
@@ -202,7 +202,7 @@ export function GraphView({ onSelectAtom }: Props): ReactElement {
             {edges.map((e, i) => {
               const a = positions.get(e.fromAtomId);
               const b = positions.get(e.toAtomId);
-              if (!a || !b) return null;
+              if (!a || !b) {return null;}
               const isHighlighted =
                 hover === e.fromAtomId || hover === e.toAtomId;
               return (
@@ -224,7 +224,7 @@ export function GraphView({ onSelectAtom }: Props): ReactElement {
             {/* Узлы */}
             {nodes.map((n) => {
               const p = positions.get(n.atomId);
-              if (!p) return null;
+              if (!p) {return null;}
               const r = nodeRadius(n);
               const fill = CLUSTER_COLOR[n.cluster] ?? colors.textDim;
               return (

@@ -16,6 +16,8 @@
 
 import { query, queryOne, transaction, isUniqueViolation } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
+import { logger } from '../../lib/logger.js';
+import { send as sendNotification, sendToRole } from '../../lib/notifications.js';
 import {
   emitSignalCreated,
   emitResponseAdded,
@@ -26,8 +28,6 @@ import { Role } from '../roles.js';
 import type {
   UUID, Priority, SignalStatus, SignalType, SignalResponseType,
 } from '../types.js';
-import { logger } from '../../lib/logger.js';
-import { send as sendNotification, sendToRole } from '../../lib/notifications.js';
 
 import {
   createSignal, changeStatus, incrementIteration, canEscalate,

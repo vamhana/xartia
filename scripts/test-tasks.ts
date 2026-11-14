@@ -1,10 +1,10 @@
-// scripts/test-tasks.ts
+// |I.9.04.22|Infra|Tools|TypeScript|scripts/test-tasks.ts|A.1.06.01, A.1.07.01, L.0.01.12|v.0.0.01|Draft|A.1.06.01, A.1.07.01|
 // Smoke-тест Plans + Tasks: полный цикл от создания плана до приёмки задачи.
 
 import 'dotenv/config';
 
-import { gracefulShutdown } from '../src/lib/shutdown.js';
 import { query } from '../src/lib/db.js';
+import { gracefulShutdown } from '../src/lib/shutdown.js';
 const BASE = process.env['API_URL'] ?? 'http://localhost:3000';
 let TOKEN = '';
 

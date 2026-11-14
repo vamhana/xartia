@@ -8,9 +8,9 @@
 import { query, queryOne, transaction } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
 import { hasRole } from '../../security/rbac.js';
-import { Role } from '../roles.js';
 import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../errors.js';
+import { Role } from '../roles.js';
 import type { UUID } from '../types.js';
 
 export type ProposalType = 'module' | 'rule' | 'meta' | 'charter';

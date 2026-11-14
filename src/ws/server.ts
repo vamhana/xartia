@@ -32,15 +32,15 @@ import { fileURLToPath } from 'node:url';
 import websocket, { type WebSocket } from '@fastify/websocket';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
+import { canAccessChannel, getChannelByStringId } from '../core/chat/service.js';
 import { UnauthorizedError } from '../core/errors.js';
 import { Role } from '../core/roles.js';
 import type { UUID } from '../core/types.js';
+import { queryOne } from '../lib/db.js';
 import { newUUID } from '../lib/id.js';
 import { logger } from '../lib/logger.js';
 import { redis, redisPub, redisSub } from '../lib/redis.js';
 import { verifyToken, isRevoked, type JwtPayload } from '../security/jwt.js';
-import { canAccessChannel, getChannelByStringId } from '../core/chat/service.js';
-import { queryOne } from '../lib/db.js';
 
 
 // -------- Типы --------

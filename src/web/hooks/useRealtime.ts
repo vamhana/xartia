@@ -3,8 +3,8 @@
 // Без этого страницы обновлялись только по таймеру/ручному refetch, хотя
 // W-модули уже шлют task.assigned, signal.created, treasury.* и т.д.
 
-import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import { subscribe } from '../ws/client';
 

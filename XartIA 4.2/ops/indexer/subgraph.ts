@@ -13,6 +13,8 @@
 //   - sellTeamFee в Redeem/SellToPool — часть gross, уходящая в treasury.
 // =============================================================================
 
+import { BigInt, Bytes, Address, BigDecimal } from "@graphprotocol/graph-ts";
+
 import {
   Buy as BuyEvent,
   Redeem as RedeemEvent,
@@ -23,13 +25,11 @@ import {
   CircuitBreakerTriggered as CircuitBreakerTriggeredEvent,
   TeamFee as TeamFeeEvent,
 } from "../generated/CurveController/CurveController";
-
 import {
   BuyFromPool as BuyFromPoolEvent,
   SellToPool as SellToPoolEvent,
   PoolPriceUpdated as PoolPriceUpdatedEventPool,
 } from "../generated/PoolController/PoolController";
-
 import {
   Buy,
   BuyFromPool,
@@ -43,7 +43,6 @@ import {
   ProtocolStats,
 } from "../generated/schema";
 
-import { BigInt, Bytes, Address, BigDecimal } from "@graphprotocol/graph-ts";
 
 const TREASURY_ID = "treasury";
 const STATS_ID = "stats";

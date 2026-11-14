@@ -30,6 +30,7 @@
 import { query, queryOne, transaction } from '../../lib/db.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../errors.js';
 import type { UUID } from '../types.js';
+
 import type {
   GrantScope,
   PassportOverview,
@@ -262,7 +263,7 @@ async function isMentor(subjectId: UUID, viewerId: UUID): Promise<boolean> {
       WHERE id = $1 AND deleted_at IS NULL`,
     [subjectId],
   );
-  if (row?.mentor_id === viewerId) return true;
+  if (row?.mentor_id === viewerId) {return true;}
   // Per-atom (Фаза 3a): активная teaching_relation(mentor=viewer, mentee=subject).
   const perAtom = await queryOne<{ n: number }>(
     `SELECT COUNT(*)::int AS n
@@ -355,7 +356,7 @@ export async function resolveScopeGrant(
         return { granted: true, visibility: 'levels', reason: 'grant:mentor_id' };
       }
       const g = await findActiveGrant(subjectId, viewerId, 'mentor');
-      if (g) return { granted: true, visibility: 'levels', reason: 'grant:explicit' };
+      if (g) {return { granted: true, visibility: 'levels', reason: 'grant:explicit' };}
       return { granted: false, visibility: 'private', reason: 'deny:no_relation' };
     }
 
@@ -365,7 +366,7 @@ export async function resolveScopeGrant(
         getVisibility(subjectId, 'assessor'),
       ]);
       const g = await findActiveGrant(subjectId, viewerId, 'assessor');
-      if (g) return { granted: true, visibility: 'levels', reason: 'grant:explicit' };
+      if (g) {return { granted: true, visibility: 'levels', reason: 'grant:explicit' };}
       if (!hasRole) {
         return { granted: false, visibility: v.visibility, reason: 'deny:no_relation' };
       }
@@ -470,11 +471,11 @@ export async function createGrant(
     `SELECT id FROM participants WHERE id = $1 AND deleted_at IS NULL`,
     [input.viewerId],
   );
-  if (!viewer) throw new NotFoundError('Participant (viewer)', input.viewerId);
+  if (!viewer) {throw new NotFoundError('Participant (viewer)', input.viewerId);}
 
   if (input.taskId) {
     const t = await queryOne<{ id: string }>(`SELECT id FROM tasks WHERE id = $1`, [input.taskId]);
-    if (!t) throw new NotFoundError('Task', input.taskId);
+    if (!t) {throw new NotFoundError('Task', input.taskId);}
   }
 
   const inserted = await queryOne<ScopeGrantRow>(
@@ -488,7 +489,7 @@ export async function createGrant(
       input.reason ?? null, input.expiresAt ?? null, actorId,
     ],
   );
-  if (!inserted) throw new Error('createGrant: no row returned');
+  if (!inserted) {throw new Error('createGrant: no row returned');}
 
   await transaction(async (client) => {
     await client.query(
@@ -521,11 +522,11 @@ export async function revokeGrant(
        FROM passport_scope_grants WHERE id = $1`,
     [grantId],
   );
-  if (!row) throw new NotFoundError('Scope grant', grantId);
+  if (!row) {throw new NotFoundError('Scope grant', grantId);}
   if (row.subject_id !== actorId) {
     throw new ForbiddenError('Only the subject can revoke a grant');
   }
-  if (row.revoked_at) return;   // идемпотентно
+  if (row.revoked_at) {return;}   // идемпотентно
 
   await transaction(async (client) => {
     await client.query(

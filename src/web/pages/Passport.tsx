@@ -7,17 +7,17 @@ const GraphView = lazy(() =>
 );
 import { lazy, Suspense, useState, type ReactElement } from 'react';
 
+import { AtomCardView } from '../components/passport/AtomCard';
+import { GrantsPanel } from '../components/passport/GrantsPanel';
+import { LegacyProfile } from '../components/passport/LegacyProfile';
+import { PassportOverviewView } from '../components/passport/PassportOverview';
+import { PermitsPanel } from '../components/passport/PermitsPanel';
+import { TeachingPanel } from '../components/passport/TeachingPanel';
+import { Timeline } from '../components/passport/Timeline';
+import { VisibilityPanel } from '../components/passport/VisibilityPanel';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { Spinner } from '../components/ui/Spinner';
-import { AtomCardView } from '../components/passport/AtomCard';
-import { LegacyProfile } from '../components/passport/LegacyProfile';
-import { PassportOverviewView } from '../components/passport/PassportOverview';
-import { Timeline } from '../components/passport/Timeline';
-import { VisibilityPanel } from '../components/passport/VisibilityPanel';
-import { GrantsPanel } from '../components/passport/GrantsPanel';
-import { TeachingPanel } from '../components/passport/TeachingPanel';
-import { PermitsPanel } from '../components/passport/PermitsPanel';
 import { useApiQuery } from '../hooks/useApi';
 import { useUser } from '../store';
 import { colors, spacing, fontSize, radius } from '../theme';
@@ -258,7 +258,7 @@ function AtomTabContent({ atomId }: { atomId: string }): ReactElement {
     ['passport', 'atom', atomId],
     `/passport/atoms/${atomId}/card`,
   );
-  if (card.isLoading) return <Spinner label="Загрузка карточки…" />;
+  if (card.isLoading) {return <Spinner label="Загрузка карточки…" />;}
   if (card.isError) {
     return (
       <Card title="Ошибка" variant="outlined">
@@ -266,7 +266,7 @@ function AtomTabContent({ atomId }: { atomId: string }): ReactElement {
       </Card>
     );
   }
-  if (!card.data) return <Spinner />;
+  if (!card.data) {return <Spinner />;}
   return <AtomCardView card={card.data} />;
 }
 

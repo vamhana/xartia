@@ -3,8 +3,9 @@
 // Чужая история — через GET /passport/people/:id (шаг 5, с visibility).
 
 import { query, queryOne } from '../../lib/db.js';
-import type { HistoryEventType, HistoryItem } from './types.js';
 import type { UUID } from '../types.js';
+
+import type { HistoryEventType, HistoryItem } from './types.js';
 
 interface HistoryRaw {
   id: string;

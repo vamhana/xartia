@@ -18,11 +18,12 @@
 // event_type: permit_issued / permit_revoked.
 
 import { query, queryOne, transaction } from '../../lib/db.js';
+import { newUUID } from '../../lib/id.js';
 import {
   ConflictError, ForbiddenError, NotFoundError, ValidationError,
 } from '../errors.js';
-import { newUUID } from '../../lib/id.js';
 import type { UUID } from '../types.js';
+
 import type {
   CreatePermitInput,
   IssuePermitInput,
@@ -106,9 +107,9 @@ export function pickEffectiveValidUntil(
   ppValidUntil: Date | null,
   permitValidUntil: Date | null,
 ): Date | null {
-  if (ppValidUntil === null && permitValidUntil === null) return null;
-  if (ppValidUntil === null) return permitValidUntil;
-  if (permitValidUntil === null) return ppValidUntil;
+  if (ppValidUntil === null && permitValidUntil === null) {return null;}
+  if (ppValidUntil === null) {return permitValidUntil;}
+  if (permitValidUntil === null) {return ppValidUntil;}
   return ppValidUntil.getTime() < permitValidUntil.getTime()
     ? ppValidUntil
     : permitValidUntil;

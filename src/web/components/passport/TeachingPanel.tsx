@@ -1,13 +1,9 @@
 // F.4.10.10 — Наставничество (Фаза 3a, §12).
 // 3 секции: «Мои ученики», «Мои наставники», «Стать наставником по атому».
 
-import { useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, type ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { Spinner } from '../ui/Spinner';
 import { apiPost } from '../../api/client';
 import { useApiQuery } from '../../hooks/useApi';
 import { colors, fontSize, spacing } from '../../theme';
@@ -16,6 +12,10 @@ import type {
   PassportTeachingMentorItem,
   PassportTeachingStudentItem,
 } from '../../types';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Spinner } from '../ui/Spinner';
 
 export function TeachingPanel(): ReactElement {
   const qc = useQueryClient();

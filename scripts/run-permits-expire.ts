@@ -3,8 +3,8 @@
 
 import 'dotenv/config';
 
-import { runPermitsExpire } from '../src/worker/jobs/permits-expire.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+import { runPermitsExpire } from '../src/worker/jobs/permits-expire.js';
 
 runPermitsExpire()
   .then(async (r) => {

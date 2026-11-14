@@ -19,6 +19,7 @@ import {
   ConflictError, ForbiddenError, NotFoundError, ValidationError,
 } from '../errors.js';
 import type { UUID } from '../types.js';
+
 import {
   DIMENSIONS, isDimensionApplicable,
   type CreateMentorQuestionInput,
@@ -83,7 +84,7 @@ export async function computeReadiness(
        FROM competency_atoms WHERE atom_id = $1`,
     [atomId],
   );
-  if (!atom) return null;
+  if (!atom) {return null;}
 
   const states = await query<{
     dimension: Dimension;
@@ -106,7 +107,7 @@ export async function computeReadiness(
   for (const [dim, required] of Object.entries(READINESS_THRESHOLDS) as Array<
     [Dimension, number]
   >) {
-    if (!isDimensionApplicable(applicability, dim)) continue;
+    if (!isDimensionApplicable(applicability, dim)) {continue;}
     requiredTotal++;
     const s = states.find((x) => x.dimension === dim);
     const ok =
@@ -114,8 +115,8 @@ export async function computeReadiness(
       s.status === 'confirmed' &&
       s.level !== null &&
       s.level >= required;
-    if (s && s.status === 'confirmed') anyAssessment = true;
-    if (ok) requiredOk++;
+    if (s && s.status === 'confirmed') {anyAssessment = true;}
+    if (ok) {requiredOk++;}
     signals.push({
       dimension: dim,
       level: s?.level ?? null,
@@ -173,7 +174,7 @@ export async function getMentorsForAtom(
     `SELECT atom_id FROM competency_atoms WHERE atom_id = $1`,
     [atomId],
   );
-  if (!atom) throw new NotFoundError('Atom', atomId);
+  if (!atom) {throw new NotFoundError('Atom', atomId);}
 
   // Все активные участники; readiness считается per-atom в цикле
   // (54 атома × N участников — приемлемо для 3a; оптимизация — 3b).
@@ -193,8 +194,8 @@ export async function getMentorsForAtom(
   const out: MentorCandidate[] = [];
   for (const p of participants) {
     const readiness = await computeReadiness(p.id, atomId);
-    if (!readiness) continue;
-    if (readiness.state === 'unknown') continue;  // без оценок — не показываем
+    if (!readiness) {continue;}
+    if (readiness.state === 'unknown') {continue;}  // без оценок — не показываем
     out.push({
       mentorId: p.id,
       mentorExternalId: p.external_id,
@@ -207,7 +208,7 @@ export async function getMentorsForAtom(
   out.sort((a, b) => {
     const ra = a.readiness.state === 'ready' ? 1 : 0;
     const rb = b.readiness.state === 'ready' ? 1 : 0;
-    if (ra !== rb) return rb - ra;
+    if (ra !== rb) {return rb - ra;}
     if (a.readiness.score !== b.readiness.score) {
       return b.readiness.score - a.readiness.score;
     }
@@ -242,7 +243,7 @@ export async function assignRelation(
     `SELECT id FROM participants WHERE id = $1 AND deleted_at IS NULL`,
     [input.menteeId],
   );
-  if (!mentee) throw new NotFoundError('Mentee', input.menteeId);
+  if (!mentee) {throw new NotFoundError('Mentee', input.menteeId);}
 
   const dimensions = input.dimensions ?? [...DIMENSIONS];
   for (const d of dimensions) {
@@ -255,7 +256,7 @@ export async function assignRelation(
   }
 
   const readiness = await computeReadiness(mentorId, input.atomId);
-  if (!readiness) throw new NotFoundError('Atom', input.atomId);
+  if (!readiness) {throw new NotFoundError('Atom', input.atomId);}
   if (readiness.state !== 'ready') {
     throw new ForbiddenError(
       `Mentor readiness is '${readiness.state}', assign requires 'ready'`,
@@ -345,7 +346,7 @@ export async function revokeRelation(
       [relationId],
     );
     const row = cur.rows[0];
-    if (!row) throw new NotFoundError('Teaching relation', relationId);
+    if (!row) {throw new NotFoundError('Teaching relation', relationId);}
 
     const isMentor = row.mentor_id === actorId;
     const isFA = (actorIsFA?.n ?? 0) > 0;

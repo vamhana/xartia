@@ -8,13 +8,13 @@
 
 import { useMemo, useState, type ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
 import { colors, fontSize } from '../../theme';
 import type {
   PassportCatalogItem,
   PassportClusterAggregate,
   PassportGoal,
 } from '../../types';
+import { Card } from '../ui/Card';
 
 import { CLUSTER_LABEL, CLUSTER_SHORT } from './clusterLabels';
 
@@ -40,7 +40,7 @@ export function CompetencyMap({
   // но табличный режим продолжает работать.
   const atomCluster = useMemo(() => {
     const m = new Map<string, string>();
-    for (const a of catalog) m.set(a.atomId, a.cluster);
+    for (const a of catalog) {m.set(a.atomId, a.cluster);}
     return m;
   }, [catalog]);
 
@@ -48,10 +48,10 @@ export function CompetencyMap({
   const phantomByCluster = useMemo(() => {
     const m = new Map<string, number>();
     for (const g of goals) {
-      if (g.status !== 'active') continue;
+      if (g.status !== 'active') {continue;}
       for (const miss of g.missingAtoms) {
         const cluster = atomCluster.get(miss.atomId);
-        if (!cluster) continue;
+        if (!cluster) {continue;}
         m.set(cluster, (m.get(cluster) ?? 0) + 1);
       }
     }
@@ -112,7 +112,7 @@ export function CompetencyMap({
             {byCluster.map((c, i) => {
               const col = i % COLS;
               const row = Math.floor(i / COLS);
-              if (row >= ROWS) return null;
+              if (row >= ROWS) {return null;}
               const cx = col * CELL_W + CELL_W / 2;
               const cy = row * CELL_H + CELL_H / 2 - 6;
 

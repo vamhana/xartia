@@ -15,6 +15,7 @@
 import 'dotenv/config';
 
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+
 import {
   BASE,
   type Actor,
@@ -49,8 +50,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 // ─── main ─────────────────────────────────────────────────────────────
@@ -336,8 +337,8 @@ async function main(): Promise<void> {
         && e.payload?.assessment_id === asU
         && e.payload?.reason === 'evidence_invalidated',
     );
-    if (hit) pass('6e. assessment_under_review event with reason=evidence_invalidated');
-    else fail('6e. assessment_under_review event with reason=evidence_invalidated', hist.data?.data?.slice(0, 5));
+    if (hit) {pass('6e. assessment_under_review event with reason=evidence_invalidated');}
+    else {fail('6e. assessment_under_review event with reason=evidence_invalidated', hist.data?.data?.slice(0, 5));}
 
     // 6f. Повторный resolve → 409
     r = await request(
@@ -539,7 +540,7 @@ async function findAppealId(
   const hit = (r.data?.data ?? []).find(
     (e) => e.eventType === 'appeal_filed' && e.payload?.assessment_id === assessmentId,
   );
-  if (!hit) throw new Error(`findAppealId: not found for assessment=${assessmentId}`);
+  if (!hit) {throw new Error(`findAppealId: not found for assessment=${assessmentId}`);}
   return hit.id;
 }
 

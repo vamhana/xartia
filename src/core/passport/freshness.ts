@@ -15,6 +15,7 @@
 
 import { query } from '../../lib/db.js';
 import type { UUID } from '../types.js';
+
 import type {
   CompetencyAtomRow,
   FreshnessPolicy,

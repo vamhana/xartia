@@ -11,9 +11,9 @@
 import 'dotenv/config';
 
 import { processExpired } from '../src/core/mandates/service.js';
-import { getRoles, invalidateCache } from '../src/security/rbac.js';
 import { query, queryOne } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+import { getRoles, invalidateCache } from '../src/security/rbac.js';
 
 const BASE = process.env['API_URL'] ?? 'http://localhost:3000';
 const phone = process.argv[2] ?? '+79001234567';

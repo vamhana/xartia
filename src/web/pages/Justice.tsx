@@ -22,12 +22,12 @@ import {
   FormSelect,
   FormCheckbox,
 } from '../components/ui/Form';
-import { safeCopy } from '../lib/clipboard';
 import { Spinner } from '../components/ui/Spinner';
 import { Table } from '../components/ui/Table';
 import type { Column } from '../components/ui/Table';
 import { useApiQuery } from '../hooks/useApi';
 import { useWSSubscription } from '../hooks/useWS';
+import { safeCopy } from '../lib/clipboard';
 import { useUser } from '../store';
 import { colors, fontSize, radius, spacing } from '../theme';
 
@@ -340,7 +340,7 @@ function CopyIdButton({ id }: { id: string }): ReactElement {
   const [copied, setCopied] = useState(false);
   const onCopy = (): void => {
     void safeCopy(id).then((ok) => {
-      if (!ok) return;              // можно показать «не удалось скопировать»
+      if (!ok) {return;}              // можно показать «не удалось скопировать»
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });

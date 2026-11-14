@@ -37,7 +37,7 @@ export default defineConfig({
         // A42: разделяем вендоров по библиотекам. Роуты пока не lazy (6b) —
         // но даже без lazy main-chunk упадёт до ~700 KB.
         manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
+          if (!id.includes('node_modules')) {return undefined;}
 
           // react-стек — грузится везде.
           if (

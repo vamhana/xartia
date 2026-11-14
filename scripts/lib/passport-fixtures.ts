@@ -20,7 +20,7 @@ export async function request<T = unknown>(
   base: string = BASE,
 ): Promise<Res<T>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) {headers['Authorization'] = `Bearer ${token}`;}
   const res = await fetch(`${base}${path}`, {
     method,
     headers,
@@ -78,7 +78,7 @@ export async function ensureActor(
     'GET', '/directions', undefined, adminToken, base,
   );
   const dirId = dirs.data?.data?.[0]?.id;
-  if (!dirId) throw new Error('ensureActor: no active direction');
+  if (!dirId) {throw new Error('ensureActor: no active direction');}
 
   const errors: string[] = [];
   for (let i = 0; i < 3; i++) {
@@ -240,7 +240,7 @@ export async function createSmokeTask(
     'GET', '/directions', undefined, adminToken, base,
   );
   const dirId = dirs.data?.data?.[0]?.id;
-  if (!dirId) throw new Error('createSmokeTask: no active direction');
+  if (!dirId) {throw new Error('createSmokeTask: no active direction');}
 
   const created = await request<{ id: string }>(
     'POST', '/tasks',
@@ -442,7 +442,7 @@ export async function createTask(
     'GET', '/directions', undefined, adminToken, base,
   );
   const dirId = dirs.data?.data?.[0]?.id;
-  if (!dirId) throw new Error('createTask: no active direction');
+  if (!dirId) {throw new Error('createTask: no active direction');}
 
   const r = await request<{ id?: string }>(
     'POST', '/tasks',
@@ -706,8 +706,8 @@ export async function listAnchors(
   base: string = BASE,
 ): Promise<{ status: number; data: { data: Array<{ id: string }> } }> {
   const qs = new URLSearchParams();
-  if (atomId) qs.set('atomId', atomId);
-  if (dimension) qs.set('dimension', dimension);
+  if (atomId) {qs.set('atomId', atomId);}
+  if (dimension) {qs.set('dimension', dimension);}
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
   return request('GET', `/passport/calibration/anchors${suffix}`, undefined, token, base);
 }
@@ -854,9 +854,9 @@ export async function getGraph(
   base: string = BASE,
 ): Promise<{ status: number; data: GraphPayload }> {
   const qs = new URLSearchParams();
-  if (filter) qs.set('filter', filter);
-  if (cluster) qs.set('cluster', cluster);
-  if (direction !== undefined) qs.set('direction', String(direction));
+  if (filter) {qs.set('filter', filter);}
+  if (cluster) {qs.set('cluster', cluster);}
+  if (direction !== undefined) {qs.set('direction', String(direction));}
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
   return request('GET', `/passport/graph${suffix}`, undefined, token, base);
 }

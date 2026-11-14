@@ -11,6 +11,7 @@ import 'dotenv/config';
 import { query } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
 import { runPermitsExpire } from '../src/worker/jobs/permits-expire.js';
+
 import {
   BASE,
   assessTeam,
@@ -41,8 +42,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 function uniquePermitId(prefix: string): string {

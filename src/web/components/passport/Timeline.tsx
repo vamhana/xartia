@@ -6,13 +6,13 @@
 
 import type { ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
 import { colors, fontSize, spacing } from '../../theme';
 import type {
   PassportClusterAggregate,
   PassportGoal,
   PassportHistoryItem,
 } from '../../types';
+import { Card } from '../ui/Card';
 
 import { CLUSTER_LABEL } from './clusterLabels';
 

@@ -1,12 +1,12 @@
 // F.4.02.36 — Карточка человека (общая для карты и страницы ячеек).
 
-import type { ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import { apiGet } from '../../api/client';
+import { colors, fontSize, radius, spacing } from '../../theme';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { colors, fontSize, radius, spacing } from '../../theme';
 
 export interface PersonCardData {
   participant: {

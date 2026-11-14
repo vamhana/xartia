@@ -10,8 +10,8 @@
 import 'dotenv/config';
 
 import { queryOne } from '../src/lib/db.js';
-import { ATOM_SEEDS } from './seed-data/atoms.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+
 import {
   BASE,
   createCatalogProposal,
@@ -23,6 +23,7 @@ import {
   request,
   setProposalStatus,
 } from './lib/passport-fixtures.js';
+import { ATOM_SEEDS } from './seed-data/atoms.js';
 
 const ARCHITECT_PHONE = process.env['TEST_ARCHITECT_PHONE'] ?? '+79001234567';
 const ARCHITECT_PASS = process.env['TEST_ARCHITECT_PASS'] ?? 'ChangeMe123456';
@@ -36,8 +37,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 async function main(): Promise<void> {
@@ -60,14 +61,14 @@ async function main(): Promise<void> {
     const atoms = await queryOne<{ n: number }>(
       `SELECT COUNT(*)::int AS n FROM competency_atoms`,
     );
-    if ((atoms?.n ?? 0) >= 54) pass('1b. atoms ≥ 54', { total: atoms?.n });
-    else fail('1b. atoms ≥ 54', { total: atoms?.n });
+    if ((atoms?.n ?? 0) >= 54) {pass('1b. atoms ≥ 54', { total: atoms?.n });}
+    else {fail('1b. atoms ≥ 54', { total: atoms?.n });}
 
     const anchors = await queryOne<{ n: number }>(
       `SELECT COUNT(*)::int AS n FROM anchor_examples`,
     );
-    if ((anchors?.n ?? 0) >= 9) pass('1c. anchors ≥ 9', { total: anchors?.n });
-    else fail('1c. anchors ≥ 9', { total: anchors?.n });
+    if ((anchors?.n ?? 0) >= 9) {pass('1c. anchors ≥ 9', { total: anchors?.n });}
+    else {fail('1c. anchors ≥ 9', { total: anchors?.n });}
 
     const tc = await queryOne<{ n: number }>(
       `SELECT COUNT(*)::int AS n FROM competency_atoms
@@ -102,7 +103,7 @@ async function main(): Promise<void> {
         version: '0.1.0',
       },
     );
-    if (c.status === 201 && c.data.id) pass('3a. create → 201');
+    if (c.status === 201 && c.data.id) {pass('3a. create → 201');}
     else { fail('3a. create → 201', { status: c.status, data: c.data }); throw new Error('cannot continue'); }
 
     const proposalId = c.data.id;
@@ -150,7 +151,7 @@ async function main(): Promise<void> {
       },
     );
     // outsider может создать (любой авторизованный), но не in_review/approve/merge
-    if (c.status === 201 && c.data.id) pass('4a. outsider create 201');
+    if (c.status === 201 && c.data.id) {pass('4a. outsider create 201');}
     else { fail('4a. outsider create 201', { status: c.status }); throw new Error('cannot continue'); }
 
     const proposalId = c.data.id;
@@ -174,7 +175,7 @@ async function main(): Promise<void> {
       { definition: 'v4 update: обновлённое определение (smoke)' },
       'CYB.ATOM.0001',
     );
-    if (c.status === 201 && c.data.id) pass('5a. update proposal 201');
+    if (c.status === 201 && c.data.id) {pass('5a. update proposal 201');}
     else { fail('5a. update proposal 201', { status: c.status, data: c.data }); throw new Error('cannot continue'); }
 
     const proposalId = c.data.id;
@@ -239,7 +240,7 @@ async function main(): Promise<void> {
       { reason: 'v4 smoke deprecate' },
       'CYB.ATOM.0041',
     );
-    if (c.status === 201 && c.data.id) pass('6a. deprecate proposal 201');
+    if (c.status === 201 && c.data.id) {pass('6a. deprecate proposal 201');}
     else { fail('6a. deprecate proposal 201', { status: c.status }); throw new Error('cannot continue'); }
 
     const proposalId = c.data.id;

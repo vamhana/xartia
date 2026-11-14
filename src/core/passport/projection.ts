@@ -7,9 +7,11 @@
 // Никаких кэшей — 54 атома * 5 измерений = O(270) на запрос.
 // Для Фазы 1 достаточно; материализация ProfileSummary — Фаза 2.
 
-import { getStaleAssessments } from './freshness.js';
 import { query, queryOne } from '../../lib/db.js';
 import type { UUID } from '../types.js';
+
+import { getAtomById, getRelationsForAtom } from './catalog.js';
+import { getStaleAssessments } from './freshness.js';
 import type {
   AtomCard,
   AtomCluster,
@@ -36,7 +38,6 @@ import {
   atomCountsForDepthExecution,
   atomCountsForDepthUnderstanding,
 } from './types.js';
-import { getAtomById, getRelationsForAtom } from './catalog.js';
 
 // ─────────────────────────────────────────────────────────────────────
 // Утилиты
@@ -185,11 +186,11 @@ export async function getOverview(participantId: UUID): Promise<PassportOverview
     const isDepthUnd = atomCountsForDepthUnderstanding(atomStates, applicability);
     const isDepthFull = isDepthExec && isDepthUnd;
 
-    if (isWidth) width++;
-    if (isDepthExec) depthExecution++;
-    if (isDepthUnd) depthUnderstanding++;
-    if (isDepthFull) depthFull++;
-    if (atom.assessment_criteria?.status !== 'approved') calibrationPendingAtoms++;
+    if (isWidth) {width++;}
+    if (isDepthExec) {depthExecution++;}
+    if (isDepthUnd) {depthUnderstanding++;}
+    if (isDepthFull) {depthFull++;}
+    if (atom.assessment_criteria?.status !== 'approved') {calibrationPendingAtoms++;}
 
     let cluster = byCluster.get(atom.cluster);
     if (!cluster) {
@@ -203,10 +204,10 @@ export async function getOverview(participantId: UUID): Promise<PassportOverview
       };
       byCluster.set(atom.cluster, cluster);
     }
-    if (isWidth) cluster.width++;
-    if (isDepthExec) cluster.depthExecution++;
-    if (isDepthUnd) cluster.depthUnderstanding++;
-    if (isDepthFull) cluster.depthFull++;
+    if (isWidth) {cluster.width++;}
+    if (isDepthExec) {cluster.depthExecution++;}
+    if (isDepthUnd) {cluster.depthUnderstanding++;}
+    if (isDepthFull) {cluster.depthFull++;}
 
     // Статус атома (агрегат по применимым измерениям):
     if (applicable.length === 0) {
@@ -231,10 +232,10 @@ export async function getOverview(participantId: UUID): Promise<PassportOverview
     );
     let atomStatus: AtomStatusKey = 'notAssessed';
     if (!statuses.every((s) => s === 'not_assessed')) {
-      if (statuses.some((s) => s === 'under_review')) atomStatus = 'underReview';
-      else if (statuses.some((s) => s === 'disputed')) atomStatus = 'disputed';
-      else if (statuses.some((s) => s === 'confirmed')) atomStatus = 'confirmed';
-      else if (statuses.some((s) => s === 'declared')) atomStatus = 'declared';
+      if (statuses.some((s) => s === 'under_review')) {atomStatus = 'underReview';}
+      else if (statuses.some((s) => s === 'disputed')) {atomStatus = 'disputed';}
+      else if (statuses.some((s) => s === 'confirmed')) {atomStatus = 'confirmed';}
+      else if (statuses.some((s) => s === 'declared')) {atomStatus = 'declared';}
       else if (statuses.some((s) => s === 'calibration_pending')) {
         atomStatus = 'calibrationPending';
       }
@@ -357,7 +358,7 @@ export async function getAtomCard(
   atomId: string,
 ): Promise<AtomCard | null> {
   const atom = await getAtomById(atomId);
-  if (!atom) return null;
+  if (!atom) {return null;}
 
   const relations = await getRelationsForAtom(atomId);
 

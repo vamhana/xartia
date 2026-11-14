@@ -16,11 +16,12 @@
 // атома (submitAssessment), не здесь. Это отдельный техдолг (A70).
 
 import { query, queryOne, transaction } from '../../lib/db.js';
+import { newUUID } from '../../lib/id.js';
 import {
   ConflictError, ForbiddenError, NotFoundError, ValidationError,
 } from '../errors.js';
-import { newUUID } from '../../lib/id.js';
 import type { UUID } from '../types.js';
+
 import type {
   AnchorExample,
   AnchorExampleRow,
@@ -60,7 +61,7 @@ async function assertAtomExists(atomId: string): Promise<void> {
     `SELECT atom_id FROM competency_atoms WHERE atom_id = $1`,
     [atomId],
   );
-  if (!r) throw new NotFoundError('Atom', atomId);
+  if (!r) {throw new NotFoundError('Atom', atomId);}
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -284,7 +285,7 @@ export async function assignAnchor(
       [input.sessionId],
     );
     const session = sessRes.rows[0];
-    if (!session) throw new NotFoundError('Calibration session', input.sessionId);
+    if (!session) {throw new NotFoundError('Calibration session', input.sessionId);}
     if (session.status === 'closed') {
       throw new ConflictError('Session is closed');
     }
@@ -296,7 +297,7 @@ export async function assignAnchor(
       [input.anchorExampleId],
     );
     const anchor = anchorRes.rows[0];
-    if (!anchor) throw new NotFoundError('Anchor example', input.anchorExampleId);
+    if (!anchor) {throw new NotFoundError('Anchor example', input.anchorExampleId);}
     if (anchor.atom_id !== session.atom_id || anchor.dimension !== session.dimension) {
       throw new ValidationError(
         'Anchor atom/dimension не совпадает с сессией',
@@ -363,7 +364,7 @@ export async function scoreAssignment(
       [input.assignmentId],
     );
     const row = cur.rows[0];
-    if (!row) throw new NotFoundError('Assignment', input.assignmentId);
+    if (!row) {throw new NotFoundError('Assignment', input.assignmentId);}
 
     if (row.assessor_id !== actorId) {
       throw new ForbiddenError('Only the assigned assessor can score this work');
@@ -397,7 +398,7 @@ export async function getSessionReport(
   sessionId: UUID,
 ): Promise<CalibrationReport | null> {
   const session = await getSession(sessionId);
-  if (!session) return null;
+  if (!session) {return null;}
 
   const assignRows = await query<CalibrationAssignmentRow & {
     anchor_title: string;
@@ -449,11 +450,11 @@ export async function getSessionReport(
         ? Math.max(...levels) - Math.min(...levels)
         : null;
     const needsThird = maxDiff !== null && maxDiff >= 2;
-    if (needsThird) flaggedCount++;
+    if (needsThird) {flaggedCount++;}
 
     for (const s of entry.scores) {
-      if (s.level === null) unscoredCount++;
-      else scoredCount++;
+      if (s.level === null) {unscoredCount++;}
+      else {scoredCount++;}
     }
 
     works.push({

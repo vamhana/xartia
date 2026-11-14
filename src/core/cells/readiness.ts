@@ -1,13 +1,13 @@
-// C.0.28.07 — Готовность ячейки.
+// C.0.04.12 — Готовность ячейки.
 //
 // Ячейка без общего плана, координатора, ОТК или полного состава
 // не получает наряд. Проверка возвращает конкретные причины.
 
-import { query } from '../../lib/db.js';
-import { getById, getMembers } from './service.js';
-import { queryOne } from '../../lib/db.js';
-import { getSize } from './entity.js';
+import { query , queryOne } from '../../lib/db.js';
 import type { UUID } from '../types.js';
+
+import { getSize } from './entity.js';
+import { getById, getMembers } from './service.js';
 
 export interface ReadinessCheck {
   id: string;

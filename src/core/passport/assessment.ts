@@ -19,11 +19,12 @@ import {
   ConflictError, ForbiddenError, NotFoundError, ValidationError,
 } from '../errors.js';
 import type { UUID } from '../types.js';
+
+import { getAtomById } from './catalog.js';
 import type { Dimension, EvidenceContext, EvidenceType } from './types.js';
 import {
   isValidLevel, isDimensionApplicable,
 } from './types.js';
-import { getAtomById } from './catalog.js';
 
 // ─────────────────────────────────────────────────────────────────────
 // Входные типы

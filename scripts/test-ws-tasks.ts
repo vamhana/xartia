@@ -1,3 +1,4 @@
+// |I.9.05.10|Infra|Tools|TypeScript|scripts/test-ws-tasks.ts|W.0.01.01, W.2.02.01, L.0.01.08, L.0.01.12|v.0.0.01|Draft|W.2.02.01|
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 

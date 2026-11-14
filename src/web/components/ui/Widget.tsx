@@ -5,8 +5,8 @@
  */
 
 import { Component, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { ComponentType, ErrorInfo, ReactElement, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 
 import { colors, fontSize, radius, spacing } from '../../theme';

@@ -3,9 +3,9 @@
 // Полное управление подписками: создание/редактирование/удаление,
 // проверка доставки, история и повтор failed-доставок, ротация секрета.
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../api/client';
 import { Badge } from '../../components/ui/Badge';

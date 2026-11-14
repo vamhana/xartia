@@ -3,17 +3,17 @@
 // Показывает существующий профиль. Если нет — форма создания.
 // PATCH — через useMutation + apiPatch (паттерн Фазы 2).
 
-import { useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, type ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { Spinner } from '../ui/Spinner';
 import { apiPatch, apiPost } from '../../api/client';
 import { useApiQuery } from '../../hooks/useApi';
 import { colors, fontSize, spacing } from '../../theme';
 import type { PassportTaskProfile } from '../../types';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Spinner } from '../ui/Spinner';
 
 interface Props {
   taskId: string;
@@ -82,7 +82,7 @@ export function TaskProfilePanel({ taskId }: Props): ReactElement {
   };
 
   const openEdit = (): void => {
-    if (!q.data) return;
+    if (!q.data) {return;}
     setEditorText(JSON.stringify(q.data.requiredAtoms, null, 2));
     setEditorOpen(true);
   };
@@ -177,8 +177,8 @@ export function TaskProfilePanel({ taskId }: Props): ReactElement {
               size="sm"
               loading={q.data ? patch.isPending : create.isPending}
               onClick={() => {
-                if (q.data) patch.mutate({ requiredAtoms: editorText });
-                else create.mutate({ requiredAtoms: editorText });
+                if (q.data) {patch.mutate({ requiredAtoms: editorText });}
+                else {create.mutate({ requiredAtoms: editorText });}
               }}
             >
               сохранить

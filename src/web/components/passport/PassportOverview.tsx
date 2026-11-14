@@ -2,13 +2,13 @@
 
 import { useState, type ReactElement } from 'react';
 
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
 import { colors, fontSize, spacing } from '../../theme';
 import type {
   PassportCatalogItem,
   PassportOverview,
 } from '../../types';
+import { Badge } from '../ui/Badge';
+import { Card } from '../ui/Card';
 
 
 import { CompetencyMap } from './CompetencyMap';

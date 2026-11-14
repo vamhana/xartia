@@ -20,11 +20,12 @@
 // Всё в одной транзакции, все проверки до INSERT/UPDATE.
 
 import { query, queryOne, transaction } from '../../lib/db.js';
+import { newUUID } from '../../lib/id.js';
 import {
   ConflictError, ForbiddenError, NotFoundError, ValidationError,
 } from '../errors.js';
-import { newUUID } from '../../lib/id.js';
 import type { UUID } from '../types.js';
+
 import type {
   AtomCluster,
   CatalogProposal,
@@ -361,7 +362,7 @@ export async function setProposalStatus(
       [proposalId],
     );
     const row = cur.rows[0];
-    if (!row) throw new NotFoundError('Proposal', proposalId);
+    if (!row) {throw new NotFoundError('Proposal', proposalId);}
 
     // Права:
     //   * → submitted / rejected: автор (draft) ИЛИ reviewer-роль.
@@ -449,7 +450,7 @@ async function nextAtomId(client: {
       WHERE atom_id ~ '^CYB\\.ATOM\\.[0-9]{4}$'`,
   );
   const maxId = r.rows[0]?.max;
-  if (!maxId) return 'CYB.ATOM.0001';
+  if (!maxId) {return 'CYB.ATOM.0001';}
   const n = parseInt(maxId.slice('CYB.ATOM.'.length), 10);
   return `CYB.ATOM.${String(n + 1).padStart(4, '0')}`;
 }
@@ -459,17 +460,17 @@ type BumpKind = 'major' | 'minor' | 'patch';
 function bumpVersion(v: string, kind: BumpKind): string {
   // Non-semver ('abc', '0.1') → as-is.
   const parts = v.split('.');
-  if (parts.length !== 3) return v;
+  if (parts.length !== 3) {return v;}
   const nums = parts.map((p) => parseInt(p, 10));
-  if (nums.some((n) => !Number.isFinite(n) || n < 0)) return v;
+  if (nums.some((n) => !Number.isFinite(n) || n < 0)) {return v;}
   const [maj, min, pat] = nums as [number, number, number];
-  if (kind === 'major') return `${maj + 1}.0.0`;
-  if (kind === 'minor') return `${maj}.${min + 1}.0`;
+  if (kind === 'major') {return `${maj + 1}.0.0`;}
+  if (kind === 'minor') {return `${maj}.${min + 1}.0`;}
   return `${maj}.${min}.${pat + 1}`;
 }
 
 function parseBumpKind(raw: unknown): BumpKind {
-  if (raw === 'major' || raw === 'minor' || raw === 'patch') return raw;
+  if (raw === 'major' || raw === 'minor' || raw === 'patch') {return raw;}
   return 'minor';  // default: текущее поведение
 }
 
@@ -490,7 +491,7 @@ export async function mergeProposal(
       [proposalId],
     );
     const row = cur.rows[0];
-    if (!row) throw new NotFoundError('Proposal', proposalId);
+    if (!row) {throw new NotFoundError('Proposal', proposalId);}
     if (row.status !== 'approved') {
       throw new ConflictError(
         `Proposal status is '${row.status}', expected 'approved'`,

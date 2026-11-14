@@ -35,8 +35,8 @@
 import 'dotenv/config';
 
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { gracefulShutdown } from '../src/lib/shutdown.js';
 
@@ -60,13 +60,13 @@ const TSX_CLI = join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 
 interface Res {
   status: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   data: any;
 }
 
 async function req(method: string, path: string, body?: unknown, token?: string): Promise<Res> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) {headers['Authorization'] = `Bearer ${token}`;}
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
@@ -138,7 +138,7 @@ async function provision(
   const requestId = await register(phone);
 
   const body: Record<string, unknown> = { name, direction_id: directionId };
-  if (role) body['role'] = role;
+  if (role) {body['role'] = role;}
   const accept = await req(
     'POST', `/admin/registration-requests/${requestId}/accept`, body, adminToken,
   );
@@ -212,8 +212,8 @@ function fail(label: string, detail?: unknown): void {
   failed++;
 }
 function expectEq<T>(label: string, actual: T, expected: T): void {
-  if (actual === expected) pass(label, { actual });
-  else fail(label, { actual, expected });
+  if (actual === expected) {pass(label, { actual });}
+  else {fail(label, { actual, expected });}
 }
 
 // ─── Сценарии ─────────────────────────────────────────────────────────
@@ -234,8 +234,8 @@ async function main(): Promise<void> {
       fail('1. seed atoms', { status: r.status });
     } else {
       const total = r.data.meta?.total ?? 0;
-      if (total >= 54) pass('1. seed atoms ≥ 54', { total });
-      else fail('1. seed atoms ≥ 54', { total });
+      if (total >= 54) {pass('1. seed atoms ≥ 54', { total });}
+      else {fail('1. seed atoms ≥ 54', { total });}
     }
   }
   // ── 1b. seed идемпотентен ──
@@ -255,8 +255,8 @@ async function main(): Promise<void> {
       },
       subject.token,
     );
-    if (ev.status !== 201) fail('2a. POST evidence', { status: ev.status, data: ev.data });
-    else pass('2a. POST evidence 201');
+    if (ev.status !== 201) {fail('2a. POST evidence', { status: ev.status, data: ev.data });}
+    else {pass('2a. POST evidence 201');}
 
     const a = await req(
       'POST', '/passport/assessments',
@@ -266,8 +266,8 @@ async function main(): Promise<void> {
       },
       assessor.token,
     );
-    if (a.status !== 201) fail('2b. POST assessment', { status: a.status, data: a.data });
-    else pass('2b. POST assessment 201');
+    if (a.status !== 201) {fail('2b. POST assessment', { status: a.status, data: a.data });}
+    else {pass('2b. POST assessment 201');}
 
     const card = await req(
       'GET', `/passport/atoms/${ATOM_DECL}/card`, undefined, subject.token,
@@ -292,7 +292,7 @@ async function main(): Promise<void> {
       },
       assessor.token,
     );
-    if (a.status !== 201) fail('3a. assess level=0', { status: a.status, data: a.data });
+    if (a.status !== 201) {fail('3a. assess level=0', { status: a.status, data: a.data });}
 
     const card = await req(
       'GET', `/passport/atoms/${ATOM_ZERO}/card`, undefined, subject.token,
@@ -336,8 +336,8 @@ async function main(): Promise<void> {
       { scope: 'public', visibility: 'levels', consent: true },
       assessor.token,
     );
-    if (p.status !== 200) fail('5b. PATCH visibility', { status: p.status, data: p.data });
-    else pass('5b. PATCH visibility 200');
+    if (p.status !== 200) {fail('5b. PATCH visibility', { status: p.status, data: p.data });}
+    else {pass('5b. PATCH visibility 200');}
 
     const r2 = await req(
       'GET', `/passport/people/${assessor.id}?scope=public`,
@@ -372,8 +372,8 @@ async function main(): Promise<void> {
         { assessmentId: assessment.id, reason: 'v2 smoke appeal' },
         subject.token,
       );
-      if (ap.status !== 200) fail('6b. POST appeal', { status: ap.status, data: ap.data });
-      else pass('6b. POST appeal 200');
+      if (ap.status !== 200) {fail('6b. POST appeal', { status: ap.status, data: ap.data });}
+      else {pass('6b. POST appeal 200');}
 
       const after = await req('GET', '/passport/history?limit=500', undefined, subject.token);
       const nAfter = (after.data?.meta?.total ?? 0) as number;
@@ -412,8 +412,8 @@ async function main(): Promise<void> {
         d.depthUnderstanding >= d.depthFull &&
         !('average' in d) &&
         !('avg' in d);
-      if (ok) pass('7b. width/depth fields present & no average');
-      else fail('7b. width/depth fields present & no average', d);
+      if (ok) {pass('7b. width/depth fields present & no average');}
+      else {fail('7b. width/depth fields present & no average', d);}
     }
   }
 
