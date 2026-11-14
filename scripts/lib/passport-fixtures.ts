@@ -248,6 +248,8 @@ export async function createSmokeTask(
       direction_id: dirId,
       description: 'smoke task for passport v3',
       priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Проверка доступа к паспорту в контексте задачи',
     },
     adminToken, base,
   );
