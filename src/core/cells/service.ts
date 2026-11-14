@@ -10,15 +10,30 @@
 //   - B5: buildTree через WITH RECURSIVE — 1 запрос вместо N+1.
 //   - B6: listCells — флаг rootsOnly для корней (parent_cell_id IS NULL).
 //
+// v0.0.03:
+//   - isCellCoordinator / isCellCoordinatorOrArchitect (удалён дубль).
+//   - addMemberService: запрет самоповышения — нельзя выдать себе роль ≠
+//     'member'. Технический предохранитель; полная выборная процедура
+//     координатора — roadmap.
+//
+// v0.0.04:
+//   - addMemberService: проверка самоповышения вынесена в САМОЕ НАЧАЛО
+//     (после getById). Права проверяются до ресурсов: не тратим запросы
+//     на size / existing membership / participant lookup, если запрос
+//     заведомо запрещён. Семантика и сообщение об ошибке не изменились.
+//
 // ОСТАЁТСЯ ТЕХДОЛГ:
 //   - role_in_cell не проверяется на совместимость (с сервисом/направлением).
 //   - updateCellService / deleteCellService — roadmap (PATCH/DELETE /cells/:id).
+//   - Выборность координатора — roadmap.
 
 import { query, queryOne, isUniqueViolation } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
 import { redis } from '../../lib/redis.js';
+import { hasRole } from '../../security/rbac.js';
 import { logAction } from '../audit.js';
-import { NotFoundError, ConflictError, ValidationError } from '../errors.js';
+import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../errors.js';
+import { Role } from '../roles.js';
 import type { UUID } from '../types.js';
 
 import { createCell, getSize, type Cell, type CellRole, type CellMember } from './entity.js';
@@ -304,6 +319,18 @@ export async function addMemberService(
   requesterId: UUID,
 ): Promise<CellMember> {
   const cell = await getById(cellId);
+
+  // ─── 2.6: запрет самоповышения — ПЕРВАЯ проверка ───────────────
+  // Права проверяются до ресурсов. Семантика: технический предохранитель,
+  // не меняет role_in_cell, не выдаёт право «cell:C» за избрание.
+  const requestedRole: CellRole = input.roleInCell ?? 'member';
+  if (input.participantId === requesterId && requestedRole !== 'member') {
+    throw new ForbiddenError(
+      'Нельзя назначить себе повышенную роль в ячейке',
+      { cell_id: cellId, requested_role: requestedRole },
+    );
+  }
+
   const max = getSize(cell.level);
 
   // 1. Проверка размера
@@ -342,7 +369,7 @@ export async function addMemberService(
 
   // 5. INSERT — триггер обновит members_count
   const memberId = newUUID();
-  const role: CellRole = input.roleInCell ?? 'member';
+  const role: CellRole = requestedRole;
   await query(
     `INSERT INTO cell_members (id, cell_id, participant_id, role_in_cell)
      VALUES ($1, $2, $3, $4)`,
@@ -418,4 +445,34 @@ export async function invalidateCache(cellId?: UUID): Promise<void> {
   if (cellId) {
     await invalidateTreeAncestors(cellId);
   }
+}
+
+// ─── Координатор ячейки ──────────────────────────────────────────────
+
+export async function isCellCoordinator(
+  cellId: UUID,
+  participantId: UUID,
+): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `SELECT id FROM cell_members
+      WHERE cell_id = $1 AND participant_id = $2
+        AND role_in_cell = 'coordinator'
+        AND valid_to IS NULL
+      LIMIT 1`,
+    [cellId, participantId],
+  );
+  return row !== null;
+}
+
+/**
+ * Координатор этой ячейки или FIRST_ARCHITECT.
+ * Архитектор действует по глобальному системному полномочию (как в
+ * assertDirectionScope) и НЕ становится координатором ячейки.
+ */
+export async function isCellCoordinatorOrArchitect(
+  cellId: UUID,
+  participantId: UUID,
+): Promise<boolean> {
+  if (await hasRole(participantId, Role.FIRST_ARCHITECT)) {return true;}
+  return isCellCoordinator(cellId, participantId);
 }

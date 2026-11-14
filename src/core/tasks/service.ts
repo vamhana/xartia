@@ -11,17 +11,26 @@
 //   - B7: now внутри retry-цикла.
 //   - B8: createTaskService — planExists проверка (было: FK 500).
 //
+// v0.0.03 (C.1.10.01, §11.2, Фаза 3a):
+//   - assignTaskService: проверка Matching при назначении.
+//       no_match  → ConflictError, назначение запрещено (override невозможен).
+//       partial   → требуется AssignOptions.override (reason, risk, accompanying,
+//                   training), подтверждение COUNCIL_MEMBER / FIRST_ARCHITECT.
+//       match     → назначение как раньше.
+//   - Повторный matchTask перед UPDATE — защита от гонки.
+//   - Audit-запись tasks.assign.override с причиной и ролевым подтверждением.
+//
 // ОСТАЁТСЯ ТЕХДОЛГ:
-//   - assignTask — checkCompetencies не реализован (нет participant.competencies).
+//   - assignTask — при наличии TaskProfile требует checkCompetencies (см.
+//     matching.js); без профиля проверка пропускается (legacy-путь).
 //   - listTasks/getById — нет access control (per-direction модель прав).
 //   - TASK_SELECT — 2 correlated subquery на return_reason/returned_at (N+1-ish).
 
 import { query, queryOne, isUniqueViolation, transaction } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
 import { logger } from '../../lib/logger.js';
-import { listByTask } from '../reports/service.js';
-import { hasRole } from '../../security/rbac.js';
 import { send as sendNotification, sendToRole } from '../../lib/notifications.js';
+import { hasRole, getEffectiveRoles } from '../../security/rbac.js';
 import {
   emitTaskAssigned,
   emitTaskStatusChanged,
@@ -30,9 +39,17 @@ import {
   emitTaskReturned,
 } from '../../ws/tasks.js';
 import { logAction } from '../audit.js';
-import { NotFoundError, ConflictError, ForbiddenError } from '../errors.js';
+import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../errors.js';
+import { matchTask } from '../passport/matching.js';
+import { getTaskProfile } from '../passport/task-profile.js';
+import { isTeacherOfLearnerTask } from '../passport/teaching-practice.js';
+import { listByTask } from '../reports/service.js';
+import { checkRight } from '../rights.js';
 import { Role } from '../roles.js';
 import type { UUID, Priority, TaskStatus } from '../types.js';
+
+import { getBlockingDependencies } from './dependencies.js';
+
 
 /**
  * P0.5: действие с задачей — только в своём направлении.
@@ -98,6 +115,12 @@ interface TaskRow {
   assigned_by: string | null;
   deadline: Date | null;
   parent_task_id: string | null;
+  // Новое (D.2.01.67):
+  kind: 'package' | 'deliverable';
+  expected_result: string | null;
+  planned_start_at: Date | null;
+  estimated_minutes: number | null;
+  blocked_by_dependencies?: boolean;
   created_at: Date;
   updated_at: Date;
   plan_title?: string | null;
@@ -107,6 +130,7 @@ interface TaskRow {
   in_daily_plan?: boolean | null;
   return_reason?: string | null;
   returned_at?: Date | null;
+  has_task_profile?: boolean;
 }
 
 interface TaskWithRelations extends Task {
@@ -115,8 +139,10 @@ interface TaskWithRelations extends Task {
   assignerName: string | null;
   assignerExternalId: string | null;
   inDailyPlan: boolean;
+  blockedByDependencies: boolean;
   returnReason: string | null;
   returnedAt: string | null;
+  hasTaskProfile: boolean;
 }
 
 function rowToTask(row: TaskRow): Task {
@@ -142,6 +168,10 @@ function rowToTask(row: TaskRow): Task {
     assignedBy: row.assigned_by,
     deadline: row.deadline ? row.deadline.toISOString() : null,
     parentTaskId: row.parent_task_id,
+    kind: row.kind,
+    expectedResult: row.expected_result,
+    plannedStartAt: row.planned_start_at ? row.planned_start_at.toISOString() : null,
+    estimatedMinutes: row.estimated_minutes,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };
@@ -155,8 +185,10 @@ function rowToTaskWithRelations(row: TaskRow): TaskWithRelations {
     assignerName: row.assigner_name ?? null,
     assignerExternalId: row.assigner_external_id ?? null,
     inDailyPlan: row.in_daily_plan ?? false,
+    blockedByDependencies: row.blocked_by_dependencies ?? false,
     returnReason: row.return_reason ?? null,
     returnedAt: row.returned_at ? row.returned_at.toISOString() : null,
+    hasTaskProfile: row.has_task_profile ?? false,
   };
 }
 
@@ -176,11 +208,20 @@ const TASK_SELECT = `
          ST_AsGeoJSON(t.location)::json AS location,
          t.priority, t.status, t.assigned_to, t.assigned_by, t.deadline,
          t.parent_task_id, t.created_at, t.updated_at,
+         t.kind, t.expected_result, t.planned_start_at, t.estimated_minutes,
          p.title AS plan_title,
          p.expected_result AS plan_expected_result,
          ap.name AS assigner_name,
          ap.external_id AS assigner_external_id,
          CASE WHEN dpt.id IS NOT NULL THEN true ELSE false END AS in_daily_plan,
+         EXISTS(SELECT 1 FROM task_profiles tp WHERE tp.task_id = t.id) AS has_task_profile,
+         EXISTS(
+           SELECT 1 FROM task_dependencies td
+             JOIN tasks dep ON dep.id = td.depends_on_task_id
+            WHERE td.task_id = t.id
+              AND td.dependency_type = 'blocks'
+              AND dep.status <> 'accepted'
+         ) AS blocked_by_dependencies,
          (
            SELECT od.comment FROM otc_decisions od
              JOIN reports r2 ON r2.id = od.report_id
@@ -267,6 +308,12 @@ export interface CreateTaskRequest {
   description: string;
   priority: Priority;
   planId?: UUID;
+  parentTaskId?: UUID;
+  kind?: 'package' | 'deliverable';
+  expectedResult?: string | null;
+  deadline?: string | null;
+  plannedStartAt?: string | null;
+  estimatedMinutes?: number | null;
   requiredCompetencies?: string[];
   location?: { lat: number; lon: number };
 }
@@ -276,6 +323,23 @@ export async function createTaskService(
   requesterId: UUID,
 ): Promise<Task> {
   await assertDirectionScope(requesterId, input.directionId);
+
+  const kind: 'package' | 'deliverable' = input.kind ?? 'deliverable';
+
+  // Обязательность expected_result — только для новых deliverable.
+  // Для package он опционален (пакеты — организационные контейнеры).
+  if (kind === 'deliverable') {
+    const er = (input.expectedResult ?? '').trim();
+    if (er.length === 0) {
+      throw new ValidationError(
+        'Для исполняемой задачи (deliverable) обязателен expected_result',
+      );
+    }
+  }
+
+  if (input.estimatedMinutes !== undefined && input.estimatedMinutes !== null && input.estimatedMinutes <= 0) {
+    throw new ValidationError('estimatedMinutes должен быть > 0');
+  }
 
   // B8: planExists + plan.directionId match
   if (input.planId) {
@@ -288,6 +352,30 @@ export async function createTaskService(
       throw new ConflictError('План принадлежит другому направлению', {
         plan_direction_id: planRow.lead_direction_id,
         task_direction_id: input.directionId,
+      });
+    }
+  }
+
+  // Проверка родителя (D.2.01.67)
+  if (input.parentTaskId) {
+    const parent = await queryOne<{
+      id: string; plan_id: string | null; direction_id: string; kind: string;
+    }>(
+      `SELECT id, plan_id, direction_id, kind FROM tasks WHERE id = $1`,
+      [input.parentTaskId],
+    );
+    if (!parent) {throw new NotFoundError('Родительская задача', input.parentTaskId);}
+    if (parent.kind !== 'package') {
+      throw new ConflictError('Родительская задача должна быть package', { parent_kind: parent.kind });
+    }
+    if ((parent.plan_id ?? null) !== (input.planId ?? null)) {
+      throw new ConflictError('Родительская задача в другом плане', {
+        parent_plan_id: parent.plan_id, task_plan_id: input.planId ?? null,
+      });
+    }
+    if (parent.direction_id !== input.directionId) {
+      throw new ConflictError('Родительская задача в другом направлении', {
+        parent_direction_id: parent.direction_id, task_direction_id: input.directionId,
       });
     }
   }
@@ -316,20 +404,28 @@ export async function createTaskService(
       directionId: input.directionId,
       description: input.description,
       priority: input.priority,
+      kind,
       ...(input.planId ? { planId: input.planId } : {}),
+      ...(input.parentTaskId ? { parentTaskId: input.parentTaskId } : {}),
+      ...(input.expectedResult !== undefined ? { expectedResult: input.expectedResult } : {}),
+      ...(input.deadline !== undefined ? { deadline: input.deadline } : {}),
+      ...(input.plannedStartAt !== undefined ? { plannedStartAt: input.plannedStartAt } : {}),
+      ...(input.estimatedMinutes !== undefined ? { estimatedMinutes: input.estimatedMinutes } : {}),
       ...(input.requiredCompetencies ? { requiredCompetencies: input.requiredCompetencies } : {}),
       ...(input.location ? { location: input.location } : {}),
       baseTime: now,
     });
 
     const locationSql = entity.location
-      ? `ST_SetSRID(ST_MakePoint($11, $12), 4326)::geography`
+      ? `ST_SetSRID(ST_MakePoint($16, $17), 4326)::geography`
       : 'NULL';
 
     const params: unknown[] = [
       entity.id, entity.externalId, entity.planId, entity.directionId,
       entity.description, JSON.stringify(entity.requiredCompetencies),
       entity.priority, entity.status, entity.deadline, requesterId,
+      entity.kind, entity.expectedResult, entity.plannedStartAt, entity.estimatedMinutes,
+      entity.parentTaskId,
     ];
     if (entity.location) {
       params.push(entity.location.lon, entity.location.lat);
@@ -339,8 +435,9 @@ export async function createTaskService(
       await query(
         `INSERT INTO tasks
            (id, external_id, plan_id, direction_id, description, required_competencies,
-            priority, status, deadline, assigned_by, location)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, ${locationSql})`,
+            priority, status, deadline, assigned_by, kind, expected_result,
+            planned_start_at, estimated_minutes, parent_task_id, location)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, ${locationSql})`,
         params,
       );
 
@@ -350,7 +447,12 @@ export async function createTaskService(
         action: 'tasks.create',
         entityType: 'task',
         entityId: entity.id,
-        newValue: { external_id: entity.externalId, priority: entity.priority },
+        newValue: {
+          external_id: entity.externalId,
+          priority: entity.priority,
+          kind: entity.kind,
+          parent_task_id: entity.parentTaskId,
+        },
       });
 
       return getById(entity.id);
@@ -393,17 +495,151 @@ function toWsPayload(t: Task): {
   };
 }
 
-// TODO(techdebt): assignTask — checkCompetencies не реализован.
-// В participants нет поля competencies; task.required_competencies
-// сохраняется, но не сверяется при назначении.
+// ─── Matching: partial / no_match и override ────────────────────────
+
+export interface AssignOptions {
+  override?: {
+    reason: string;
+    risk?: 'low' | 'medium' | 'high';
+    accompanying?: string;
+    training?: string;
+  };
+}
+
+function assertOverrideReason(reason: string): void {
+  if (!reason || reason.trim().length < 10) {
+    throw new ValidationError('override.reason: минимум 10 символов');
+  }
+}
+
+async function assertPartialOverrideAuthorized(
+  taskId: UUID,
+  taskDirectionId: UUID,
+  requesterId: UUID,
+  matching: { gaps: Array<{ critical: boolean }>; status: string },
+): Promise<{ confirmedByRole: string; accompanying?: string; training?: string }> {
+  const roles = await getEffectiveRoles(requesterId);
+  const hasCouncil = roles.includes(Role.COUNCIL_MEMBER);
+  const hasFA = roles.includes(Role.FIRST_ARCHITECT);
+
+  if (!hasCouncil && !hasFA) {
+    throw new ForbiddenError(
+      'partial требует подтверждения COUNCIL_MEMBER (в своём направлении) или FIRST_ARCHITECT',
+    );
+  }
+
+  // Повторная проверка через checkRight — task:A.
+  const check = await checkRight({
+    participantId: requesterId,
+    resource: 'task',
+    action: 'A',
+    targetId: taskId,
+  });
+  if (!check.allowed) {
+    throw new ForbiddenError('Нет права task:A для подтверждения partial', {
+      matching,
+    });
+  }
+
+  // COUNCIL_MEMBER — только своё направление.
+  if (check.matchedRole === Role.COUNCIL_MEMBER) {
+    await assertDirectionScope(requesterId, taskDirectionId);
+  }
+  // FIRST_ARCHITECT — глобально (исключение уже в assertDirectionScope).
+  // OTC / VERIFIER имеют task:A, но override для них запрещён смыслом роли.
+  if (check.matchedRole === Role.OTC || check.matchedRole === Role.VERIFIER) {
+    throw new ForbiddenError(
+      'OTC / VERIFIER не подтверждают partial override — это не их функция',
+    );
+  }
+
+  return { confirmedByRole: check.matchedRole ?? 'unknown' };
+}
+
+// TODO(techdebt): assignTask — checkCompetencies при отсутствии TaskProfile
+// по-прежнему не реализован (нет participant.competencies). Если профиль
+// задачи есть, проверка выполняется через matchTask; иначе назначение
+// проходит legacy-путём.
 
 export async function assignTaskService(
-  taskId: UUID, participantId: UUID, requesterId: UUID,
+  taskId: UUID,
+  participantId: UUID,
+  requesterId: UUID,
+  options: AssignOptions = {},
 ): Promise<Task> {
   const task = await getById(taskId);
+  if (task.kind === 'package') {
+    throw new ConflictError(
+      'Пакет работ не назначается исполнителю — назначайте дочерние deliverable',
+    );
+  }
   await assertDirectionScope(requesterId, task.directionId);
   await assertDirectionScope(participantId, task.directionId);
-  assignTask(task, participantId);  // entity-validate: даст понятную ошибку для invalid state
+  assignTask(task, participantId);
+
+  // ─── Matching ────────────────────────────────────────────────────
+  const profile = await getTaskProfile(taskId);
+  if (profile) {
+    const matching = await matchTask(taskId, participantId, requesterId);
+    if (matching.status === 'no_match') {
+      throw new ConflictError(
+        'Matching: no_match — назначение запрещено, override невозможен',
+        { matching },
+      );
+    }
+    if (matching.status === 'partial') {
+      if (!options.override) {
+        throw new ConflictError(
+          'Matching: partial — требуется override (reason, оценка риска)',
+          { matching },
+        );
+      }
+      assertOverrideReason(options.override.reason);
+      const auth = await assertPartialOverrideAuthorized(
+        taskId, task.directionId, requesterId, matching,
+      );
+      // Повторная проверка Matching (могло измениться между read и write).
+      const rematch = await matchTask(taskId, participantId, requesterId);
+      if (rematch.status === 'no_match') {
+        throw new ConflictError(
+          'Matching повторно: no_match — назначение запрещено',
+          { matching: rematch },
+        );
+      }
+      // Audit override.
+      await logAction({
+        actorId: requesterId,
+        actorType: 'participant',
+        action: 'tasks.assign.override',
+        entityType: 'task',
+        entityId: taskId,
+        newValue: {
+          participant_id: participantId,
+          confirmed_by_role: auth.confirmedByRole,
+          reason: options.override.reason,
+          risk: options.override.risk ?? null,
+          accompanying: options.override.accompanying ?? null,
+          training: options.override.training ?? null,
+          matching,
+        },
+      });
+    }
+  } else {
+    // §7.5: задачи без TaskProfile продолжают работать, но отсутствие
+    // структурированной проверки фиксируется в audit — не выдаём
+    // отсутствие проверки за её успех.
+    await logAction({
+      actorId: requesterId,
+      actorType: 'participant',
+      action: 'tasks.assign.no_profile',
+      entityType: 'task',
+      entityId: taskId,
+      newValue: {
+        participant_id: participantId,
+        reason: 'TaskProfile отсутствует — структурированный Matching не проводился',
+      },
+    });
+  }
 
   const result = await query<{ id: string }>(
     `UPDATE tasks
@@ -438,6 +674,16 @@ export async function takeTaskService(taskId: UUID, participantId: UUID): Promis
   const task = await getById(taskId);
   if (task.assignedTo !== participantId) {
     throw new ForbiddenError('Взять задачу может только назначенный исполнитель');
+  }
+  if (task.kind === 'package') {
+    throw new ConflictError('Пакет работ не берётся в работу');
+  }
+  const blocking = await getBlockingDependencies(taskId);
+  if (blocking.length > 0) {
+    throw new ConflictError(
+      'Задача заблокирована незакрытыми зависимостями',
+      { blockedBy: blocking },
+    );
   }
   takeTask(task, participantId);  // entity-validate
 
@@ -535,6 +781,14 @@ export async function acceptTaskService(
   // B2: I.2.12 — ОТК не принимает свою работу.
   if (task.assignedTo === requesterId) {
     throw new ForbiddenError('ОТК не может принять свою работу (I.2.12)');
+  }
+  // §7.5: учитель, сопровождавший учебную практику, не принимает результат
+  // ученика, которому помогал.
+  if (await isTeacherOfLearnerTask(requesterId, taskId)) {
+    throw new ForbiddenError(
+      'Учитель не принимает результат ученика, которому помогал (§7.5)',
+      { task_id: taskId },
+    );
   }
   acceptTask(task);  // entity-validate
   await assertDirectionScope(requesterId, task.directionId);

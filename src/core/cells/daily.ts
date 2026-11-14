@@ -10,12 +10,26 @@
 //     наряд ячейки, а перекладывание работы на чужих людей);
 //   - назначение ставит tasks.assigned_to, поэтому задача сразу появляется
 //     в «Моих задачах» исполнителя и в его панели.
+//
+// D.2.01.67 + версионирование:
+//   - upsertCellDailyPlan — транзакция: FOR UPDATE плана → снимок в
+//     cell_daily_plan_versions → DELETE+INSERT в cell_daily_plan_tasks.
+//     При первом создании — v1 (пустой) + v2 (сформированный).
+//     При обновлении существующего — «Исходное состояние» (если истории не
+//     было вовсе, миграция) + версия с reason после изменения.
+//   - assignCellDailyTask — транзакция: FOR UPDATE задачи и наряда →
+//     проверки (kind, status, direction, participant ∈ cell) →
+//     UPDATE cell_daily_plan_tasks + UPDATE tasks атомарно.
+//   - upsert / assign требуют координатора ячейки (или архитектора).
+//   - Пакеты (kind = 'package') не входят в наряд — организационные контейнеры.
 
 import { query, queryOne, transaction } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
 import { logAction } from '../audit.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors.js';
 import type { UUID } from '../types.js';
+
+import { isCellCoordinatorOrArchitect } from './service.js';
 
 export interface CellDailyTask {
   taskId: UUID;
@@ -100,17 +114,143 @@ export async function getCellDailyPlan(
   };
 }
 
+// ─── Версии ──────────────────────────────────────────────────────────
+
+interface VersionSnapshot {
+  tasks: Array<{
+    taskId: string;
+    position: number;
+    assignedTo: string | null;
+    delegatedToCellId: string | null;
+  }>;
+  status: string;
+  approvedBy: string;
+}
+
+export type TxClient = {
+  query: <R = Record<string, unknown>>(
+    text: string,
+    params?: unknown[],
+  ) => Promise<{ rows: R[]; rowCount: number | null }>;
+};
+
+export async function hasAnyVersion(client: TxClient, planId: string): Promise<boolean> {
+  const r = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS(SELECT 1 FROM cell_daily_plan_versions WHERE plan_id = $1) AS exists`,
+    [planId],
+  );
+  return r.rows[0]?.exists === true;
+}
+
+/**
+ * Записать текущее состояние наряда как новую версию.
+ * reason — человекочитаемая причина (сохраняется как есть).
+ */
+export async function writeVersion(
+  client: TxClient,
+  planId: UUID,
+  reason: string,
+  actorId: UUID,
+): Promise<number> {
+  const tasks = await client.query<{
+    task_id: string;
+    position: number;
+    assigned_to: string | null;
+    delegated_to_cell_id: string | null;
+  }>(
+    `SELECT task_id, position, assigned_to, delegated_to_cell_id
+       FROM cell_daily_plan_tasks WHERE plan_id = $1 ORDER BY position`,
+    [planId],
+  );
+  const plan = await client.query<{ status: string; approved_by: string }>(
+    `SELECT status, approved_by FROM cell_daily_plans WHERE id = $1`,
+    [planId],
+  );
+  const p = plan.rows[0];
+  if (!p) {throw new NotFoundError('Наряд ячейки', planId);}
+
+  const snapshot: VersionSnapshot = {
+    tasks: tasks.rows.map((r) => ({
+      taskId: String(r.task_id),
+      position: Number(r.position),
+      assignedTo: r.assigned_to ? String(r.assigned_to) : null,
+      delegatedToCellId: r.delegated_to_cell_id ? String(r.delegated_to_cell_id) : null,
+    })),
+    status: p.status,
+    approvedBy: p.approved_by,
+  };
+
+  const next = await client.query<{ next: number }>(
+    `SELECT COALESCE(MAX(version), 0) + 1 AS next
+       FROM cell_daily_plan_versions WHERE plan_id = $1`,
+    [planId],
+  );
+  const version = Number(next.rows[0]?.next ?? 1);
+
+  await client.query(
+    `INSERT INTO cell_daily_plan_versions
+       (plan_id, version, snapshot, reason, created_by)
+     VALUES ($1, $2, $3::jsonb, $4, $5)`,
+    [planId, version, JSON.stringify(snapshot), reason, actorId],
+  );
+  return version;
+}
+
+export interface CellPlanVersion {
+  version: number;
+  snapshot: VersionSnapshot;
+  reason: string | null;
+  createdAt: string;
+  createdBy: UUID;
+}
+
+export async function listCellPlanVersions(
+  cellId: UUID,
+  date: string,
+): Promise<CellPlanVersion[]> {
+  const plan = await getPlanRow(cellId, date);
+  if (!plan) {return [];}
+  const rows = await query<{
+    version: number;
+    snapshot: VersionSnapshot;
+    reason: string | null;
+    created_at: Date;
+    created_by: string;
+  }>(
+    `SELECT version, snapshot, reason, created_at, created_by
+       FROM cell_daily_plan_versions
+      WHERE plan_id = $1
+      ORDER BY version DESC`,
+    [plan.id],
+  );
+  return rows.map((r) => ({
+    version: r.version,
+    snapshot: r.snapshot,
+    reason: r.reason,
+    createdAt: r.created_at.toISOString(),
+    createdBy: r.created_by as UUID,
+  }));
+}
+
+// ─── upsert с версионированием ───────────────────────────────────────
+
 /**
  * Составить/заменить наряд ячейки на дату.
  * Задачи должны быть в направлении ячейки — иначе наряд собирается из чужих
  * работ, и координатор не отвечает за то, что раздаёт.
+ * Пакеты (kind = 'package') не входят в наряд.
  */
 export async function upsertCellDailyPlan(input: {
   cellId: UUID;
   date: string;
   taskIds: UUID[];
   approvedById: UUID;
+  reason?: string;
 }): Promise<CellDailyPlanView> {
+  if (!(await isCellCoordinatorOrArchitect(input.cellId, input.approvedById))) {
+    throw new ForbiddenError('Составлять наряд может только координатор ячейки');
+  }
+
   const cell = await queryOne<{ id: string; direction_id: string | null }>(
     `SELECT id, direction_id FROM cells WHERE id = $1`,
     [input.cellId],
@@ -128,8 +268,8 @@ export async function upsertCellDailyPlan(input: {
     throw new ValidationError('В наряд ячейки — не больше 50 задач');
   }
 
-  const taskRows = await query<{ id: string; direction_id: string }>(
-    `SELECT id, direction_id FROM tasks WHERE id = ANY($1::uuid[])`,
+  const taskRows = await query<{ id: string; direction_id: string; kind: string }>(
+    `SELECT id, direction_id, kind FROM tasks WHERE id = ANY($1::uuid[])`,
     [uniqueTaskIds],
   );
   const found = new Set(taskRows.map((t) => t.id));
@@ -141,34 +281,68 @@ export async function upsertCellDailyPlan(input: {
     if (t.direction_id !== cell.direction_id) {
       throw new ConflictError(`Задача ${t.id} из другого направления`);
     }
+    if (t.kind === 'package') {
+      throw new ConflictError(`Задача ${t.id} — package, не входит в наряд`);
+    }
   }
 
-  const planId = newUUID();
   await transaction(async (client) => {
     const existing = await client.query<{ id: string }>(
       `SELECT id FROM cell_daily_plans WHERE cell_id = $1 AND date = $2::date FOR UPDATE`,
       [input.cellId, input.date],
     );
-    let id = existing.rows[0]?.id;
-    if (id) {
+
+    let planId: string;
+    if (existing.rows[0]) {
+      planId = existing.rows[0].id;
+
+      // Если у наряда нет истории — фиксируем текущее состояние как v1.
+      if (!(await hasAnyVersion(client as unknown as TxClient, planId))) {
+        await writeVersion(
+          client as unknown as TxClient, planId as UUID,
+          'Исходное состояние (до миграции)', input.approvedById,
+        );
+      }
+
       await client.query(
         `UPDATE cell_daily_plans SET approved_by = $2, status = 'approved' WHERE id = $1`,
-        [id, input.approvedById],
+        [planId, input.approvedById],
       );
-      await client.query(`DELETE FROM cell_daily_plan_tasks WHERE plan_id = $1`, [id]);
+      await client.query(`DELETE FROM cell_daily_plan_tasks WHERE plan_id = $1`, [planId]);
+      for (let i = 0; i < uniqueTaskIds.length; i += 1) {
+        await client.query(
+          `INSERT INTO cell_daily_plan_tasks (id, plan_id, task_id, position)
+           VALUES ($1, $2, $3, $4)`,
+          [newUUID(), planId, uniqueTaskIds[i], i],
+        );
+      }
+      await writeVersion(
+        client as unknown as TxClient, planId as UUID,
+        input.reason ?? 'Обновление наряда', input.approvedById,
+      );
     } else {
-      id = planId;
+      planId = newUUID();
       await client.query(
         `INSERT INTO cell_daily_plans (id, cell_id, date, approved_by, status)
          VALUES ($1, $2, $3::date, $4, 'approved')`,
-        [id, input.cellId, input.date, input.approvedById],
+        [planId, input.cellId, input.date, input.approvedById],
       );
-    }
-    for (let i = 0; i < uniqueTaskIds.length; i += 1) {
-      await client.query(
-        `INSERT INTO cell_daily_plan_tasks (id, plan_id, task_id, position)
-         VALUES ($1, $2, $3, $4)`,
-        [newUUID(), id, uniqueTaskIds[i], i],
+      // v1 — пустой наряд как точка 0.
+      await writeVersion(
+        client as unknown as TxClient, planId as UUID,
+        'Создание наряда (пустой)', input.approvedById,
+      );
+      for (let i = 0; i < uniqueTaskIds.length; i += 1) {
+        await client.query(
+          `INSERT INTO cell_daily_plan_tasks (id, plan_id, task_id, position)
+           VALUES ($1, $2, $3, $4)`,
+          [newUUID(), planId, uniqueTaskIds[i], i],
+        );
+      }
+      // v2 — сформированный наряд.
+      await writeVersion(
+        client as unknown as TxClient, planId as UUID,
+        'Формирование наряда', input.approvedById,
       );
     }
   });
@@ -179,13 +353,13 @@ export async function upsertCellDailyPlan(input: {
     action: 'cells.daily_plan.upsert',
     entityType: 'cell',
     entityId: input.cellId,
-    newValue: { date: input.date, tasks: uniqueTaskIds.length },
+    newValue: { date: input.date, tasks: uniqueTaskIds.length, reason: input.reason ?? null },
   });
 
   return getCellDailyPlan(input.cellId, input.date);
 }
 
-/** Назначить задачу наряда участнику ячейки. */
+/** Назначить задачу наряда участнику ячейки (атомарно). */
 export async function assignCellDailyTask(input: {
   cellId: UUID;
   date: string;
@@ -195,6 +369,10 @@ export async function assignCellDailyTask(input: {
 }): Promise<CellDailyPlanView> {
   const plan = await getPlanRow(input.cellId, input.date);
   if (!plan) {throw new NotFoundError('Наряд ячейки на дату', input.date);}
+
+  if (!(await isCellCoordinatorOrArchitect(input.cellId, input.requesterId))) {
+    throw new ForbiddenError('Назначать задачи в наряде может только координатор ячейки');
+  }
 
   const member = await queryOne<{ id: string }>(
     `SELECT id FROM cell_members
@@ -207,24 +385,73 @@ export async function assignCellDailyTask(input: {
     throw new ForbiddenError('Назначать можно только участнику этой ячейки');
   }
 
-  const updated = await query(
-    `UPDATE cell_daily_plan_tasks
-        SET assigned_to = $3
-      WHERE plan_id = $1 AND task_id = $2
-      RETURNING id`,
-    [plan.id, input.taskId, input.participantId],
-  );
-  if (updated.length === 0) {
-    throw new NotFoundError('Задача в наряде', input.taskId);
-  }
+  let previousAssignee: string | null = null;
+  let assignmentVersion = 0;
 
-  // Задача сразу становится личной: иначе наряд существует, а исполнитель
-  // о нём не знает.
-  await query(
-    `UPDATE tasks SET assigned_to = $2, assigned_by = $3, updated_at = now()
-      WHERE id = $1`,
-    [input.taskId, input.participantId, input.requesterId],
-  );
+  await transaction(async (client) => {
+    const taskLock = await client.query<{
+      id: string; status: string; kind: string; direction_id: string;
+      assigned_to: string | null;
+    }>(
+      `SELECT id, status, kind, direction_id, assigned_to
+         FROM tasks WHERE id = $1 FOR UPDATE`,
+      [input.taskId],
+    );
+    const task = taskLock.rows[0];
+    if (!task) {throw new NotFoundError('Задача', input.taskId);}
+    if (task.kind === 'package') {
+      throw new ConflictError('Пакет работ не назначается исполнителю');
+    }
+    if (task.status === 'submitted' || task.status === 'accepted') {
+      throw new ConflictError(`Задача в статусе ${task.status} — нельзя переназначить`);
+    }
+    if (task.status === 'in_progress') {
+      throw new ConflictError(
+        'Прямое переназначение задачи в работе запрещено — используйте процедуру передачи',
+      );
+    }
+
+    previousAssignee = task.assigned_to;
+
+    const planLock = await client.query<{ id: string }>(
+      `SELECT id FROM cell_daily_plans WHERE cell_id = $1 AND date = $2::date FOR UPDATE`,
+      [input.cellId, input.date],
+    );
+    const planId = planLock.rows[0]?.id;
+    if (!planId) {throw new NotFoundError('Наряд ячейки на дату', input.date);}
+
+    if (!(await hasAnyVersion(client as unknown as TxClient, planId))) {
+      await writeVersion(
+        client as unknown as TxClient, planId as UUID,
+        'Исходное состояние (до миграции)', input.requesterId,
+      );
+    }
+
+    const updated = await client.query(
+      `UPDATE cell_daily_plan_tasks SET assigned_to = $3
+        WHERE plan_id = $1 AND task_id = $2 RETURNING id`,
+      [planId, input.taskId, input.participantId],
+    );
+    if ((updated.rowCount ?? 0) === 0) {
+      throw new NotFoundError('Задача в наряде', input.taskId);
+    }
+
+    // Статус не меняем: created → assigned (первое назначение),
+    // assigned → assigned (переназначение).
+    const nextStatus = task.status === 'created' ? 'assigned' : task.status;
+    await client.query(
+      `UPDATE tasks
+          SET assigned_to = $2, assigned_by = $3, status = $4, updated_at = now()
+        WHERE id = $1`,
+      [input.taskId, input.participantId, input.requesterId, nextStatus],
+    );
+
+    assignmentVersion = await writeVersion(
+      client as unknown as TxClient, planId as UUID,
+      `Назначение задачи ${input.taskId} на ${input.participantId}`,
+      input.requesterId,
+    );
+  });
 
   await logAction({
     actorId: input.requesterId,
@@ -232,13 +459,18 @@ export async function assignCellDailyTask(input: {
     action: 'cells.daily_plan.assign',
     entityType: 'task',
     entityId: input.taskId,
-    newValue: { cell_id: input.cellId, date: input.date, participant_id: input.participantId },
+    oldValue: { assigned_to: previousAssignee },
+    newValue: {
+      cell_id: input.cellId, date: input.date,
+      participant_id: input.participantId,
+      version: assignmentVersion,
+    },
   });
 
   return getCellDailyPlan(input.cellId, input.date);
 }
 
-/** Задачи направления, которые можно включить в наряд (не принятые). */
+/** Задачи направления, которые можно включить в наряд (не принятые, не пакеты). */
 export async function listCellPlanCandidates(
   cellId: UUID,
 ): Promise<Array<{ id: UUID; externalId: string; description: string; status: string }>> {
@@ -248,11 +480,14 @@ export async function listCellPlanCandidates(
   );
   if (!cell?.direction_id) {return [];}
 
-  const rows = await query<{ id: string; external_id: string; description: string; status: string }>(
+  const rows = await query<{
+    id: string; external_id: string; description: string; status: string;
+  }>(
     `SELECT id, external_id, description, status
        FROM tasks
       WHERE direction_id = $1
         AND status IN ('created', 'assigned', 'in_progress')
+        AND kind = 'deliverable'
       ORDER BY
         CASE status WHEN 'in_progress' THEN 0 WHEN 'assigned' THEN 1 ELSE 2 END,
         deadline NULLS LAST

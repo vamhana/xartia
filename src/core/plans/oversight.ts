@@ -5,8 +5,16 @@
 // На каждом уровне: сколько задач, что просрочено, что сдано раньше срока,
 // кто координатор и есть ли сигналы. Совет направления смотрит то же дерево,
 // поэтому может связаться с координатором ячейки или напрямую с исполнителем.
+//
+// D.2.01.67:
+//   - Узел знает kind (package | deliverable): задача-узел несёт его в TaskRow.
+//   - Агрегаты total/done/overdue/early считают только deliverable; пакеты —
+//     организационные контейнеры, а не единица работы.
+//   - people — по всем задачам (кто задействован на уровне), независимо от kind.
+//   - Глубина рекурсии и обхода родителя ограничены MAX_TREE_DEPTH.
 
 import { query, queryOne } from '../../lib/db.js';
+import { MAX_TREE_DEPTH } from '../constants.js';
 import type { UUID } from '../types.js';
 
 export type OversightKind = 'plan' | 'branch' | 'cell' | 'person';
@@ -55,6 +63,7 @@ interface TaskRow {
   external_id: string;
   description: string;
   status: string;
+  kind: 'package' | 'deliverable';
   deadline: Date | null;
   updated_at: Date;
   parent_task_id: string | null;
@@ -100,14 +109,14 @@ async function loadPlanTasks(planId: UUID): Promise<TaskRow[]> {
        UNION ALL
        SELECT c.*, tree.depth + 1 FROM tasks c
          JOIN tree ON c.parent_task_id = tree.id
-        WHERE tree.depth < 10
+        WHERE tree.depth < $2
      )
      SELECT tree.id, tree.external_id, tree.description, tree.status,
-            tree.deadline, tree.updated_at, tree.parent_task_id,
+            tree.kind, tree.deadline, tree.updated_at, tree.parent_task_id,
             tree.assigned_to, p.name AS assigned_name
        FROM tree
        LEFT JOIN participants p ON p.id = tree.assigned_to`,
-    [planId],
+    [planId, MAX_TREE_DEPTH],
   );
 }
 
@@ -181,7 +190,7 @@ export async function getOversightTree(
     const parentOf = new Map(tasks.map((t) => [t.id, t.parent_task_id]));
     const rootOf = (id: string): string => {
       let cur = id;
-      for (let i = 0; i < 12; i += 1) {
+      for (let i = 0; i < MAX_TREE_DEPTH; i += 1) {
         const parent = parentOf.get(cur);
         if (!parent || !byId.has(parent)) {return cur;}
         cur = parent;
@@ -204,12 +213,13 @@ export async function getOversightTree(
     const stat = (list: TaskRow[]): {
       total: number; done: number; overdue: number; early: number; people: number;
     } => {
-      let done = 0;
-      let overdue = 0;
-      let early = 0;
+      let done = 0, overdue = 0, early = 0;
       const people = new Set<string>();
+      let workTotal = 0;
       for (const t of list) {
         if (t.assigned_to) {people.add(t.assigned_to);}
+        if (t.kind !== 'deliverable') {continue;}
+        workTotal += 1;
         const accepted = t.status === 'accepted';
         if (accepted) {
           done += 1;
@@ -218,7 +228,7 @@ export async function getOversightTree(
           overdue += 1;
         }
       }
-      return { total: list.length, done, overdue, early, people: people.size };
+      return { total: workTotal, done, overdue, early, people: people.size };
     };
 
     const roots = tasks.filter((t) => !t.parent_task_id || !byId.has(t.parent_task_id));
@@ -314,10 +324,10 @@ export async function getOversightTree(
             coordinator: null,
             directionId: (plan.lead_direction_id as UUID | null) ?? null,
             planId: plan.id as UUID,
-            total: 1,
+            total: t.kind === 'deliverable' ? 1 : 0,
             people: t.assigned_to ? 1 : 0,
-            done: t.status === 'accepted' ? 1 : 0,
-            overdue: t.status !== 'accepted' && t.deadline && t.deadline.getTime() < now ? 1 : 0,
+            done: t.kind === 'deliverable' && t.status === 'accepted' ? 1 : 0,
+            overdue: t.kind === 'deliverable' && t.status !== 'accepted' && t.deadline && t.deadline.getTime() < now ? 1 : 0,
             early: 0,
             signals: [],
             children: [],

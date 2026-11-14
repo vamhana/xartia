@@ -4,8 +4,15 @@
 // каждой ветке свои люди. Плоский список задач этого не показывает, поэтому
 // план отдаётся деревом: можно раскрыть дом, дойти до конкретного человека и
 // увидеть, на каком этапе работа.
+//
+// D.2.01.67:
+//   - Узел дерева знает свой kind (package | deliverable).
+//   - Агрегаты total/done считают только deliverable: пакет — организационный
+//     контейнер, а не единица работы.
+//   - Глубина рекурсии ограничена константой MAX_TREE_DEPTH (было hardcode 10).
 
 import { query } from '../../lib/db.js';
+import { MAX_TREE_DEPTH } from '../constants.js';
 import type { UUID } from '../types.js';
 
 export interface WorkTreeNode {
@@ -14,9 +21,10 @@ export interface WorkTreeNode {
   description: string;
   status: string;
   priority: string;
+  kind: 'package' | 'deliverable';
   deadline: string | null;
   assignedTo: { id: UUID; name: string; externalId: string } | null;
-  /** Сколько всего поддереве задач и сколько из них принято. */
+  /** Сколько всего поддереве deliverable-задач и сколько из них принято. */
   total: number;
   done: number;
   children: WorkTreeNode[];
@@ -35,6 +43,7 @@ interface TreeRow {
   description: string;
   status: string;
   priority: string;
+  kind: 'package' | 'deliverable';
   deadline: Date | null;
   parent_task_id: string | null;
   assigned_to: string | null;
@@ -54,15 +63,16 @@ export async function getPlanTree(planId: UUID): Promise<PlanTree> {
        SELECT c.*, tree.depth + 1
          FROM tasks c
          JOIN tree ON c.parent_task_id = tree.id
-        WHERE tree.depth < 10
+        WHERE tree.depth < $2
      )
      SELECT tree.id, tree.external_id, tree.description, tree.status,
-            tree.priority, tree.deadline, tree.parent_task_id, tree.assigned_to,
+            tree.priority, tree.kind, tree.deadline, tree.parent_task_id,
+            tree.assigned_to,
             p.name AS assigned_name, p.external_id AS assigned_external_id
        FROM tree
        LEFT JOIN participants p ON p.id = tree.assigned_to
       ORDER BY tree.depth, tree.external_id`,
-    [planId],
+    [planId, MAX_TREE_DEPTH],
   );
 
   const byId = new Map<string, WorkTreeNode>();
@@ -74,6 +84,7 @@ export async function getPlanTree(planId: UUID): Promise<PlanTree> {
       description: r.description,
       status: r.status,
       priority: r.priority,
+      kind: r.kind,
       deadline: r.deadline ? r.deadline.toISOString() : null,
       assignedTo: r.assigned_to
         ? {
@@ -99,10 +110,10 @@ export async function getPlanTree(planId: UUID): Promise<PlanTree> {
     }
   }
 
-  // Агрегаты снизу вверх: принято/всего по поддереву.
+  // Агрегаты снизу вверх: пакет не единица работы.
   const aggregate = (node: WorkTreeNode): { total: number; done: number } => {
-    let total = 1;
-    let done = node.status === 'accepted' ? 1 : 0;
+    let total = node.kind === 'deliverable' ? 1 : 0;
+    let done = node.kind === 'deliverable' && node.status === 'accepted' ? 1 : 0;
     for (const child of node.children) {
       const sub = aggregate(child);
       total += sub.total;

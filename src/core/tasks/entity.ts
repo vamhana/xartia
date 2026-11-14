@@ -4,6 +4,8 @@ import { PRIORITY_DEADLINES_MS } from '../constants.js';
 import { ValidationError, ConflictError } from '../errors.js';
 import type { UUID, ISODateTime, Priority, TaskStatus } from '../types.js';
 
+export type TaskKind = 'package' | 'deliverable';
+
 export interface Task {
   id: UUID;
   externalId: string;
@@ -18,6 +20,11 @@ export interface Task {
   assignedBy: UUID | null;
   deadline: ISODateTime | null;
   parentTaskId: UUID | null;
+  // Новое (D.2.01.67):
+  kind: TaskKind;
+  expectedResult: string | null;
+  plannedStartAt: ISODateTime | null;
+  estimatedMinutes: number | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
@@ -31,6 +38,16 @@ export interface CreateTaskInput {
   priority: Priority;
   requiredCompetencies?: string[];
   location?: { lat: number; lon: number };
+  parentTaskId?: UUID | null;
+  kind?: TaskKind;
+  expectedResult?: string | null;
+  /**
+   * Явный срок. `undefined` (не передан) — использовать getDeadlineForPriority.
+   * `null` — задача без срока. ISO-строка — конкретный срок.
+   */
+  deadline?: ISODateTime | null;
+  plannedStartAt?: ISODateTime | null;
+  estimatedMinutes?: number | null;
   baseTime?: Date;
 }
 
@@ -53,10 +70,12 @@ export function getDeadlineForPriority(priority: Priority, baseTime: Date = new 
 }
 
 export function createTask(input: CreateTaskInput): Task {
-  if (!input.description.trim()) {throw new ValidationError('Описание задачи обязательно');}
+  if (!input.description.trim()) { throw new ValidationError('Описание задачи обязательно'); }
 
   const now = new Date();
-  const deadline = getDeadlineForPriority(input.priority, input.baseTime ?? now);
+  const deadline = input.deadline === undefined
+    ? getDeadlineForPriority(input.priority, input.baseTime ?? now)
+    : input.deadline;
 
   return {
     id: input.id,
@@ -71,7 +90,11 @@ export function createTask(input: CreateTaskInput): Task {
     assignedTo: null,
     assignedBy: null,
     deadline,
-    parentTaskId: null,
+    parentTaskId: input.parentTaskId ?? null,
+    kind: input.kind ?? 'deliverable',
+    expectedResult: input.expectedResult ?? null,
+    plannedStartAt: input.plannedStartAt ?? null,
+    estimatedMinutes: input.estimatedMinutes ?? null,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
   };
@@ -116,14 +139,14 @@ export function returnTask(t: Task, _reason: string): Task {
 }
 
 export function isOverdue(t: Task, now: Date = new Date()): boolean {
-  if (!t.deadline) {return false;}
-  if (t.status === 'accepted' || t.status === 'returned') {return false;}
+  if (!t.deadline) { return false; }
+  if (t.status === 'accepted' || t.status === 'returned') { return false; }
   return new Date(t.deadline).getTime() < now.getTime();
 }
 
 export function formatTaskExternalId(type: string, date: Date, sequence: number): string {
-  if (!/^[А-Я]{3}$/.test(type)) {throw new ValidationError('Тип задачи: 3 заглавные кириллицы');}
-  if (sequence < 0 || sequence > 999) {throw new ValidationError('Номер задачи 0–999');}
+  if (!/^[А-Я]{3}$/.test(type)) { throw new ValidationError('Тип задачи: 3 заглавные кириллицы'); }
+  if (sequence < 0 || sequence > 999) { throw new ValidationError('Номер задачи 0–999'); }
   const d = date.toISOString().slice(0, 10);
   return `${type}-${d}-${String(sequence).padStart(3, '0')}`;
 }

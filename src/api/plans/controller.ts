@@ -13,16 +13,14 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { ConflictError } from '../../core/errors.js';
 import {
   computePlanBranches, listPlanBranches,
 } from '../../core/plans/branches.js';
-import { getPlanTree } from '../../core/plans/tree.js';
-import { getOversightTree } from '../../core/plans/oversight.js';
 import {
   computeDeviation, hasRecentDeviationSignal, listDeviations,
 } from '../../core/plans/deviation.js';
-import { createSignalService } from '../../core/signals/service.js';
-import { ConflictError } from '../../core/errors.js';
+import { getOversightTree } from '../../core/plans/oversight.js';
 import {
   listPlans, getById, createPlanService,
   approvePlanService, activatePlanService, stopPlanService,
@@ -33,7 +31,10 @@ import {
   listPlanVersions,
   createPlanVersion,
   restorePlanVersion,
+  listDailyPlanVersions,
 } from '../../core/plans/service.js';
+import { getPlanTree } from '../../core/plans/tree.js';
+import { createSignalService } from '../../core/signals/service.js';
 import { uuidIdParams, uuidSchema, planTypeSchema, planStatusSchema } from '../../lib/validators.js';
 import { mustGetLimit } from '../../security/rate-limit.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
@@ -99,6 +100,11 @@ const deviationsQuery = z.object({
 const dailyListQuery = z.object({
   direction_id: uuidSchema.optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+const dailyVersionsQuery = z.object({
+  direction_id: uuidSchema,
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 const dailyUpsertBody = z.object({
@@ -339,6 +345,16 @@ export async function registerPlansRoutes(app: FastifyInstance): Promise<void> {
       const q = req.query as { direction_id: string };
       const plan = await getDailyPlan(q.direction_id);
       reply.send({ data: plan, audit_id: req.auditId });
+    },
+  );
+
+  app.get(
+    '/daily-plans/versions',
+    { preHandler: [authMiddleware, validateQuery(dailyVersionsQuery)] },
+    async (req, reply) => {
+      const q = req.query as z.infer<typeof dailyVersionsQuery>;
+      const data = await listDailyPlanVersions(q.direction_id, q.date);
+      reply.send({ data, audit_id: req.auditId });
     },
   );
 

@@ -4,6 +4,11 @@
 // дом №2 …), у каждой — свои подзадачи (фундамент, стены, крыша). Общий счётчик
 // «принято 40 из 200» не показывает, что дом №3 уже на крыше, а дом №11 стоит
 // на фундаменте. Балансировка должна видеть именно ветки.
+//
+// D.2.01.67:
+//   - Счёт ведётся только по deliverable-детям: пакеты — организационные
+//     контейнеры, они не единица работы и не влияют на прогресс ветки.
+//   - Просрочка ветки — тоже только deliverable.
 
 import { query, queryOne } from '../../lib/db.js';
 import type { UUID } from '../types.js';
@@ -43,10 +48,12 @@ export async function computePlanBranches(planId: UUID): Promise<PlanBranches> {
     `SELECT root.id AS root_id,
             root.external_id AS root_external_id,
             root.description AS root_description,
-            COUNT(child.id)::text AS total,
-            COUNT(child.id) FILTER (WHERE child.status = 'accepted')::text AS done,
+            COUNT(child.id) FILTER (WHERE child.kind = 'deliverable')::text AS total,
+            COUNT(child.id) FILTER (WHERE child.kind = 'deliverable' AND child.status = 'accepted')::text AS done,
             COUNT(child.id) FILTER (
-              WHERE child.deadline < now() AND child.status <> 'accepted'
+              WHERE child.kind = 'deliverable'
+                AND child.deadline < now()
+                AND child.status <> 'accepted'
             )::text AS overdue
        FROM tasks root
        JOIN tasks child ON child.parent_task_id = root.id
@@ -129,7 +136,9 @@ export async function countBehindBranches(planId: UUID): Promise<number> {
           WHERE root.plan_id = $1
           GROUP BY root.id
          HAVING COUNT(child.id) FILTER (
-           WHERE child.deadline < now() AND child.status <> 'accepted'
+           WHERE child.kind = 'deliverable'
+             AND child.deadline < now()
+             AND child.status <> 'accepted'
          ) > 0
        ) x`,
     [planId],

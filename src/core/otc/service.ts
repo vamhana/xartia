@@ -9,6 +9,12 @@
 //   - B5: appeal() — identity check → ForbiddenError (403), было ConflictError.
 //   - B7: WS-эмиссии — try/catch (best-effort). Не блокируют ответ.
 //
+// v0.0.03 (§7.5 — учитель не принимает ученика):
+//   - decide() и crisisDecide() дополнительно проверяют
+//     isTeacherOfLearnerTask(otcId, taskId). Если ОТК — учитель ученика,
+//     выполнявшего эту задачу, — ForbiddenError. После I.2.12, до
+//     assertDirectionScope.
+//
 // ОСТАЁТСЯ ТЕХДОЛГ:
 //   - B4: INSERT решения + accept/return — не в одной транзакции.
 //     При сбое шага 2 — решение в БД, задача submitted.
@@ -19,17 +25,18 @@
 
 import { query, queryOne } from '../../lib/db.js';
 import { logger } from '../../lib/logger.js';
+import { sendToRole } from '../../lib/notifications.js';
 import {
   emitDecisionMade,
   emitCrisisDecisionMade,
   emitAppealFiled,
   emitQueueUpdated,
 } from '../../ws/otc.js';
-import { sendToRole } from '../../lib/notifications.js';
 import { logAction } from '../audit.js';
 import { NotFoundError, ConflictError, ForbiddenError } from '../errors.js';
-import { Role } from '../roles.js';
+import { isTeacherOfLearnerTask } from '../passport/teaching-practice.js';
 import { getById as getReportById } from '../reports/service.js';
+import { Role } from '../roles.js';
 import {
   getById as getTaskById,
   acceptTaskService,
@@ -130,7 +137,7 @@ export async function getQueue(directionId?: UUID): Promise<OtcQueueItem[]> {
       type: row.type,
       comment: row.comment,
       mediaUrl: row.media_url,
-    artifactUrl: row.artifact_url,
+      artifactUrl: row.artifact_url,
       geolocation,
       createdAt: row.created_at.toISOString(),
       hoursWaiting: Math.round(parseFloat(row.hours_waiting)),
@@ -293,6 +300,17 @@ export async function decide(
   if (task.assignedTo === otcId) {
     throw new ForbiddenError('ОТК не может проверять свою работу (I.2.12)');
   }
+  // §7.5: учитель не принимает результат ученика, которому помогал.
+  // Отдельная роль «учителя» в teaching-practice — независима от I.2.12:
+  // ОТК мог не быть исполнителем задачи, но быть наставником исполнителя
+  // по этому атому. Проверяем до direction scope, чтобы ошибка была
+  // семантически точной.
+  if (await isTeacherOfLearnerTask(otcId, report.taskId)) {
+    throw new ForbiddenError(
+      'Учитель не принимает результат ученика, которому помогал (§7.5)',
+      { task_id: report.taskId },
+    );
+  }
   await assertDirectionScope(otcId, task.directionId);
 
   const criteria = await getActiveCriteria(task.directionId);
@@ -384,6 +402,14 @@ export async function crisisDecide(
   // B2: I.2.12 в crisisDecide — не было. Добавлено.
   if (task.assignedTo === otcId) {
     throw new ForbiddenError('ОТК не может проверять свою работу (I.2.12)');
+  }
+  // §7.5: учитель не принимает результат ученика, которому помогал.
+  // Симметрично decide(); применяется и в кризисном протоколе.
+  if (await isTeacherOfLearnerTask(otcId, report.taskId)) {
+    throw new ForbiddenError(
+      'Учитель не принимает результат ученика, которому помогал (§7.5)',
+      { task_id: report.taskId },
+    );
   }
 
   const entity = createCrisisDecision(

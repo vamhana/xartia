@@ -13,6 +13,11 @@
 //
 // Статус: behind (есть overdue или пройденный чекпоинт не закрыт),
 //         ahead (diff > порога), иначе on_track.
+//
+// D.2.01.67:
+//   - Пакеты (kind = 'package') не входят в счёт: total/done/overdue и
+//     чекпоинты считаются только по deliverable — пакет организационный
+//     контейнер, а не единица работы.
 
 import { query, queryOne } from '../../lib/db.js';
 import type { UUID } from '../types.js';
@@ -48,6 +53,7 @@ interface PlanTaskRow {
   id: string;
   status: string;
   deadline: Date | null;
+  kind: 'package' | 'deliverable';
 }
 
 async function loadPlanTasks(planId: UUID): Promise<PlanTaskRow[]> {
@@ -57,7 +63,7 @@ async function loadPlanTasks(planId: UUID): Promise<PlanTaskRow[]> {
        UNION
        SELECT pt.task_id FROM plan_tasks pt WHERE pt.plan_id = $1
      )
-     SELECT t.id, t.status, t.deadline
+     SELECT t.id, t.status, t.deadline, t.kind
        FROM tasks t JOIN ids ON ids.id = t.id`,
     [planId],
   );
@@ -68,9 +74,11 @@ export async function computeDeviation(planId: UUID): Promise<PlanDeviation> {
   const tasks = await loadPlanTasks(planId);
   const now = Date.now();
 
-  const total = tasks.length;
-  const done = tasks.filter((t) => t.status === 'accepted').length;
-  const overdue = tasks.filter(
+  // Пакеты не входят в счёт: они — организационные контейнеры.
+  const work = tasks.filter((t) => t.kind === 'deliverable');
+  const total = work.length;
+  const done = work.filter((t) => t.status === 'accepted').length;
+  const overdue = work.filter(
     (t) => t.deadline !== null && t.deadline.getTime() < now && t.status !== 'accepted',
   ).length;
 
@@ -90,7 +98,7 @@ export async function computeDeviation(planId: UUID): Promise<PlanDeviation> {
   for (const cp of plan.checkpoints) {
     const at = new Date(cp.at).getTime();
     if (at > now) {continue;}
-    const due = tasks.filter((t) => t.deadline !== null && t.deadline.getTime() <= at);
+    const due = work.filter((t) => t.deadline !== null && t.deadline.getTime() <= at);
     const closed = due.filter((t) => t.status === 'accepted').length;
     if (due.length > 0 && closed < due.length) {
       breached.push({

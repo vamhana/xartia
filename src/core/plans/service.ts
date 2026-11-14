@@ -10,6 +10,13 @@
 //   - B6: createPlanService — `now` внутри retry-цикла.
 //   - T5: listDailyPlans — 2 запроса вместо N+1 (ANY(uuid[]) + Map).
 //   - Crisis-валидация: type='crisis' требует criteria.scenario (спека обещала — было не реализовано).
+//
+// v0.0.03 (D.2.01.71 — версии дневного плана):
+//   - upsertDailyPlan пишет версию: v1 «пустой»/«исходное (до миграции)»,
+//     затем «Обновление»/«Формирование». Всё в одной транзакции.
+//   - removeTaskFromDailyPlan — теперь транзакция: FOR UPDATE плана →
+//     (при необходимости) v1 «до миграции» → DELETE → версия «Удаление задачи».
+//   - listDailyPlanVersions — публичное чтение истории дневного плана.
 
 import { query, queryOne, isUniqueViolation, transaction } from '../../lib/db.js';
 import { newUUID } from '../../lib/id.js';
@@ -553,7 +560,9 @@ export async function upsertDailyPlan(input: {
   }
 
   // B1: транзакция — UPDATE/DELETE/INSERT атомарны.
+  // D.2.01.71: версионирование — «до» и «после» в одной транзакции.
   await transaction(async (client) => {
+    const tx = client as unknown as TxClient;
     const existing = await client.query<{ id: string }>(
       `SELECT id FROM daily_plans WHERE direction_id = $1 AND date = $2 FOR UPDATE`,
       [input.directionId, input.date],
@@ -562,11 +571,35 @@ export async function upsertDailyPlan(input: {
     let planId: UUID;
     if (existing.rows[0]) {
       planId = existing.rows[0].id;
+
+      // ВСЕГДА пишем «before»: текущее состояние плана до изменений.
+      // - нет истории → это v1 «исходное состояние (до миграции)»;
+      // - есть история → это v(next) «состояние до изменения».
+      const hadHistory = await hasAnyDailyVersion(tx, planId);
+      await writeDailyPlanVersion(
+        tx, planId,
+        hadHistory ? 'Состояние до изменения' : 'Исходное состояние (до миграции)',
+        input.approvedById,
+      );
+
       await client.query(
         `UPDATE daily_plans SET approved_by = $1, status = 'approved' WHERE id = $2`,
         [input.approvedById, planId],
       );
       await client.query(`DELETE FROM daily_plan_tasks WHERE daily_plan_id = $1`, [planId]);
+
+      let position = 0;
+      for (const taskId of uniqueTaskIds) {
+        await client.query(
+          `INSERT INTO daily_plan_tasks (id, daily_plan_id, task_id, position)
+           VALUES ($1, $2, $3, $4)`,
+          [newUUID(), planId, taskId, position++],
+        );
+      }
+
+      await writeDailyPlanVersion(
+        tx, planId, 'Обновление дневного плана', input.approvedById,
+      );
     } else {
       planId = newUUID();
       await client.query(
@@ -574,14 +607,24 @@ export async function upsertDailyPlan(input: {
          VALUES ($1, $2, $3, 'approved', $4)`,
         [planId, input.directionId, input.date, input.approvedById],
       );
-    }
 
-    let position = 0;
-    for (const taskId of uniqueTaskIds) {
-      await client.query(
-        `INSERT INTO daily_plan_tasks (id, daily_plan_id, task_id, position)
-         VALUES ($1, $2, $3, $4)`,
-        [newUUID(), planId, taskId, position++],
+      // v1 — пустой план как «before».
+      await writeDailyPlanVersion(
+        tx, planId, 'Создание дневного плана (пустой)', input.approvedById,
+      );
+
+      let position = 0;
+      for (const taskId of uniqueTaskIds) {
+        await client.query(
+          `INSERT INTO daily_plan_tasks (id, daily_plan_id, task_id, position)
+           VALUES ($1, $2, $3, $4)`,
+          [newUUID(), planId, taskId, position++],
+        );
+      }
+
+      // v2 — заполненный план как «after».
+      await writeDailyPlanVersion(
+        tx, planId, 'Формирование дневного плана', input.approvedById,
       );
     }
   });
@@ -611,19 +654,37 @@ export async function removeTaskFromDailyPlan(
   requesterId: UUID,
 ): Promise<void> {
   // B3: проверка существования — было молчаливое no-op.
-  const planExists = await queryOne<{ id: string }>(
-    `SELECT id FROM daily_plans WHERE id = $1`,
-    [planId],
-  );
-  if (!planExists) {throw new NotFoundError('Дневной план', planId);}
+  // D.2.01.71: транзакция + версия — удаление задачи тоже меняет состав плана.
+  await transaction(async (client) => {
+    const tx = client as unknown as TxClient;
+    const planLock = await client.query<{ id: string }>(
+      `SELECT id FROM daily_plans WHERE id = $1 FOR UPDATE`,
+      [planId],
+    );
+    if (planLock.rows.length === 0) {
+      throw new NotFoundError('Дневной план', planId);
+    }
 
-  const removed = await query<{ id: string }>(
-    `DELETE FROM daily_plan_tasks WHERE daily_plan_id = $1 AND task_id = $2 RETURNING id`,
-    [planId, taskId],
-  );
-  if (removed.length === 0) {
-    throw new NotFoundError('Задача в дневном плане', taskId);
-  }
+    // ВСЕГДА пишем «before» перед удалением.
+    const hadHistory = await hasAnyDailyVersion(tx, planId);
+    await writeDailyPlanVersion(
+      tx, planId,
+      hadHistory ? 'Состояние до удаления задачи' : 'Исходное состояние (до миграции)',
+      requesterId,
+    );
+
+    const removed = await client.query<{ id: string }>(
+      `DELETE FROM daily_plan_tasks WHERE daily_plan_id = $1 AND task_id = $2 RETURNING id`,
+      [planId, taskId],
+    );
+    if ((removed.rowCount ?? 0) === 0) {
+      throw new NotFoundError('Задача в дневном плане', taskId);
+    }
+
+    await writeDailyPlanVersion(
+      tx, planId, `Удаление задачи ${taskId} из дневного плана`, requesterId,
+    );
+  });
 
   await logAction({
     actorId: requesterId,
@@ -634,6 +695,120 @@ export async function removeTaskFromDailyPlan(
     newValue: { task_id: taskId },
   });
 }
+
+// ─── Версии дневного плана (D.2.01.71) ──────────────────────────────
+//
+// Тот же принцип, что и для версий плана (P1): при каждом изменении
+// состава/статуса дневного плана пишется снимок. При первом обращении
+// к уже существующему (легаси) плану без истории — фиксируется
+// «Исходное состояние (до миграции)», чтобы точка 0 не терялась.
+
+interface DailyVersionSnapshot {
+  tasks: Array<{ taskId: string; position: number }>;
+  status: string;
+  approvedBy: string;
+}
+
+type TxClient = {
+  query: <R = Record<string, unknown>>(
+    text: string,
+    params?: unknown[],
+  ) => Promise<{ rows: R[]; rowCount: number | null }>;
+};
+
+export async function hasAnyDailyVersion(
+  client: TxClient,
+  planId: string,
+): Promise<boolean> {
+  const r = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS(SELECT 1 FROM daily_plan_versions WHERE daily_plan_id = $1) AS exists`,
+    [planId],
+  );
+  return r.rows[0]?.exists === true;
+}
+
+export async function writeDailyPlanVersion(
+  client: TxClient,
+  planId: UUID,
+  reason: string,
+  actorId: UUID,
+): Promise<number> {
+  const tasks = await client.query<{ task_id: string; position: number }>(
+    `SELECT task_id, position FROM daily_plan_tasks
+      WHERE daily_plan_id = $1 ORDER BY position`,
+    [planId],
+  );
+  const plan = await client.query<{ status: string; approved_by: string }>(
+    `SELECT status, approved_by FROM daily_plans WHERE id = $1`,
+    [planId],
+  );
+  const p = plan.rows[0];
+  if (!p) {throw new NotFoundError('Дневной план', planId);}
+
+  const snapshot: DailyVersionSnapshot = {
+    tasks: tasks.rows.map((r) => ({
+      taskId: String(r.task_id),
+      position: Number(r.position),
+    })),
+    status: p.status,
+    approvedBy: p.approved_by,
+  };
+
+  const next = await client.query<{ next: number }>(
+    `SELECT COALESCE(MAX(version), 0) + 1 AS next
+       FROM daily_plan_versions WHERE daily_plan_id = $1`,
+    [planId],
+  );
+  const version = Number(next.rows[0]?.next ?? 1);
+
+  await client.query(
+    `INSERT INTO daily_plan_versions
+       (daily_plan_id, version, snapshot, reason, created_by)
+     VALUES ($1, $2, $3::jsonb, $4, $5)`,
+    [planId, version, JSON.stringify(snapshot), reason, actorId],
+  );
+  return version;
+}
+
+export interface DailyPlanVersion {
+  version: number;
+  snapshot: DailyVersionSnapshot;
+  reason: string | null;
+  createdAt: string;
+  createdBy: UUID;
+}
+
+export async function listDailyPlanVersions(
+  directionId: UUID,
+  date: string,
+): Promise<DailyPlanVersion[]> {
+  const plan = await queryOne<{ id: string }>(
+    `SELECT id FROM daily_plans WHERE direction_id = $1 AND date = $2::date`,
+    [directionId, date],
+  );
+  if (!plan) {return [];}
+  const rows = await query<{
+    version: number;
+    snapshot: DailyVersionSnapshot;
+    reason: string | null;
+    created_at: Date;
+    created_by: string;
+  }>(
+    `SELECT version, snapshot, reason, created_at, created_by
+       FROM daily_plan_versions
+      WHERE daily_plan_id = $1
+      ORDER BY version DESC`,
+    [plan.id],
+  );
+  return rows.map((r) => ({
+    version: r.version,
+    snapshot: r.snapshot,
+    reason: r.reason,
+    createdAt: r.created_at.toISOString(),
+    createdBy: r.created_by as UUID,
+  }));
+}
+
 /**
  * Уведомление — побочный эффект: сбой доставки не отменяет создание плана.
  */
@@ -671,16 +846,14 @@ export interface PlanProgress {
  * а не собирать по крупицам из списка задач.
  */
 export async function getPlanProgress(planId: UUID): Promise<PlanProgress> {
-  // Задача может быть привязана к плану двумя путями: tasks.plan_id (так
-  // создаёт createTaskService) и plan_tasks (декомпозиция). Считаем оба,
-  // иначе прогресс «не видит» только что созданную задачу.
   const row = await queryOne<{ total: string; done: string; in_work: string }>(
     `WITH plan_task_ids AS (
-       SELECT t.id, t.status FROM tasks t WHERE t.plan_id = $1
+       SELECT t.id, t.status FROM tasks t
+        WHERE t.plan_id = $1 AND t.kind = 'deliverable'
        UNION
        SELECT t.id, t.status
          FROM plan_tasks pt JOIN tasks t ON t.id = pt.task_id
-        WHERE pt.plan_id = $1
+        WHERE pt.plan_id = $1 AND t.kind = 'deliverable'
      )
      SELECT COUNT(*)::text AS total,
             COUNT(*) FILTER (WHERE status = 'accepted')::text AS done,
@@ -835,4 +1008,3 @@ export async function restorePlanVersion(
     },
   }, actorId);
 }
-

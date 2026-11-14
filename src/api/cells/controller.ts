@@ -4,16 +4,19 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import {
-  distributeCellDailyPlan,
-  getDelegationTree,
-} from '../../core/cells/delegation.js';
+import { getCellCard } from '../../core/cards/service.js';
 import {
   assignCellDailyTask,
   getCellDailyPlan,
   listCellPlanCandidates,
+  listCellPlanVersions,   // ← NEW
   upsertCellDailyPlan,
 } from '../../core/cells/daily.js';
+import {
+  distributeCellDailyPlan,
+  getDelegationTree,
+} from '../../core/cells/delegation.js';
+import { getCellReadiness } from '../../core/cells/readiness.js';
 import {
   listCells,
   getById,
@@ -24,8 +27,6 @@ import {
   addMemberService,
   removeMemberService,
 } from '../../core/cells/service.js';
-import { getCellReadiness } from '../../core/cells/readiness.js';
-import { getCellCard } from '../../core/cards/service.js';
 import { uuidIdParams, uuidSchema } from '../../lib/validators.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import { requireRight } from '../middleware/rights.js';
@@ -208,6 +209,18 @@ export async function registerCellsRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // GET /cells/:id/daily-plan/versions?date=YYYY-MM-DD — история версий наряда.
+  app.get(
+    '/cells/:id/daily-plan/versions',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams), validateQuery(cellPlanQuery)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const q = req.query as z.infer<typeof cellPlanQuery>;
+      const versions = await listCellPlanVersions(p.id as never, q.date);
+      reply.send({ data: versions, audit_id: req.auditId });
+    },
+  );
+
   app.post(
     '/cells/:id/daily-plan',
     {
@@ -218,18 +231,20 @@ export async function registerCellsRoutes(app: FastifyInstance): Promise<void> {
         validateBody(z.object({
           date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
           task_ids: z.array(uuidSchema).min(1).max(50),
+          reason: z.string().min(1).max(500).optional(),   // ← NEW (проброс в upsert)
         })),
       ],
     },
     async (req, reply) => {
       const auth = getAuthContext(req);
       const p = req.params as z.infer<typeof uuidIdParams>;
-      const b = req.body as { date: string; task_ids: string[] };
+      const b = req.body as { date: string; task_ids: string[]; reason?: string };
       const day = await upsertCellDailyPlan({
         cellId: p.id,
         date: b.date,
         taskIds: b.task_ids as never[],
         approvedById: auth.participantId,
+        ...(b.reason !== undefined ? { reason: b.reason } : {}),
       });
       reply.status(201).send({ ...day, audit_id: req.auditId });
     },

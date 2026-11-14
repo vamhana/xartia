@@ -7,30 +7,45 @@
 //   - createBody.description: +max(5000).
 //   - required_competencies: +max(50).
 //
+// D.2.01.67 (v0.0.03):
+//   - createBody: parent_task_id, kind, expected_result, deadline,
+//     planned_start_at, estimated_minutes.
+//   - POST /tasks пробрасывает новые поля в createTaskService.
+//   - Новые маршруты зависимостей: GET/POST/DELETE /tasks/:id/dependencies.
+//
+// C.1.10.01 (v0.0.04):
+//   - assignBody: override { reason, risk?, accompanying?, training? }.
+//   - POST /tasks/:id/assign пробрасывает override в assignTaskService;
+//     сервис проверяет Matching (partial требует override, no_match — запрет).
+//
 // ОСТАЁТСЯ ТЕХДОЛГ:
 //   - GET /tasks, /tasks/:id — без access control (любой авторизованный
 //     читает любую задачу). Нужна per-direction модель прав (scope).
-//   - assignTask — checkCompetencies не реализован (нет participant.competencies).
+//   - assignTask — checkCompetencies при отсутствии TaskProfile (legacy-путь).
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { Role } from '../../core/roles.js';
+import { createSignalService } from '../../core/signals/service.js';
+import {
+  listDependencies, getBlockingDependencies,
+  addDependency, removeDependency,
+} from '../../core/tasks/dependencies.js';
+import {
+  hasRecentOverdueSignal,
+  listUnsubmittedTasks,
+} from '../../core/tasks/overdue.js';
 import {
   listTasks, getById, listMyTasks, createTaskService,
   assignTaskService, takeTaskService, submitTaskService,
   acceptTaskService, returnTaskService, reopenTaskService,
 } from '../../core/tasks/service.js';
-import { uuidIdParams, uuidSchema, prioritySchema, taskStatusSchema } from '../../lib/validators.js';
-import { createSignalService } from '../../core/signals/service.js';
-import { send as sendNotification } from '../../lib/notifications.js';
 import { logger } from '../../lib/logger.js';
-import { listParticipantsWithRole } from '../../security/rbac.js';
-import { Role } from '../../core/roles.js';
-import {
-  hasRecentOverdueSignal,
-  listUnsubmittedTasks,
-} from '../../core/tasks/overdue.js';
+import { send as sendNotification } from '../../lib/notifications.js';
+import { uuidIdParams, uuidSchema, prioritySchema, taskStatusSchema } from '../../lib/validators.js';
 import { mustGetLimit } from '../../security/rate-limit.js';
+import { listParticipantsWithRole } from '../../security/rbac.js';
 import { authMiddleware, getAuthContext } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 import { requireRight } from '../middleware/rights.js';
@@ -51,11 +66,25 @@ const createBody = z.object({
   description: z.string().min(1).max(5000),   // ← T4
   priority: prioritySchema,
   plan_id: uuidSchema.optional(),
+  parent_task_id: uuidSchema.optional(),
+  kind: z.enum(['package', 'deliverable']).optional(),
+  expected_result: z.string().min(1).max(5000).optional(),
+  deadline: z.string().datetime().nullable().optional(),
+  planned_start_at: z.string().datetime().nullable().optional(),
+  estimated_minutes: z.number().int().positive().optional(),
   required_competencies: z.array(z.string().min(1).max(128)).max(50).optional(),   // ← T5
   location: z.object({ lat: z.number(), lon: z.number() }).optional(),
 });
 
-const assignBody = z.object({ participant_id: uuidSchema });
+const assignBody = z.object({
+  participant_id: uuidSchema,
+  override: z.object({
+    reason: z.string().min(10).max(2000),
+    risk: z.enum(['low', 'medium', 'high']).optional(),
+    accompanying: z.string().max(2000).optional(),
+    training: z.string().max(2000).optional(),
+  }).optional(),
+});
 const reopenBody = z.object({ reason: z.string().min(3).max(1000) });
 const acceptBody = z.object({
   comment: z.string().max(5000).optional(),
@@ -66,6 +95,14 @@ const acceptBody = z.object({
   })).optional(),
 });
 const returnBody = z.object({ reason: z.string().min(1).max(500) });
+
+// -------- Зависимости задач (C.0.07.03) --------
+const dependencyParams = uuidIdParams.extend({ dep_id: uuidSchema });
+
+const addDependencyBody = z.object({
+  depends_on_task_id: uuidSchema,
+  dependency_type: z.enum(['blocks']).optional(),
+});
 
 const writeLimit = rateLimit({ config: mustGetLimit('api.write') });
 
@@ -168,6 +205,69 @@ export async function registerTasksRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // -------- Зависимости задач (C.0.07.03) --------
+  // Регистрируются до /tasks/:id, чтобы не пересечься с параметрическим маршрутом.
+
+  app.get(
+    '/tasks/:id/dependencies',
+    { preHandler: [authMiddleware, validateParams(uuidIdParams)] },
+    async (req, reply) => {
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const [deps, blocking] = await Promise.all([
+        listDependencies(p.id as never),
+        getBlockingDependencies(p.id as never),
+      ]);
+      reply.send({
+        data: deps,
+        blockedByDependencies: blocking.length > 0,
+        blocking,
+        audit_id: req.auditId,
+      });
+    },
+  );
+
+  app.post(
+    '/tasks/:id/dependencies',
+    {
+      preHandler: [
+        authMiddleware, writeLimit, requireRight('task', 'C'),
+        validateParams(uuidIdParams), validateBody(addDependencyBody),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof uuidIdParams>;
+      const b = req.body as z.infer<typeof addDependencyBody>;
+      const dep = await addDependency({
+        taskId: p.id as never,
+        dependsOnTaskId: b.depends_on_task_id as never,
+        ...(b.dependency_type ? { dependencyType: b.dependency_type } : {}),
+        requesterId: auth.participantId,
+      });
+      reply.status(201).send({ ...dep, audit_id: req.auditId });
+    },
+  );
+
+  app.delete(
+    '/tasks/:id/dependencies/:dep_id',
+    {
+      preHandler: [
+        authMiddleware, writeLimit, requireRight('task', 'C'),
+        validateParams(dependencyParams),
+      ],
+    },
+    async (req, reply) => {
+      const auth = getAuthContext(req);
+      const p = req.params as z.infer<typeof dependencyParams>;
+      await removeDependency({
+        taskId: p.id as never,
+        dependencyId: p.dep_id as never,
+        requesterId: auth.participantId,
+      });
+      reply.status(204).send();
+    },
+  );
+
   app.get('/tasks/:id', { preHandler: [authMiddleware, validateParams(uuidIdParams)] }, async (req, reply) => {
     const p = req.params as z.infer<typeof uuidIdParams>;
     const task = await getById(p.id);
@@ -186,6 +286,12 @@ export async function registerTasksRoutes(app: FastifyInstance): Promise<void> {
         description: b.description,
         priority: b.priority,
         ...(b.plan_id ? { planId: b.plan_id } : {}),
+        ...(b.parent_task_id ? { parentTaskId: b.parent_task_id } : {}),
+        ...(b.kind ? { kind: b.kind } : {}),
+        ...(b.expected_result !== undefined ? { expectedResult: b.expected_result } : {}),
+        ...(b.deadline !== undefined ? { deadline: b.deadline } : {}),
+        ...(b.planned_start_at !== undefined ? { plannedStartAt: b.planned_start_at } : {}),
+        ...(b.estimated_minutes !== undefined ? { estimatedMinutes: b.estimated_minutes } : {}),
         ...(b.required_competencies ? { requiredCompetencies: b.required_competencies } : {}),
         ...(b.location ? { location: b.location } : {}),
       }, auth.participantId);
@@ -194,6 +300,8 @@ export async function registerTasksRoutes(app: FastifyInstance): Promise<void> {
   );
 
   // POST /tasks/:id/assign (право: task:C)
+  // Matching проверяется в сервисе (C.1.10.01): partial требует override
+  // (reason + опционально risk/accompanying/training), no_match — запрет.
   app.post(
     '/tasks/:id/assign',
     { preHandler: [authMiddleware, writeLimit, requireRight('task', 'C'), validateParams(uuidIdParams), validateBody(assignBody)] },
@@ -201,7 +309,10 @@ export async function registerTasksRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuthContext(req);
       const p = req.params as z.infer<typeof uuidIdParams>;
       const b = req.body as z.infer<typeof assignBody>;
-      const task = await assignTaskService(p.id, b.participant_id, auth.participantId);
+      const task = await assignTaskService(
+        p.id, b.participant_id, auth.participantId,
+        b.override ? { override: b.override } : {},
+      );
       reply.send({ ...task, audit_id: req.auditId });
     },
   );
