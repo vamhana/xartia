@@ -134,6 +134,8 @@ async function main(): Promise<void> {
       plan_id: plan.data.id,
       description: 'Прототип игрового цикла',
       priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Прототип игрового цикла разработан, представлен и готов к проверке.',
     },
     token,
   );

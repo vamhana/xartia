@@ -77,7 +77,13 @@ async function main(): Promise<void> {
   // Принятая работа в направлении = опыт (1 Поток).
   const task = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, description: `Опыт советника ${suffix}`, priority: 'standard' },
+    {
+      direction_id: dir.id,
+      description: `Опыт советника ${suffix}`,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Работа участника выполнена и принята; подтверждённый результат учитывается при расчёте опыта для выборов Совета.',
+    },
     token,
   );
   if (task.status !== 201) { fail(`task → ${task.status}`); return; }

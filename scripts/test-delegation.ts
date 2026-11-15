@@ -101,12 +101,24 @@ async function main(): Promise<void> {
 
   const t1 = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, description: `Фундамент ${suffix}`, priority: 'standard' },
+    {
+      direction_id: dir.id,
+      description: `Фундамент ${suffix}`,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Фундамент выполнен и готов к проверке.',
+    },
     token,
   );
   const t2 = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, description: `Стены ${suffix}`, priority: 'standard' },
+    {
+      direction_id: dir.id,
+      description: `Стены ${suffix}`,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Стены возведены и готовы к проверке.',
+    },
     token,
   );
   if (t1.status !== 201 || t2.status !== 201) { fail('не удалось создать задачи'); return; }

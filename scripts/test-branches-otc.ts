@@ -72,17 +72,31 @@ async function main(): Promise<void> {
   await call('POST', `/plans/${plan.data.id}/approve`, {}, token);
   await call('POST', `/plans/${plan.data.id}/activate`, {}, token);
 
-  const createTask = async (description: string): Promise<string | null> => {
+  const createTask = async (
+    description: string,
+    kind: 'package' | 'deliverable' = 'deliverable',
+  ): Promise<string | null> => {
     const t = await call<{ id: string }>(
       'POST', '/tasks',
-      { direction_id: dir.id, plan_id: plan.data.id, description, priority: 'standard' },
+      {
+        direction_id: dir.id,
+        plan_id: plan.data.id,
+        description,
+        priority: 'standard',
+        kind,
+        ...(kind === 'deliverable'
+          ? {
+              expected_result: `Работы по объекту «${description}» выполнены и готовы к проверке.`,
+            }
+          : {}),
+      },
       token,
     );
     return t.status === 201 ? t.data.id : null;
   };
 
-  const house1 = await createTask(`Дом 1 ${suffix}`);
-  const house2 = await createTask(`Дом 2 ${suffix}`);
+  const house1 = await createTask(`Дом 1 ${suffix}`, 'package');
+  const house2 = await createTask(`Дом 2 ${suffix}`, 'package');
   const h1child = await createTask(`Дом 1: фундамент ${suffix}`);
   const h2child = await createTask(`Дом 2: фундамент ${suffix}`);
   if (!house1 || !house2 || !h1child || !h2child) { fail('не удалось создать задачи'); return; }
@@ -175,7 +189,6 @@ async function main(): Promise<void> {
   const overdueTask = await createTask(`Просроченная без сдачи ${suffix}`);
   if (!overdueTask) { fail('не удалось создать просроченную задачу'); return; }
   await query(`UPDATE tasks SET deadline = now() - interval '3 days' WHERE id = $1`, [overdueTask]);
-
   const overdue = await call<{ data: Array<{ id: string }>; meta: { total: number } }>(
     'GET', '/tasks/overdue', undefined, token,
   );

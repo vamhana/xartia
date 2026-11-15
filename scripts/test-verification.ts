@@ -273,6 +273,8 @@ async function main(): Promise<void> {
       direction_id: arch.directionId,
       description: `${MARKER} задача для перепроверки`,
       priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Работа выполнена, текстовый отчёт представлен и готов к проверке ОТК.',
     });
     await req(arch, 'POST', `/tasks/${task.data.id}/assign`, { participant_id: arch.participantId });
     await req(arch, 'POST', `/tasks/${task.data.id}/take`);

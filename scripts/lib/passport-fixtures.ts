@@ -448,7 +448,13 @@ export async function createTask(
 
   const r = await request<{ id?: string }>(
     'POST', '/tasks',
-    { direction_id: dirId, description, priority: 'standard' },
+    {
+      direction_id: dirId,
+      description,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Тестовая задача создана для проверки TaskProfile и паспортного Matching.',
+    },
     adminToken, base,
   );
   if (r.status !== 201 || !r.data?.id) {

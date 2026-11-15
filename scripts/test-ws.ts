@@ -128,9 +128,15 @@ async function main(): Promise<void> {
   let lastEventTs = 0;
   const task = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: (await call<{ data: Array<{ id: string; number: number }> }>(
-      'GET', '/directions', undefined, token,
-    )).data.data[0]?.id, description: `WS test ${Date.now()}`, priority: 'standard' },
+    {
+      direction_id: (await call<{ data: Array<{ id: string; number: number }> }>(
+        'GET', '/directions', undefined, token,
+      )).data.data[0]?.id,
+      description: `WS test ${Date.now()}`,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Задача назначена участнику, событие task.assigned доставлено подписчику.',
+    },
     token,
   );
   if (task.status !== 201) { fail(`task → ${task.status}`); }

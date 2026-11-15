@@ -83,6 +83,8 @@ async function main(): Promise<void> {
     direction_id: dir.id,
     description: 'Задача человека в ячейке',
     priority: 'standard',
+    kind: 'deliverable',
+    expected_result: 'Участник выполнил задачу в рамках работы ячейки, результат подготовлен к проверке.',
   });
   if (task.status !== 201) {fail(`task → ${task.status}`); return;}
   await req('POST', `/tasks/${task.data.id}/assign`, { participant_id: workerId });

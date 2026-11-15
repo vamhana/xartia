@@ -73,7 +73,13 @@ async function main(): Promise<void> {
   // и не требует второго участника.
   const task = await call<{ id: string; externalId: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, description: 'Проверка уведомления со ссылкой', priority: 'standard' },
+    {
+      direction_id: dir.id,
+      description: 'Проверка уведомления со ссылкой',
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Задача назначена участнику, уведомление создано и содержит ссылку для перехода к этой задаче.',
+    },
     token,
   );
   if (task.status !== 201) { fail(`create task → ${task.status}`); return; }

@@ -236,6 +236,8 @@ async function createTestTasks(
         directionId,
         description: `${marker}-task-${i}`,
         priority: 'standard',
+        kind: 'deliverable',
+        expectedResult: `Тестовый результат выполненной задачи ${marker}-task-${i} для проверки Bulk-сценария.`,
       },
       architectId,
     );

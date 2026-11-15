@@ -108,6 +108,8 @@ async function main(): Promise<void> {
       direction_id: arch.directionId,
       description: `${MARKER} task ${i + 1}`,
       priority: 'standard',
+      kind: 'deliverable',
+      expected_result: `Тестовая задача ${MARKER} task ${i + 1} создана для проверки последовательности external_id.`,
     });
     if (r.status !== 201) { fail(`task ${i+1} не создан: ${r.status}`); continue; }
     taskIds.push(r.data.externalId);

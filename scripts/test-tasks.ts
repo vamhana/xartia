@@ -86,6 +86,8 @@ async function main(): Promise<void> {
       direction_id: me.direction_id,
       description: 'Тестовая задача: проверить цикл',
       priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Задача выполнена, результат представлен для проверки полного цикла выполнения.',
       plan_id: planId,
       required_competencies: ['test'],
     },
@@ -268,6 +270,8 @@ async function main(): Promise<void> {
     direction_id: me.direction_id,
     description: 'Задача без отчёта (P0.2)',
     priority: 'standard',
+    kind: 'deliverable',
+    expected_result: 'Работа выполнена, но исполнитель не приложил обязательный отчёт с артефактом.',
   });
   if (bare.status === 201) {
     await req('POST', `/tasks/${bare.data.id}/assign`, { participant_id: executor!.id });

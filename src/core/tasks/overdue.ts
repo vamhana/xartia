@@ -50,7 +50,7 @@ export async function listUnsubmittedTasks(
         AND t.deadline < now()
         ${where}
       ORDER BY t.deadline
-      LIMIT 200`,
+      LIMIT 1000`,
     params,
   );
 

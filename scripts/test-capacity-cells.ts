@@ -94,6 +94,8 @@ async function main(): Promise<void> {
       direction_id: dir.id,
       description: `Ёмкость: ${comp}`,
       priority: 'standard',
+      kind: 'deliverable',
+      expected_result: `Результат работы по компетенции ${comp} подготовлен и представлен для проверки.`,
       required_competencies: [comp],
     });
     if (t.status !== 201) {fail(`task(${comp}) → ${t.status}`);}
@@ -120,6 +122,8 @@ async function main(): Promise<void> {
     direction_id: dir.id,
     description: 'Ёмкость: parser 3',
     priority: 'standard',
+    kind: 'deliverable',
+    expected_result: `Результат работы по компетенции ${compA} подготовлен и представлен для проверки.`,
     required_competencies: [compA],
   });
   const cap2 = await req<{ rows: Array<{ competency: string; gap: number }> }>(

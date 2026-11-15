@@ -65,6 +65,8 @@ export async function createWelcomeTask(input: WelcomeTaskInput): Promise<Task> 
         input.mentorExternalId ?? null,
       ),
       priority: 'standard',
+      expectedResult:
+        'Участник ознакомился с основными положениями Хартии, настроил локальное окружение, представился в чате направления и понимает порядок получения и сдачи первой задачи.',
       requiredCompetencies: ['онбординг'],
     },
     input.actorId,

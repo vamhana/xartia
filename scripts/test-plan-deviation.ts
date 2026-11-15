@@ -77,12 +77,26 @@ async function main(): Promise<void> {
   // Две задачи; у одной срок в прошлом (искусственно, иначе срок всегда в будущем).
   const t1 = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, plan_id: plan.data.id, description: 'Задача с просрочкой', priority: 'standard' },
+    {
+      direction_id: dir.id,
+      plan_id: plan.data.id,
+      description: 'Задача с просрочкой',
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Работа выполнена и представлена для проверки после установленного срока.',
+    },
     token,
   );
   const t2 = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, plan_id: plan.data.id, description: 'Задача в работе', priority: 'standard' },
+    {
+      direction_id: dir.id,
+      plan_id: plan.data.id,
+      description: 'Задача в работе',
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Работа выполнена и представлена для проверки в рамках срока плана.',
+    },
     token,
   );
   if (t1.status !== 201 || t2.status !== 201) { fail('не удалось создать задачи'); return; }
@@ -142,7 +156,14 @@ async function main(): Promise<void> {
   await call('POST', `/plans/${fastPlan.data.id}/activate`, {}, token);
   const fastTask = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, plan_id: fastPlan.data.id, description: 'Сделано досрочно', priority: 'standard' },
+    {
+      direction_id: dir.id,
+      plan_id: fastPlan.data.id,
+      description: 'Сделано досрочно',
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: 'Работа выполнена и принята до установленного срока.',
+    },
     token,
   );
   if (fastTask.status === 201) {

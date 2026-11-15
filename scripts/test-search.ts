@@ -118,6 +118,8 @@ async function main(): Promise<void> {
     direction_id: me.direction_id,
     description: `${marker} test task description`,
     priority: 'standard',
+    kind: 'deliverable',
+    expected_result: `Тестовая задача с маркером ${marker} создана для проверки поиска задач.`,
   });
   log('POST /tasks', taskResp.status, { ok: taskResp.status === 201 });
   if (taskResp.status !== 201) {

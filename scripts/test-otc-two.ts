@@ -271,6 +271,8 @@ async function main(): Promise<void> {
       description: 'Задача для Исполнителя',
       priority: 'standard',
       plan_id: planId,
+      kind: 'deliverable',
+      expected_result: 'Исполнитель выполнил задачу, представил результат, который может быть проверен ОТК.',
     });
     if (task.status !== 201) { log('task', task.status, task.data); throw new Error('task failed'); }
     const taskId = task.data.id;

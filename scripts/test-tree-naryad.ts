@@ -74,12 +74,24 @@ async function main(): Promise<void> {
 
   const house = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, plan_id: plan.data.id, description: `Дом ${suffix}`, priority: 'standard' },
+    {
+      direction_id: dir.id,
+      plan_id: plan.data.id,
+      description: `Дом ${suffix}`,
+      priority: 'standard',
+      kind: 'package',
+    },
     token,
   );
   const work = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, description: `Фундамент ${suffix}`, priority: 'standard' },
+    {
+      direction_id: dir.id,
+      description: `Фундамент ${suffix}`,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: `Фундамент дома ${suffix} выполнен и готов к проверке.`,
+    },
     token,
   );
   if (house.status !== 201 || work.status !== 201) { fail('не удалось создать задачи'); return; }
@@ -94,8 +106,11 @@ async function main(): Promise<void> {
   } else {
     fail(`tree → ${tree.status}: ${JSON.stringify(tree.data)}`);
   }
-  if (tree.data.total >= 2) { ok(`всего в дереве: ${tree.data.total}`); }
-  else { fail(`в дереве ${tree.data.total} узлов, ожидали ≥2`); }
+  if (tree.data.total === 1) {
+    ok(`исполняемых задач в дереве: ${tree.data.total}`);
+  } else {
+    fail(`в дереве ${tree.data.total} исполняемых задач, ожидали 1`);
+  }
 
   // ── 2. Наряд ячейки ──────────────────────────────────────────────
   const cell = await call<{ id: string }>(
@@ -133,7 +148,13 @@ async function main(): Promise<void> {
 
   const naryadTask = await call<{ id: string; externalId: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, description: `Работа наряда ${suffix}`, priority: 'standard' },
+    {
+      direction_id: dir.id,
+      description: `Работа наряда ${suffix}`,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: `Работа наряда ${suffix} выполнена и готова к проверке.`,
+    },
     token,
   );
   if (naryadTask.status !== 201) { fail('не удалось создать задачу наряда'); return; }
@@ -162,7 +183,13 @@ async function main(): Promise<void> {
   // Чужому (не участнику ячейки) назначать нельзя.
   const outsider = await call<{ id: string }>(
     'POST', '/tasks',
-    { direction_id: dir.id, description: `Чужая работа ${suffix}`, priority: 'standard' },
+    {
+      direction_id: dir.id,
+      description: `Чужая работа ${suffix}`,
+      priority: 'standard',
+      kind: 'deliverable',
+      expected_result: `Работа ${suffix} выполнена и готова к проверке; задача используется для проверки запрета назначения постороннего участника.`,
+    },
     token,
   );
   if (outsider.status === 201) {

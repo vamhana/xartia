@@ -73,6 +73,8 @@ async function main(): Promise<void> {
     direction_id: me.direction_id,
     description: 'Задача для теста ОТК',
     priority: 'standard',
+    kind: 'deliverable',
+    expected_result: 'Исполнитель выполнил работу, представил отчёт, результат проверен ОТК и принят.',
     plan_id: planId,
     required_competencies: [],
   });
@@ -180,6 +182,8 @@ async function main(): Promise<void> {
     direction_id: me.direction_id,
     description: 'Задача №2 — самопроверка ОТК',
     priority: 'standard',
+    kind: 'deliverable',
+    expected_result: 'Работа выполнена и представлена на проверку; тест должен подтвердить запрет принятия собственной работы.',
   });
   const task2Id = task2.data.id;
   await req('POST', `/tasks/${task2Id}/assign`, { participant_id: me.id });
