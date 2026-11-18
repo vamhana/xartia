@@ -130,7 +130,8 @@ async function checkRequiredAtom(
   if (missingDimensions.length === 0) {return null;}
 
   const criticalDims = ROLE_CRITICAL[req.role];
-  const critical = missingDimensions.some((d) => criticalDims.includes(d));
+  const critical = applicabilityUnresolved || criteriaUnready
+    || missingDimensions.some((d) => criticalDims.includes(d));
 
   return {
     atomId: req.atom_id,
@@ -513,7 +514,8 @@ export async function getCandidates(
         if (!covered) {missing.push(dim);}
       }
       if (missing.length > 0) {
-        const critical = missing.some((d) => ROLE_CRITICAL[req.role].includes(d));
+        const critical = applicabilityUnresolved || criteriaUnready
+          || missing.some((d) => ROLE_CRITICAL[req.role].includes(d));
         atomGaps.push({
           atomId: req.atom_id, role: req.role,
           missingDimensions: missing, critical,
