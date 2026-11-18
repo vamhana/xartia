@@ -767,7 +767,7 @@ export interface MatchGap {
   missingDimensions: Dimension[];
   /** Критичный gap: не покрыто измерение, критичное для роли. */
   critical: boolean;
-  reason: 'missing_dimensions' | 'missing_permit' | 'atom_not_approved' | 'criteria_not_approved' | 'applicability_unresolved';
+  reason: 'missing_dimensions' | 'missing_permit' | 'atom_not_found' | 'atom_not_approved' | 'criteria_not_approved' | 'applicability_unresolved';
   /**
    * При наличии 'missing_permit':
    * 'absent' (нет записи), 'expired' (истёк), 'revoked' (отозван).
@@ -1136,7 +1136,9 @@ export function isDimensionApplicabilityResolved(
   d: Dimension,
 ): boolean {
   const entry = a[d];
-  return entry !== undefined && typeof entry.applicable === 'boolean';
+  if (!entry || typeof entry.applicable !== 'boolean') {return false;}
+  return entry.applicable
+    || (typeof entry.reason === 'string' && entry.reason.trim().length > 0);
 }
 
 /** Применимость подтверждена и равна true. Отсутствующая запись не равна false. */
