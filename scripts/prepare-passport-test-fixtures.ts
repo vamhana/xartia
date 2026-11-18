@@ -8,7 +8,17 @@ import { gracefulShutdown } from '../src/lib/shutdown.js';
 import { ATOM_SEEDS } from './seed-data/atoms.js';
 
 async function main(): Promise<void> {
-  const fixtureIds = new Set(['CYB.ATOM.0042', 'CYB.ATOM.0043', 'CYB.ATOM.0009']);
+  // Exact positive-path atoms referenced by the legacy passport smoke suite.
+  // Other pilot atoms remain candidate/draft in this disposable test DB too.
+  const fixtureIds = new Set([
+    'CYB.ATOM.0002', 'CYB.ATOM.0003', 'CYB.ATOM.0004',
+    'CYB.ATOM.0005', 'CYB.ATOM.0006', 'CYB.ATOM.0009',
+    'CYB.ATOM.0010',
+    'CYB.ATOM.0030', 'CYB.ATOM.0031', 'CYB.ATOM.0032',
+    'CYB.ATOM.0033', 'CYB.ATOM.0034',
+    'CYB.ATOM.0042', 'CYB.ATOM.0043', 'CYB.ATOM.0044',
+    'CYB.ATOM.0045', 'CYB.ATOM.0046',
+  ]);
   const ids = ATOM_SEEDS.filter((atom) => fixtureIds.has(atom.atom_id)).map((atom) => atom.atom_id);
   const result = await query<{ atom_id: string }>(
     `UPDATE competency_atoms
