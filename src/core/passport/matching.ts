@@ -119,6 +119,8 @@ async function checkRequiredAtom(
       applicability.assessment_criteria as import('./types.js').AssessmentCriteria, dim,
     )) {
       criteriaUnready = true;
+      missingDimensions.push(dim);
+      continue;
     }
     if (!isCovered(byDim.get(dim), minLevel)) {
       missingDimensions.push(dim);
