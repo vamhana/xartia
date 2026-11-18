@@ -46,7 +46,7 @@ import type {
   TaskProfileRole,
 } from './types.js';
 import {
-  DIMENSIONS, isDimensionApplicable,
+  DIMENSIONS, isDimensionApplicable, isDimensionApplicabilityResolved,
 } from './types.js';
 import { recordAccess } from './visibility.js';
 
@@ -67,6 +67,8 @@ const ROLE_CRITICAL: Record<TaskProfileRole, Dimension[]> = {
 
 interface AtomApplicabilityRow {
   atom_id: string;
+  status: string;
+  assessment_criteria: { status?: string };
   dimension_applicability: Record<string, { applicable?: boolean }>;
 }
 
@@ -104,6 +106,10 @@ async function checkRequiredAtom(
   for (const [dim, minLevel] of Object.entries(req.min) as Array<
     [Dimension, number]
   >) {
+    if (!isDimensionApplicabilityResolved(app, dim)) {
+      missingDimensions.push(dim);
+      continue;
+    }
     if (!isDimensionApplicable(app, dim)) {continue;}
     if (!isCovered(byDim.get(dim), minLevel)) {
       missingDimensions.push(dim);
@@ -135,7 +141,7 @@ async function applyProfile(
   const atomIds = profile.requiredAtoms.map((a) => a.atom_id);
 
   const atoms = await query<AtomApplicabilityRow>(
-    `SELECT atom_id, dimension_applicability
+    `SELECT atom_id, status, assessment_criteria, dimension_applicability
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
   );
@@ -153,6 +159,22 @@ async function applyProfile(
         missingDimensions: [...DIMENSIONS],
         critical: true,
         reason: 'missing_dimensions',
+      });
+      continue;
+    }
+    if (atom.status !== 'approved') {
+      gaps.push({
+        atomId: req.atom_id, role: req.role,
+        missingDimensions: Object.keys(req.min) as Dimension[],
+        critical: true, reason: 'atom_not_approved',
+      });
+      continue;
+    }
+    if (atom.assessment_criteria?.status !== 'approved') {
+      gaps.push({
+        atomId: req.atom_id, role: req.role,
+        missingDimensions: Object.keys(req.min) as Dimension[],
+        critical: true, reason: 'criteria_not_approved',
       });
       continue;
     }
@@ -321,7 +343,9 @@ export async function getCandidates(
 
   // 2. Применимость атомов — один запрос.
   const atoms = await query<{
-    atom_id: string; dimension_applicability: Record<string, { applicable?: boolean }>;
+    atom_id: string; status: string;
+    assessment_criteria: { status?: string };
+    dimension_applicability: Record<string, { applicable?: boolean }>;
   }>(
     `SELECT atom_id, dimension_applicability
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
@@ -437,12 +461,29 @@ export async function getCandidates(
         });
         continue;
       }
+      if (atom.status !== 'approved') {
+        atomGaps.push({
+          atomId: req.atom_id, role: req.role,
+          missingDimensions: Object.keys(req.min) as Dimension[],
+          critical: true, reason: 'atom_not_approved',
+        });
+        continue;
+      }
+      if (atom.assessment_criteria?.status !== 'approved') {
+        atomGaps.push({
+          atomId: req.atom_id, role: req.role,
+          missingDimensions: Object.keys(req.min) as Dimension[],
+          critical: true, reason: 'criteria_not_approved',
+        });
+        continue;
+      }
       const statesMap = statesByKey.get(`${p.id}|${req.atom_id}`) ?? new Map<Dimension, StateRow>();
       const app = atom.dimension_applicability as Parameters<
         typeof isDimensionApplicable
       >[0];
       const missing: Dimension[] = [];
       for (const [dim, min] of Object.entries(req.min) as Array<[Dimension, number]>) {
+        if (!isDimensionApplicabilityResolved(app, dim)) {missing.push(dim); continue;}
         if (!isDimensionApplicable(app, dim)) {continue;}
         const st = statesMap.get(dim);
         const covered =
