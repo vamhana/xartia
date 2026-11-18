@@ -195,6 +195,18 @@ export interface AssessmentCriteria {
   E?: string;
 }
 
+/** Утверждённость профиля критериев сама по себе недостаточна: критерий
+ * должен существовать для конкретного измерения и содержать текст. */
+export function isAssessmentCriterionReady(
+  criteria: AssessmentCriteria,
+  dimension: Dimension,
+): boolean {
+  const value = criteria[dimension];
+  return criteria.status === 'approved'
+    && typeof value === 'string'
+    && value.trim().length > 0;
+}
+
 export interface EvidenceContext {
   domain?: string;            // 'backend' | 'qa' | 'devops' | ...
   scale?: string;             // 'personal' | 'team' | 'critical' | ...
