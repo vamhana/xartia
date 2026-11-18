@@ -87,9 +87,23 @@ function validateDimensionApplicability(value: unknown): void {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new ValidationError('dimension_applicability must be object');
   }
-  for (const d of Object.keys(value)) {
+  const entries = value as Record<string, unknown>;
+  for (const [d, rawEntry] of Object.entries(entries)) {
     if (!ALLOWED_DIMENSIONS.includes(d)) {
       throw new ValidationError(`dimension_applicability.${d} invalid`);
+    }
+    if (typeof rawEntry !== 'object' || rawEntry === null || Array.isArray(rawEntry)) {
+      throw new ValidationError(`dimension_applicability.${d} must be an object`);
+    }
+    const entry = rawEntry as Record<string, unknown>;
+    if (typeof entry.applicable !== 'boolean') {
+      throw new ValidationError(`dimension_applicability.${d}.applicable must be boolean`);
+    }
+    if (entry.applicable === false &&
+        (typeof entry.reason !== 'string' || !entry.reason.trim())) {
+      throw new ValidationError(
+        `dimension_applicability.${d}.reason is required when applicable=false`,
+      );
     }
   }
 }
