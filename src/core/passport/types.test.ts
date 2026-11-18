@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { UUID } from '../types.js';
 
 import {
   isAssessmentCriterionReady,
@@ -35,13 +36,14 @@ describe('passport approval gate primitives', () => {
   });
 
   it('does not count unresolved dimensions as excluded from passport width/depth', () => {
-    const states = [
-      { dimension: 'U', level: 9, status: 'confirmed' },
-      { dimension: 'X', level: 9, status: 'confirmed' },
-      { dimension: 'D', level: 9, status: 'confirmed' },
-      { dimension: 'P', level: 9, status: 'confirmed' },
-      { dimension: 'E', level: 9, status: 'confirmed' },
-    ] as const;
+    const states = (['U', 'X', 'D', 'P', 'E'] as const).map((dimension) => ({
+      participant_id: '00000000-0000-4000-8000-000000000001' as UUID,
+      atom_id: 'TEST.ATOM.0001',
+      dimension,
+      level: 9,
+      status: 'confirmed' as const,
+      updated_at: new Date(),
+    }));
     const incomplete = {
       U: { applicable: true }, X: { applicable: true },
       D: { applicable: true }, P: { applicable: true },
