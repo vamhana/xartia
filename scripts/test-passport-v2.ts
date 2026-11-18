@@ -241,6 +241,24 @@ async function main(): Promise<void> {
   // ── 1b. seed идемпотентен ──
   checkSeedIdempotent();
 
+  // Test-only approved atoms are prepared only AFTER the seed idempotency
+  // assertion, so the production pilot catalogue remains candidate/draft.
+  {
+    const prepared = spawnSync(
+      process.execPath,
+      [TSX_CLI, join(REPO_ROOT, 'scripts', 'prepare-passport-test-fixtures.ts')],
+      { encoding: 'utf8', timeout: 120_000, cwd: REPO_ROOT },
+    );
+    if (prepared.status !== 0) {
+      fail('1c. prepare isolated approved fixtures', {
+        status: prepared.status,
+        stderr: (prepared.stderr ?? '').slice(0, 1000),
+      });
+    } else {
+      pass('1c. prepare isolated approved fixtures');
+    }
+  }
+
   // ── 2. declare → evidence → assessment ──
   const ATOM_DECL = 'CYB.ATOM.0042';   // Реализовать контроль доступа — P
   const ATOM_ZERO = 'CYB.ATOM.0043';   // Проверить личность — P (0)
