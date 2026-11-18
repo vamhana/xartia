@@ -360,7 +360,7 @@ export async function getCandidates(
     assessment_criteria: { status?: string };
     dimension_applicability: Record<string, { applicable?: boolean }>;
   }>(
-    `SELECT atom_id, dimension_applicability
+    `SELECT atom_id, status, assessment_criteria, dimension_applicability
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
   );
