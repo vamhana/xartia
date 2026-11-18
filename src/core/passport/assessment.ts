@@ -24,6 +24,7 @@ import { getAtomById } from './catalog.js';
 import type { Dimension, EvidenceContext, EvidenceType } from './types.js';
 import {
   isValidLevel, isDimensionApplicable, isDimensionApplicabilityResolved,
+  isAssessmentCriterionReady,
 } from './types.js';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -197,10 +198,10 @@ export async function submitAssessment(
       [{ path: 'atomId', message: `atom status is '${atom.status}', expected 'approved'` }],
     );
   }
-  if (atom.assessment_criteria.status !== 'approved') {
+  if (!isAssessmentCriterionReady(atom.assessment_criteria, input.dimension)) {
     throw new ValidationError(
-      `Assessment criteria for atom ${input.atomId} are not approved`,
-      [{ path: 'atomId', message: `criteria status is '${atom.assessment_criteria.status}', expected 'approved'` }],
+      `Assessment criteria for atom ${input.atomId} dimension ${input.dimension} are not approved and populated`,
+      [{ path: 'dimension', message: 'approved, non-empty assessment criterion is required' }],
     );
   }
   if (!isDimensionApplicabilityResolved(atom.dimension_applicability, input.dimension)) {
