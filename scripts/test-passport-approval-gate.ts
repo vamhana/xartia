@@ -62,7 +62,20 @@ async function main(): Promise<void> {
       throw new Error(`Candidate atom should be rejected with 422, got ${candidate.status}: ${JSON.stringify(candidate.data)}`);
     }
 
-    // 2. Approved atom with missing applicability decision must be rejected.
+    // 2. Approved atom with draft criteria must still be rejected.
+    await query(
+      `UPDATE competency_atoms
+          SET status = 'approved',
+              assessment_criteria = jsonb_set($2::jsonb, '{status}', '"draft"'::jsonb, true)
+        WHERE atom_id = $1`,
+      [ATOM_ID, JSON.stringify(original.assessment_criteria)],
+    );
+    const draftCriteria = await submit();
+    if (draftCriteria.status !== 422) {
+      throw new Error(`Draft criteria should be rejected with 422, got ${draftCriteria.status}: ${JSON.stringify(draftCriteria.data)}`);
+    }
+
+    // 3. Approved atom with missing applicability decision must be rejected.
     await query(
       `UPDATE competency_atoms
           SET status = 'approved',
