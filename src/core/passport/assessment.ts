@@ -23,7 +23,7 @@ import type { UUID } from '../types.js';
 import { getAtomById } from './catalog.js';
 import type { Dimension, EvidenceContext, EvidenceType } from './types.js';
 import {
-  isValidLevel, isDimensionApplicable,
+  isValidLevel, isDimensionApplicable, isDimensionApplicabilityResolved,
 } from './types.js';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -190,6 +190,24 @@ export async function submitAssessment(
   const atom = await getAtomById(input.atomId);
   if (!atom) {
     throw new ValidationError(`Atom ${input.atomId} not found`);
+  }
+  if (atom.status !== 'approved') {
+    throw new ValidationError(
+      `Atom ${input.atomId} is not approved for assessment`,
+      [{ path: 'atomId', message: `atom status is '${atom.status}', expected 'approved'` }],
+    );
+  }
+  if (atom.assessment_criteria.status !== 'approved') {
+    throw new ValidationError(
+      `Assessment criteria for atom ${input.atomId} are not approved`,
+      [{ path: 'atomId', message: `criteria status is '${atom.assessment_criteria.status}', expected 'approved'` }],
+    );
+  }
+  if (!isDimensionApplicabilityResolved(atom.dimension_applicability, input.dimension)) {
+    throw new ValidationError(
+      `Applicability for dimension ${input.dimension} of atom ${input.atomId} is unresolved`,
+      [{ path: 'dimension', message: 'explicit applicability decision is required' }],
+    );
   }
   if (!isDimensionApplicable(atom.dimension_applicability, input.dimension)) {
     throw new ValidationError(
