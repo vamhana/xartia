@@ -21,7 +21,7 @@ import {
 import type { UUID } from '../types.js';
 
 import {
-  DIMENSIONS, isDimensionApplicable,
+  DIMENSIONS, isDimensionApplicable, isDimensionApplicabilityResolved,
   type CreateMentorQuestionInput,
   type Dimension,
   type MentorQuestion,
@@ -107,6 +107,16 @@ export async function computeReadiness(
   for (const [dim, required] of Object.entries(READINESS_THRESHOLDS) as Array<
     [Dimension, number]
   >) {
+    if (!isDimensionApplicabilityResolved(applicability, dim)) {
+      requiredTotal++;
+      signals.push({
+        dimension: dim,
+        level: null,
+        required,
+        ok: false,
+      });
+      continue;
+    }
     if (!isDimensionApplicable(applicability, dim)) {continue;}
     requiredTotal++;
     const s = states.find((x) => x.dimension === dim);
