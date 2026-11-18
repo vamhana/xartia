@@ -89,7 +89,7 @@ async function main(): Promise<void> {
       throw new Error(`Unresolved applicability should be rejected with 422, got ${unresolved.status}: ${JSON.stringify(unresolved.data)}`);
     }
 
-    // 3. Explicitly applicable, but without an approved criterion for U.
+    // 4. Explicitly applicable, but without an approved criterion for U.
     await query(
       `UPDATE competency_atoms
           SET dimension_applicability = jsonb_set(dimension_applicability, '{U}', '{"applicable":true}'::jsonb, true),
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
       throw new Error(`Missing dimension criterion should be rejected with 422, got ${missingCriterion.status}: ${JSON.stringify(missingCriterion.data)}`);
     }
 
-    // 4. Explicit applicability + approved non-empty criterion permits assessment.
+    // 5. Explicit applicability + approved non-empty criterion permits assessment.
     await query(
       `UPDATE competency_atoms
           SET dimension_applicability = jsonb_set(dimension_applicability, '{U}', '{"applicable":true}'::jsonb, true),
