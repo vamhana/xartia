@@ -755,7 +755,7 @@ export interface MatchGap {
   missingDimensions: Dimension[];
   /** Критичный gap: не покрыто измерение, критичное для роли. */
   critical: boolean;
-  reason: 'missing_dimensions' | 'missing_permit';
+  reason: 'missing_dimensions' | 'missing_permit' | 'atom_not_approved' | 'criteria_not_approved' | 'applicability_unresolved';
   /**
    * При наличии 'missing_permit':
    * 'absent' (нет записи), 'expired' (истёк), 'revoked' (отозван).
@@ -1119,12 +1119,20 @@ export function isValidLevel(v: unknown): v is number {
 }
 
 /** Применимо ли измерение к атому (см. dimension_applicability). */
-export function isDimensionApplicable(
+export function isDimensionApplicabilityResolved(
   a: DimensionApplicability,
   d: Dimension,
 ): boolean {
   const entry = a[d];
-  return entry?.applicable === true;
+  return entry !== undefined && typeof entry.applicable === 'boolean';
+}
+
+/** Применимость подтверждена и равна true. Отсутствующая запись не равна false. */
+export function isDimensionApplicable(
+  a: DimensionApplicability,
+  d: Dimension,
+): boolean {
+  return isDimensionApplicabilityResolved(a, d) && a[d]!.applicable === true;
 }
 
 /**
