@@ -172,7 +172,7 @@ async function applyProfile(
         role: req.role,
         missingDimensions: [...DIMENSIONS],
         critical: true,
-        reason: 'missing_dimensions',
+        reason: 'atom_not_found',
       });
       continue;
     }
@@ -471,7 +471,7 @@ export async function getCandidates(
         atomGaps.push({
           atomId: req.atom_id, role: req.role,
           missingDimensions: [...DIMENSIONS], critical: true,
-          reason: 'missing_dimensions',
+          reason: 'atom_not_found',
         });
         continue;
       }
