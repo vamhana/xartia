@@ -8,7 +8,8 @@ import { gracefulShutdown } from '../src/lib/shutdown.js';
 import { ATOM_SEEDS } from './seed-data/atoms.js';
 
 async function main(): Promise<void> {
-  const ids = ATOM_SEEDS.map((atom) => atom.atom_id);
+  const fixtureIds = new Set(['CYB.ATOM.0042', 'CYB.ATOM.0043', 'CYB.ATOM.0009']);
+  const ids = ATOM_SEEDS.filter((atom) => fixtureIds.has(atom.atom_id)).map((atom) => atom.atom_id);
   const result = await query<{ atom_id: string }>(
     `UPDATE competency_atoms
         SET status = 'approved',
@@ -28,6 +29,9 @@ async function main(): Promise<void> {
       RETURNING atom_id`,
     [ids],
   );
+  if (ids.length !== fixtureIds.size) {
+    throw new Error(`Expected ${fixtureIds.size} declared fixture atoms, found ${ids.length}`);
+  }
   if (result.length !== ids.length) {
     throw new Error(`Expected to prepare ${ids.length} passport fixtures, updated ${result.length}`);
   }
