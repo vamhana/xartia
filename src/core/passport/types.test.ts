@@ -19,6 +19,12 @@ describe('passport approval gate primitives', () => {
     expect(isDimensionApplicable(applicability, 'P')).toBe(false);
   });
 
+  it('does not treat false applicability without a reason as a resolved decision', () => {
+    const applicability = { P: { applicable: false } };
+    expect(isDimensionApplicabilityResolved(applicability, 'P')).toBe(false);
+    expect(isDimensionApplicable(applicability, 'P')).toBe(false);
+  });
+
   it('recognizes an explicit positive applicability decision', () => {
     const applicability = { P: { applicable: true } };
     expect(isDimensionApplicabilityResolved(applicability, 'P')).toBe(true);
