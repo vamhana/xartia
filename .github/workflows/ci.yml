@@ -161,10 +161,6 @@ jobs:
           set -o pipefail
           pnpm tsx scripts/seed-passport.ts | tee /tmp/seed-passport.log
 
-      # Only the disposable CI database receives approved fixtures.
-      # Production seed data remains candidate/draft until domain approval.
-      - name: Prepare — passport approval-gate fixtures
-        run: pnpm tsx scripts/prepare-passport-test-fixtures.ts
       - name: Smoke — passport approval gate
         run: pnpm tsx scripts/test-passport-approval-gate.ts
         env:
