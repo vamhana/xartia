@@ -1,0 +1,44 @@
+// CI-only passport fixtures. Never run against a production database.
+// Pilot catalogue entries remain candidate/draft in the real seed.
+
+import 'dotenv/config';
+
+import { query } from '../src/lib/db.js';
+import { gracefulShutdown } from '../src/lib/shutdown.js';
+import { ATOM_SEEDS } from './seed-data/atoms.js';
+
+async function main(): Promise<void> {
+  const ids = ATOM_SEEDS.map((atom) => atom.atom_id);
+  const result = await query<{ atom_id: string }>(
+    `UPDATE competency_atoms
+        SET status = 'approved',
+            assessment_criteria =
+              jsonb_set(
+                COALESCE(assessment_criteria, '{}'::jsonb),
+                '{status}', '"approved"'::jsonb, true
+              )
+              || jsonb_build_object(
+                'U', COALESCE(NULLIF(assessment_criteria->>'U', ''), 'CI fixture: demonstrates understanding of the atom'),
+                'X', COALESCE(NULLIF(assessment_criteria->>'X', ''), 'CI fixture: explains the atom and its boundaries'),
+                'D', COALESCE(NULLIF(assessment_criteria->>'D', ''), 'CI fixture: designs a valid approach for the atom'),
+                'P', COALESCE(NULLIF(assessment_criteria->>'P', ''), 'CI fixture: performs the atom to the expected result'),
+                'E', COALESCE(NULLIF(assessment_criteria->>'E', ''), 'CI fixture: evaluates the result against the atom criteria')
+              )
+      WHERE atom_id = ANY($1::text[])
+      RETURNING atom_id`,
+    [ids],
+  );
+  if (result.length !== ids.length) {
+    throw new Error(`Expected to prepare ${ids.length} passport fixtures, updated ${result.length}`);
+  }
+  console.log(`Prepared ${result.length} CI-only approved passport fixtures.`);
+}
+
+main()
+  .catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await gracefulShutdown();
+  });
