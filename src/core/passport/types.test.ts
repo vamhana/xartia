@@ -4,6 +4,9 @@ import {
   isAssessmentCriterionReady,
   isDimensionApplicable,
   isDimensionApplicabilityResolved,
+  atomCountsForWidth,
+  atomCountsForDepthExecution,
+  atomCountsForDepthUnderstanding,
 } from './types.js';
 
 describe('passport approval gate primitives', () => {
@@ -29,6 +32,23 @@ describe('passport approval gate primitives', () => {
     const applicability = { P: { applicable: true } };
     expect(isDimensionApplicabilityResolved(applicability, 'P')).toBe(true);
     expect(isDimensionApplicable(applicability, 'P')).toBe(true);
+  });
+
+  it('does not count unresolved dimensions as excluded from passport width/depth', () => {
+    const states = [
+      { dimension: 'U', level: 9, status: 'confirmed' },
+      { dimension: 'X', level: 9, status: 'confirmed' },
+      { dimension: 'D', level: 9, status: 'confirmed' },
+      { dimension: 'P', level: 9, status: 'confirmed' },
+      { dimension: 'E', level: 9, status: 'confirmed' },
+    ] as const;
+    const incomplete = {
+      U: { applicable: true }, X: { applicable: true },
+      D: { applicable: true }, P: { applicable: true },
+    };
+    expect(atomCountsForWidth([...states], incomplete)).toBe(false);
+    expect(atomCountsForDepthExecution([...states], incomplete)).toBe(true);
+    expect(atomCountsForDepthUnderstanding([...states], incomplete)).toBe(false);
   });
 
   it('requires approved criteria with non-empty text for the requested dimension', () => {
