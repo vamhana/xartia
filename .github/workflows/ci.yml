@@ -43,7 +43,7 @@ jobs:
       - name: Typecheck Web
         run: pnpm typecheck:web
       - name: Unit — passport approval gate
-        run: pnpm exec vitest run src/core/passport/types.test.ts
+        run: pnpm exec vitest run --root . src/core/passport/types.test.ts
       - name: Build API (tsc)
         run: pnpm build
       - name: Build web (vite)
