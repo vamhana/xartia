@@ -195,6 +195,18 @@ export interface AssessmentCriteria {
   E?: string;
 }
 
+/** Утверждённость профиля критериев сама по себе недостаточна: критерий
+ * должен существовать для конкретного измерения и содержать текст. */
+export function isAssessmentCriterionReady(
+  criteria: AssessmentCriteria,
+  dimension: Dimension,
+): boolean {
+  const value = criteria[dimension];
+  return criteria.status === 'approved'
+    && typeof value === 'string'
+    && value.trim().length > 0;
+}
+
 export interface EvidenceContext {
   domain?: string;            // 'backend' | 'qa' | 'devops' | ...
   scale?: string;             // 'personal' | 'team' | 'critical' | ...
@@ -755,7 +767,7 @@ export interface MatchGap {
   missingDimensions: Dimension[];
   /** Критичный gap: не покрыто измерение, критичное для роли. */
   critical: boolean;
-  reason: 'missing_dimensions' | 'missing_permit';
+  reason: 'missing_dimensions' | 'missing_permit' | 'atom_not_found' | 'atom_not_approved' | 'criteria_not_approved' | 'applicability_unresolved';
   /**
    * При наличии 'missing_permit':
    * 'absent' (нет записи), 'expired' (истёк), 'revoked' (отозван).
@@ -1119,12 +1131,22 @@ export function isValidLevel(v: unknown): v is number {
 }
 
 /** Применимо ли измерение к атому (см. dimension_applicability). */
-export function isDimensionApplicable(
+export function isDimensionApplicabilityResolved(
   a: DimensionApplicability,
   d: Dimension,
 ): boolean {
   const entry = a[d];
-  return entry?.applicable === true;
+  if (!entry || typeof entry.applicable !== 'boolean') {return false;}
+  return entry.applicable
+    || (typeof entry.reason === 'string' && entry.reason.trim().length > 0);
+}
+
+/** Применимость подтверждена и равна true. Отсутствующая запись не равна false. */
+export function isDimensionApplicable(
+  a: DimensionApplicability,
+  d: Dimension,
+): boolean {
+  return isDimensionApplicabilityResolved(a, d) && a[d]!.applicable === true;
 }
 
 /**
@@ -1138,6 +1160,9 @@ export function atomCountsForWidth(
   states: PersonAtomStateRow[],
   applicability: DimensionApplicability,
 ): boolean {
+  if (!DIMENSIONS.every((d) => isDimensionApplicabilityResolved(applicability, d))) {
+    return false;
+  }
   const applicable = DIMENSIONS.filter((d) => isDimensionApplicable(applicability, d));
   if (applicable.length === 0) {return false;}
   for (const d of applicable) {
@@ -1152,7 +1177,8 @@ export function atomCountsForDepthExecution(
   states: PersonAtomStateRow[],
   applicability: DimensionApplicability,
 ): boolean {
-  if (!isDimensionApplicable(applicability, 'P')) {return false;}
+  if (!isDimensionApplicabilityResolved(applicability, 'P')
+      || !isDimensionApplicable(applicability, 'P')) {return false;}
   const s = states.find((x) => x.dimension === 'P');
   return !!s && s.status === 'confirmed' && s.level !== null && s.level >= 7;
 }
@@ -1163,6 +1189,9 @@ export function atomCountsForDepthUnderstanding(
   applicability: DimensionApplicability,
 ): boolean {
   const required: Dimension[] = ['U', 'X', 'D', 'E'];
+  if (!required.every((d) => isDimensionApplicabilityResolved(applicability, d))) {
+    return false;
+  }
   const applicable = required.filter((d) => isDimensionApplicable(applicability, d));
   if (applicable.length === 0) {return false;}
   for (const d of applicable) {

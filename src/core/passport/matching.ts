@@ -46,7 +46,8 @@ import type {
   TaskProfileRole,
 } from './types.js';
 import {
-  DIMENSIONS, isDimensionApplicable,
+  DIMENSIONS, isDimensionApplicable, isDimensionApplicabilityResolved,
+  isAssessmentCriterionReady,
 } from './types.js';
 import { recordAccess } from './visibility.js';
 
@@ -67,6 +68,8 @@ const ROLE_CRITICAL: Record<TaskProfileRole, Dimension[]> = {
 
 interface AtomApplicabilityRow {
   atom_id: string;
+  status: string;
+  assessment_criteria: { status?: string; U?: string; X?: string; D?: string; P?: string; E?: string };
   dimension_applicability: Record<string, { applicable?: boolean }>;
 }
 
@@ -100,11 +103,25 @@ async function checkRequiredAtom(
   >[0];
 
   const missingDimensions: Dimension[] = [];
+  let applicabilityUnresolved = false;
+  let criteriaUnready = false;
 
   for (const [dim, minLevel] of Object.entries(req.min) as Array<
     [Dimension, number]
   >) {
+    if (!isDimensionApplicabilityResolved(app, dim)) {
+      missingDimensions.push(dim);
+      applicabilityUnresolved = true;
+      continue;
+    }
     if (!isDimensionApplicable(app, dim)) {continue;}
+    if (!isAssessmentCriterionReady(
+      applicability.assessment_criteria as import('./types.js').AssessmentCriteria, dim,
+    )) {
+      criteriaUnready = true;
+      missingDimensions.push(dim);
+      continue;
+    }
     if (!isCovered(byDim.get(dim), minLevel)) {
       missingDimensions.push(dim);
     }
@@ -113,14 +130,17 @@ async function checkRequiredAtom(
   if (missingDimensions.length === 0) {return null;}
 
   const criticalDims = ROLE_CRITICAL[req.role];
-  const critical = missingDimensions.some((d) => criticalDims.includes(d));
+  const critical = applicabilityUnresolved || criteriaUnready
+    || missingDimensions.some((d) => criticalDims.includes(d));
 
   return {
     atomId: req.atom_id,
     role: req.role,
     missingDimensions,
     critical,
-    reason: 'missing_dimensions',
+    reason: applicabilityUnresolved
+      ? 'applicability_unresolved'
+      : criteriaUnready ? 'criteria_not_approved' : 'missing_dimensions',
   };
 }
 
@@ -135,7 +155,7 @@ async function applyProfile(
   const atomIds = profile.requiredAtoms.map((a) => a.atom_id);
 
   const atoms = await query<AtomApplicabilityRow>(
-    `SELECT atom_id, dimension_applicability
+    `SELECT atom_id, status, assessment_criteria, dimension_applicability
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
   );
@@ -152,7 +172,23 @@ async function applyProfile(
         role: req.role,
         missingDimensions: [...DIMENSIONS],
         critical: true,
-        reason: 'missing_dimensions',
+        reason: 'atom_not_found',
+      });
+      continue;
+    }
+    if (atom.status !== 'approved') {
+      gaps.push({
+        atomId: req.atom_id, role: req.role,
+        missingDimensions: Object.keys(req.min) as Dimension[],
+        critical: true, reason: 'atom_not_approved',
+      });
+      continue;
+    }
+    if (atom.assessment_criteria?.status !== 'approved') {
+      gaps.push({
+        atomId: req.atom_id, role: req.role,
+        missingDimensions: Object.keys(req.min) as Dimension[],
+        critical: true, reason: 'criteria_not_approved',
       });
       continue;
     }
@@ -321,9 +357,11 @@ export async function getCandidates(
 
   // 2. Применимость атомов — один запрос.
   const atoms = await query<{
-    atom_id: string; dimension_applicability: Record<string, { applicable?: boolean }>;
+    atom_id: string; status: string;
+    assessment_criteria: { status?: string };
+    dimension_applicability: Record<string, { applicable?: boolean }>;
   }>(
-    `SELECT atom_id, dimension_applicability
+    `SELECT atom_id, status, assessment_criteria, dimension_applicability
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
   );
@@ -433,7 +471,23 @@ export async function getCandidates(
         atomGaps.push({
           atomId: req.atom_id, role: req.role,
           missingDimensions: [...DIMENSIONS], critical: true,
-          reason: 'missing_dimensions',
+          reason: 'atom_not_found',
+        });
+        continue;
+      }
+      if (atom.status !== 'approved') {
+        atomGaps.push({
+          atomId: req.atom_id, role: req.role,
+          missingDimensions: Object.keys(req.min) as Dimension[],
+          critical: true, reason: 'atom_not_approved',
+        });
+        continue;
+      }
+      if (atom.assessment_criteria?.status !== 'approved') {
+        atomGaps.push({
+          atomId: req.atom_id, role: req.role,
+          missingDimensions: Object.keys(req.min) as Dimension[],
+          critical: true, reason: 'criteria_not_approved',
         });
         continue;
       }
@@ -442,8 +496,16 @@ export async function getCandidates(
         typeof isDimensionApplicable
       >[0];
       const missing: Dimension[] = [];
+      let applicabilityUnresolved = false;
+      let criteriaUnready = false;
       for (const [dim, min] of Object.entries(req.min) as Array<[Dimension, number]>) {
+        if (!isDimensionApplicabilityResolved(app, dim)) {
+          missing.push(dim); applicabilityUnresolved = true; continue;
+        }
         if (!isDimensionApplicable(app, dim)) {continue;}
+        if (!isAssessmentCriterionReady(atom.assessment_criteria as import('./types.js').AssessmentCriteria, dim)) {
+          missing.push(dim); criteriaUnready = true; continue;
+        }
         const st = statesMap.get(dim);
         const covered =
           st !== undefined && st.level !== null
@@ -452,11 +514,14 @@ export async function getCandidates(
         if (!covered) {missing.push(dim);}
       }
       if (missing.length > 0) {
-        const critical = missing.some((d) => ROLE_CRITICAL[req.role].includes(d));
+        const critical = applicabilityUnresolved || criteriaUnready
+          || missing.some((d) => ROLE_CRITICAL[req.role].includes(d));
         atomGaps.push({
           atomId: req.atom_id, role: req.role,
           missingDimensions: missing, critical,
-          reason: 'missing_dimensions',
+          reason: applicabilityUnresolved
+            ? 'applicability_unresolved'
+            : criteriaUnready ? 'criteria_not_approved' : 'missing_dimensions',
         });
       }
     }

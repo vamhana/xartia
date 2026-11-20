@@ -42,6 +42,8 @@ jobs:
         run: pnpm typecheck
       - name: Typecheck Web
         run: pnpm typecheck:web
+      - name: Unit — passport approval gate
+        run: pnpm exec vitest run src/core/passport/types.test.ts
       - name: Build API (tsc)
         run: pnpm build
       - name: Build web (vite)
@@ -181,6 +183,12 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-passport-v2.ts 2>&1 | tee /tmp/smoke-test-passport-v2.log
+
+      - name: Smoke — passport approval gate
+        run: pnpm tsx scripts/test-passport-approval-gate.ts
+        env:
+          TEST_ARCHITECT_PHONE: ${{ env.ARCHITECT_PHONE }}
+          TEST_ARCHITECT_PASS: ${{ env.ARCHITECT_PASSWORD }}
 
       - name: Smoke — паспорт v3
         run: |

@@ -21,9 +21,13 @@ import {
 import type { UUID } from '../types.js';
 
 import { getAtomById } from './catalog.js';
-import type { Dimension, EvidenceContext, EvidenceType } from './types.js';
+import type {
+  AtomStatus, AssessmentCriteria, Dimension, DimensionApplicability,
+  EvidenceContext, EvidenceType,
+} from './types.js';
 import {
-  isValidLevel, isDimensionApplicable,
+  isValidLevel, isDimensionApplicable, isDimensionApplicabilityResolved,
+  isAssessmentCriterionReady,
 } from './types.js';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -187,16 +191,6 @@ export async function submitAssessment(
     throw new ValidationError('level must be an integer 0..9');
   }
 
-  const atom = await getAtomById(input.atomId);
-  if (!atom) {
-    throw new ValidationError(`Atom ${input.atomId} not found`);
-  }
-  if (!isDimensionApplicable(atom.dimension_applicability, input.dimension)) {
-    throw new ValidationError(
-      `Dimension ${input.dimension} not applicable to atom ${input.atomId}`,
-    );
-  }
-
   if (!(await hasAssessorRole(assessorId))) {
     throw new ForbiddenError(
       'Only authorized assessors can create assessments',
@@ -207,6 +201,49 @@ export async function submitAssessment(
   const assessmentId = newUUID();
 
   await transaction(async (client) => {
+    // Блокируем строку каталога до завершения оценки. Любое изменение
+    // статуса/критериев/применимости дождётся commit, а мы проверяем
+    // именно ту версию данных, при которой создаётся assessment.
+    const atomResult = await client.query<{
+      status: AtomStatus;
+      assessment_criteria: AssessmentCriteria;
+      dimension_applicability: DimensionApplicability;
+      version: string;
+    }>(
+      `SELECT status, assessment_criteria, dimension_applicability, version
+         FROM competency_atoms
+        WHERE atom_id = $1
+        FOR SHARE`,
+      [input.atomId],
+    );
+    const atom = atomResult.rows[0];
+    if (!atom) {
+      throw new ValidationError(`Atom ${input.atomId} not found`);
+    }
+    if (atom.status !== 'approved') {
+      throw new ValidationError(
+        `Atom ${input.atomId} is not approved for assessment`,
+        [{ path: 'atomId', message: `atom status is '${atom.status}', expected 'approved'` }],
+      );
+    }
+    if (!isAssessmentCriterionReady(atom.assessment_criteria, input.dimension)) {
+      throw new ValidationError(
+        `Assessment criteria for atom ${input.atomId} dimension ${input.dimension} are not approved and populated`,
+        [{ path: 'dimension', message: 'approved, non-empty assessment criterion is required' }],
+      );
+    }
+    if (!isDimensionApplicabilityResolved(atom.dimension_applicability, input.dimension)) {
+      throw new ValidationError(
+        `Applicability for dimension ${input.dimension} of atom ${input.atomId} is unresolved`,
+        [{ path: 'dimension', message: 'explicit applicability decision is required' }],
+      );
+    }
+    if (!isDimensionApplicable(atom.dimension_applicability, input.dimension)) {
+      throw new ValidationError(
+        `Dimension ${input.dimension} not applicable to atom ${input.atomId}`,
+      );
+    }
+
     // Вытесняем прежние active/provisional/calibration_pending.
     // under_review/rejected/invalidated/superseded не трогаем.
     await client.query(

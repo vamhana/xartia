@@ -34,6 +34,7 @@ import type {
 import {
   DIMENSIONS,
   isDimensionApplicable,
+  isDimensionApplicabilityResolved,
   atomCountsForWidth,
   atomCountsForDepthExecution,
   atomCountsForDepthUnderstanding,
@@ -210,6 +211,14 @@ export async function getOverview(participantId: UUID): Promise<PassportOverview
     if (isDepthFull) {cluster.depthFull++;}
 
     // Статус атома (агрегат по применимым измерениям):
+    const applicabilityUnresolved = DIMENSIONS.some(
+      (d) => !isDimensionApplicabilityResolved(applicability, d),
+    );
+    if (applicabilityUnresolved) {
+      counts.calibrationPending++;
+      cluster.counts.calibrationPending++;
+      continue;
+    }
     if (applicable.length === 0) {
       counts.notApplicable++;
       cluster.counts.notApplicable++;
@@ -328,6 +337,14 @@ function buildDimensionStates(
       d,
     );
     const s = states.find((x) => x.dimension === d);
+    if (!isDimensionApplicabilityResolved(atom.dimension_applicability, d)) {
+      return {
+        dimension: d,
+        level: null,
+        status: 'calibration_pending',
+        updatedAt: s?.updated_at.toISOString() ?? new Date().toISOString(),
+      };
+    }
     if (!applicable) {
       return {
         dimension: d,

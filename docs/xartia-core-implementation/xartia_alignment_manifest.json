@@ -1,0 +1,115 @@
+{
+  "review_date": "2026-11-20",
+  "source_baseline": {
+    "repository": "vamhana/xartia",
+    "branch": "main",
+    "commit": "c03d8ce4fa5c1477adc46eb10fd297234bc03ffc",
+    "code_snapshot_sha256": "50e0f811141d3fa34c99d82a88e70998a4f03df72419c6b5ae7c3a674d770a70",
+    "id_registry_sha256": "f56080bd48936f7da21b526a7afc69c524f9787ab99d425231e6308220a093c7",
+    "main_plan_v0_5_sha256": "7c64f8e371f94880a2fa1c639e6f890a819d36113a8dd99dd88180c58f86a6da",
+    "tests_run": false,
+    "migrations_run": false,
+    "runtime_checked": false
+  },
+  "outputs": [
+    {
+      "phase": 0,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.00_phase-0-architecture-gap-audit_v0.2.md",
+      "bytes": 66199,
+      "lines": 472,
+      "sha256": "81d8d6786ffa804a3c2f3e8f2fde648bbf580d541f6a54c223e8b6679112916f"
+    },
+    {
+      "phase": 1,
+      "previous_version": "0.2",
+      "new_version": "0.3",
+      "filename": "X.0.01.41.01_phase-1-XSK-atoms-calibration-passport-eligibility_v0.3.md",
+      "bytes": 186709,
+      "lines": 1452,
+      "sha256": "e8d40c2bc95141d09c7c05d63a472220736ac0fadb210f394d384d5b9100160f"
+    },
+    {
+      "phase": 2,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.02_phase-2-shifts-temporary-rosters_v0.2.md",
+      "bytes": 107946,
+      "lines": 1002,
+      "sha256": "03cda97452cd8c1a0ee68f6991d383583bcd9d903b0954fc967ac6b5e51c21ba"
+    },
+    {
+      "phase": 3,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.03_phase-3-weekly-coordinator-mandate-and-assignment_v0.2.md",
+      "bytes": 83051,
+      "lines": 756,
+      "sha256": "c7525dcd1db13992559f51d9c20fb9f750f5e525270e618deb9e95eed6861567"
+    },
+    {
+      "phase": 4,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.04_phase-4-work-orders-participant-plans-confirmations_v0.2.md",
+      "bytes": 112032,
+      "lines": 1276,
+      "sha256": "6767756cc0c75451b85e43817ed9abfc1dab64d1bf28783d62a026aaa5c38e91"
+    },
+    {
+      "phase": 5,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.05_phase-5-shift-readiness-lifecycle-reporting_v0.2.md",
+      "bytes": 120605,
+      "lines": 984,
+      "sha256": "f419dedcae7ac28d3c1e4ba5fc54ad3c50b532759b933818f50b7d16273d4445"
+    },
+    {
+      "phase": 6,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.06_phase-6-shift-handover-responsibility_v0.2.md",
+      "bytes": 136838,
+      "lines": 1333,
+      "sha256": "acf9b63a3b0b2de28b4f00a99d20c5177d644e8f927d624f69466cb2293bc963"
+    },
+    {
+      "phase": 7,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.07_phase-7-otk-passport-potok_v0.2.md",
+      "bytes": 129892,
+      "lines": 1115,
+      "sha256": "52db2aff00f7c214d2d0f261721ae05298f80f6a577ad27353b7c1b8dfbb9aaf"
+    },
+    {
+      "phase": 8,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.08_phase-8-long-term-task-revision-decomposition-council_v0.2.md",
+      "bytes": 164125,
+      "lines": 1440,
+      "sha256": "a7d9deaf5063e74c2bf23706bd39881e338e7b5cba8d14f58c44cfb8abca66c4"
+    },
+    {
+      "phase": 9,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.09_phase-9-team-capability-temporary-configuration-assessment_v0.2.md",
+      "bytes": 164928,
+      "lines": 1920,
+      "sha256": "b348959167a87fb4c763deba8f2a88ac92aa6868a59c1105a0cde7eec5aa748a"
+    },
+    {
+      "phase": 10,
+      "previous_version": "0.1",
+      "new_version": "0.2",
+      "filename": "X.0.01.41.10_phase-10-end-to-end-integration-transition-legacy-retirement_v0.2.md",
+      "bytes": 191348,
+      "lines": 1525,
+      "sha256": "e9d8660a96780990c06d0c7ad67dadb2791a87e36f24039c032fcf64c3eaea34"
+    }
+  ]
+}

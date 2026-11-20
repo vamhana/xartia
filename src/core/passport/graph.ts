@@ -28,6 +28,7 @@ import {
   atomCountsForDepthUnderstanding,
   atomCountsForWidth,
   isDimensionApplicable,
+  isDimensionApplicabilityResolved,
 } from './types.js';
 
 export interface GraphOptions {
@@ -174,6 +175,13 @@ export async function getGraph(
 
     const dimensions: GraphNodeDimension[] = DIMENSIONS.map((d) => {
       const s = atomStates.find((x) => x.dimension === d);
+      if (!isDimensionApplicabilityResolved(applicability, d)) {
+        return {
+          dimension: d,
+          level: null,
+          status: 'calibration_pending',
+        };
+      }
       if (!isDimensionApplicable(applicability, d)) {
         return {
           dimension: d,

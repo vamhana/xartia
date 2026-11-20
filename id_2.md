@@ -37961,3 +37961,31 @@ REMOVED. Файл удалён при миграции на ESLint 9 flat config
 - При code review — сверяться с §1.10 и разделом «Ключевые инварианты».
 - Не путать ID-системы: участник (`А00001-1`), ячейка (`4×5-017-…`), задача (`СТР-…`), сигнал (`SIG-…`), план (`PLAN-…`), атом (`CYB.ATOM.NNNN`) — разные пространства.
 - При ссылках на статьи использовать формат `Кн. X, ч. Y, §Z` — не по смещению. |
+
+|X.0.01.41|DOCS|Catalog|Excel|docs/xartia-core-implementation/xartia-core-implementation-plan.md|-|v.0.0.6|Draft|-|
+
+|X.0.01.41.00|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-0-architecture-gap-audit.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.01|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-1-XSK-atoms-calibration-passport-eligibility.md|-|v.0.0.3|Draft|-|
+
+|X.0.01.41.02|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-2-shifts-temporary-rosters.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.03|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-3-weekly-coordinator-mandate-and-assignment.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.04|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-4-work-orders-participant-plans-confirmations.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.05|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-5-shift-readiness-lifecycle-reporting.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.06|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-6-shift-handover-responsibility.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.07|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-7-otk-passport-potok.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.08|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-8-long-term-task-revision-decomposition-council.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.09|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-9-team-capability-temporary-configuration-assessment.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.10|DOCS|Catalog|Excel|docs/xartia-core-implementation/phase-10-end-to-end-integration-transition-legacy-retirement.md|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.98|DOCS|Catalog|Excel|docs/xartia-core-implementation/xartia_alignment_manifest.json|-|v.0.0.2|Draft|-|
+
+|X.0.01.41.99|DOCS|Catalog|Excel|docs/xartia-core-implementation/README_alignment_v0.6.md|-|v.0.0.2|Draft|-|
