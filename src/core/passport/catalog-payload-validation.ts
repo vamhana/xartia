@@ -31,6 +31,7 @@ export const ALLOWED_CLUSTERS: readonly AtomCluster[] = [
 
 const ALLOWED_CONTENT_RATES = ['permanent', 'slow', 'medium', 'fast', 'very_fast'];
 const ALLOWED_DIMENSIONS = ['U', 'X', 'D', 'P', 'E'] as const;
+const APPLICABILITY_STATES = ['applicable', 'not_applicable', 'undetermined'] as const;
 const SEMVER_RE = /^\d+\.\d+\.\d+$/;
 const BUMP_KINDS = ['major', 'minor', 'patch'];
 
@@ -102,15 +103,40 @@ export function validateDimensionApplicability(value: unknown): void {
     if (!isPlainObject(rawEntry)) {
       throw new ValidationError(`dimension_applicability.${d} must be an object`);
     }
-    rejectUnknownKeys(rawEntry, ['applicable', 'name', 'reason'], `dimension_applicability.${d}`);
-    if (typeof rawEntry.applicable !== 'boolean') {
-      throw new ValidationError(`dimension_applicability.${d}.applicable must be boolean`);
-    }
+    rejectUnknownKeys(
+      rawEntry, ['state', 'applicable', 'name', 'reason'], `dimension_applicability.${d}`,
+    );
     if ('name' in rawEntry && typeof rawEntry.name !== 'string') {
       throw new ValidationError(`dimension_applicability.${d}.name must be string`);
     }
     if ('reason' in rawEntry && typeof rawEntry.reason !== 'string') {
       throw new ValidationError(`dimension_applicability.${d}.reason must be string`);
+    }
+    if ('state' in rawEntry && 'applicable' in rawEntry) {
+      throw new ValidationError(
+        `dimension_applicability.${d}: use either state or legacy applicable, not both`,
+      );
+    }
+    if ('state' in rawEntry) {
+      if (typeof rawEntry.state !== 'string'
+          || !(APPLICABILITY_STATES as readonly string[]).includes(rawEntry.state)) {
+        throw new ValidationError(
+          `dimension_applicability.${d}.state must be applicable|not_applicable|undetermined`,
+        );
+      }
+      if (rawEntry.state === 'not_applicable') {
+        requireNonEmptyString(
+          rawEntry.reason,
+          `dimension_applicability.${d}.reason (required when state=not_applicable)`,
+        );
+      }
+      continue;
+    }
+    // Устаревшая boolean-форма: допускается до миграции данных (этап 4b).
+    if (typeof rawEntry.applicable !== 'boolean') {
+      throw new ValidationError(
+        `dimension_applicability.${d} must have state (or legacy boolean applicable)`,
+      );
     }
     if (rawEntry.applicable === false) {
       requireNonEmptyString(

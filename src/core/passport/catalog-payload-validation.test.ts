@@ -117,11 +117,28 @@ describe('validateDimensionApplicability', () => {
     })).not.toThrow();
   });
 
+  it('accepts the canonical state format', () => {
+    expect(() => validateDimensionApplicability({
+      U: { state: 'applicable', name: 'Понимание' },
+      X: { state: 'undetermined' },
+      D: { state: 'not_applicable', reason: 'вне области' },
+    })).not.toThrow();
+  });
+
+  it('rejects an invalid state, a missing reason and mixing both formats', () => {
+    invalid(() => validateDimensionApplicability({ U: { state: 'pending_review' } }), 'state must be');
+    invalid(() => validateDimensionApplicability({ U: { state: 5 } }), 'state must be');
+    invalid(() => validateDimensionApplicability({ U: { state: 'not_applicable' } }), 'reason');
+    invalid(() => validateDimensionApplicability({ U: { state: 'not_applicable', reason: ' ' } }), 'reason');
+    invalid(() => validateDimensionApplicability({ U: { state: 'applicable', applicable: true } }), 'not both');
+    invalid(() => validateDimensionApplicability({ U: { name: 'x' } }), 'must have state');
+  });
+
   it('rejects wrong shape, unknown dimension/keys and a missing reason', () => {
     invalid(() => validateDimensionApplicability([]), 'object');
     invalid(() => validateDimensionApplicability({ Z: { applicable: true } }), 'Z invalid');
     invalid(() => validateDimensionApplicability({ U: true }), 'must be an object');
-    invalid(() => validateDimensionApplicability({ U: { applicable: 'yes' } }), 'applicable must be boolean');
+    invalid(() => validateDimensionApplicability({ U: { applicable: 'yes' } }), 'must have state');
     invalid(() => validateDimensionApplicability({ U: { applicable: true, extra: 1 } }), 'U.extra');
     invalid(() => validateDimensionApplicability({ U: { applicable: false } }), 'reason');
     invalid(() => validateDimensionApplicability({ U: { applicable: false, reason: '  ' } }), 'reason');

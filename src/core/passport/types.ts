@@ -164,10 +164,26 @@ export type ContentChangeRate =
 // Формы JSONB-полей (не валидируются в БД, валидируются в коде)
 // ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Каноническое состояние применимости измерения к атому (§4.5 фазы 1):
+ *   applicable     — измерение применимо (решение принято);
+ *   not_applicable — осознанно неприменимо, причина обязательна;
+ *   undetermined   — решение не принято / спорно. Это НЕ «неприменимо» и НЕ
+ *                    «применимо»: блокирует оценку и Matching.
+ * Отсутствующая запись по измерению тоже означает undetermined.
+ */
+export type ApplicabilityState = 'applicable' | 'not_applicable' | 'undetermined';
+
 export interface DimensionApplicabilityEntry {
-  applicable: boolean;
+  /** Каноническое состояние. Если задано, приоритетнее устаревшего `applicable`. */
+  state?: ApplicabilityState;
+  /**
+   * УСТАРЕЛО (boolean-форма до этапа 4 фазы 1): читается только для
+   * совместимости, пока данные не мигрированы. Новым записям не использовать.
+   */
+  applicable?: boolean;
   name?: string;
-  /** Обязательно, если applicable=false (см. паспорт 3.2, 5.1). */
+  /** Обязательно для not_applicable (см. паспорт 3.2, 5.1). */
   reason?: string;
 }
 
@@ -1153,23 +1169,49 @@ export function isValidLevel(v: unknown): v is number {
   return typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 9;
 }
 
-/** Применимо ли измерение к атому (см. dimension_applicability). */
-export function isDimensionApplicabilityResolved(
-  a: DimensionApplicability,
+/**
+ * Единственная точка, где raw-JSONB `dimension_applicability` превращается в
+ * каноническое состояние. Все потребители (assessment, Matching, projection,
+ * graph, teaching) обязаны ходить через неё или через helper-ы ниже.
+ *
+ * Читает ОБА формата, пока данные не мигрированы:
+ *   новый:    { state: 'applicable' | 'not_applicable' | 'undetermined', reason? }
+ *   старый:   { applicable: boolean, reason? }  — true → applicable,
+ *             false + reason → not_applicable, иначе undetermined.
+ * Если заданы оба, побеждает `state`. Мусор, отсутствующая запись и
+ * not_applicable без причины дают undetermined, а не «неприменимо».
+ */
+export function getDimensionApplicabilityState(
+  a: DimensionApplicability | null | undefined,
   d: Dimension,
-): boolean {
-  const entry = a[d];
-  if (!entry || typeof entry.applicable !== 'boolean') {return false;}
-  return entry.applicable
-    || (typeof entry.reason === 'string' && entry.reason.trim().length > 0);
+): ApplicabilityState {
+  const entry = a?.[d];
+  if (!entry || typeof entry !== 'object') {return 'undetermined';}
+  const hasReason = typeof entry.reason === 'string' && entry.reason.trim().length > 0;
+  if (entry.state !== undefined) {
+    if (entry.state === 'applicable') {return 'applicable';}
+    if (entry.state === 'not_applicable') {return hasReason ? 'not_applicable' : 'undetermined';}
+    return 'undetermined';
+  }
+  if (entry.applicable === true) {return 'applicable';}
+  if (entry.applicable === false) {return hasReason ? 'not_applicable' : 'undetermined';}
+  return 'undetermined';
 }
 
-/** Применимость подтверждена и равна true. Отсутствующая запись не равна false. */
-export function isDimensionApplicable(
-  a: DimensionApplicability,
+/** Решение по применимости принято (applicable или not_applicable). */
+export function isDimensionApplicabilityResolved(
+  a: DimensionApplicability | null | undefined,
   d: Dimension,
 ): boolean {
-  return isDimensionApplicabilityResolved(a, d) && a[d]!.applicable === true;
+  return getDimensionApplicabilityState(a, d) !== 'undetermined';
+}
+
+/** Применимость подтверждена как applicable. Отсутствующая запись не равна false. */
+export function isDimensionApplicable(
+  a: DimensionApplicability | null | undefined,
+  d: Dimension,
+): boolean {
+  return getDimensionApplicabilityState(a, d) === 'applicable';
 }
 
 /**
