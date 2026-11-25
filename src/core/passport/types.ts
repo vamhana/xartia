@@ -760,7 +760,8 @@ export type MatchGapDimensionReason =
   | 'applicability_undetermined'
   | 'assessment_criteria_invalid'
   | 'not_assessed'
-  | 'below_minimum';
+  | 'below_minimum'
+  | 'stale_or_unverified';
 
 export interface MatchGap {
   /**
@@ -785,7 +786,8 @@ export interface MatchGap {
     | 'atom_not_approved'
     | 'criteria_not_approved'
     | 'assessment_criteria_invalid'
-    | 'applicability_undetermined';
+    | 'applicability_undetermined'
+    | 'stale_or_unverified';
   /** Машинная причина по каждому не покрытому измерению (atom-gap). */
   dimensionReasons?: Partial<Record<Dimension, MatchGapDimensionReason>>;
   /**

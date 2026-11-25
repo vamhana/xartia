@@ -4,11 +4,23 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import {
-  evaluateRequiredAtom,
+  evaluateRequiredAtom as evaluateAt,
   type EvaluatorAtom,
   type EvaluatorState,
 } from './requirement-evaluator.js';
-import type { Dimension, RequiredAtom } from './types.js';
+import type { Dimension, FreshnessPolicy, RequiredAtom } from './types.js';
+
+const NOW = new Date('2026-06-01T00:00:00.000Z');
+const FRESH_AT = new Date('2026-01-15T00:00:00.000Z'); // P12M → до 2027-01-15
+const STALE_AT = new Date('2024-01-15T00:00:00.000Z'); // P12M → истекло 2025-01-15
+
+const P12M = { content_change_rate: 'medium', practice_review_policy: 'P12M' } as FreshnessPolicy;
+
+const evaluateRequiredAtom = (
+  req: RequiredAtom,
+  a: EvaluatorAtom | undefined,
+  st: ReadonlyMap<Dimension, EvaluatorState> | undefined,
+) => evaluateAt(req, a, st, NOW);
 
 const ALL_APPLICABLE = {
   U: { applicable: true },
@@ -24,12 +36,20 @@ function atom(over: Partial<EvaluatorAtom> = {}): EvaluatorAtom {
     status: 'approved',
     assessment_criteria: { status: 'approved', U: 'u', X: 'x', D: 'd', P: 'p', E: 'e' },
     dimension_applicability: ALL_APPLICABLE,
+    freshness_policy: P12M,
     ...over,
   };
 }
 
-function states(rows: Array<[Dimension, number | null, string]>): Map<Dimension, EvaluatorState> {
-  return new Map(rows.map(([dimension, level, status]) => [dimension, { dimension, level, status }]));
+function states(
+  rows: Array<[Dimension, number | null, string] | [Dimension, number | null, string, Date | null]>,
+): Map<Dimension, EvaluatorState> {
+  return new Map(
+    rows.map((r) => [
+      r[0],
+      { dimension: r[0], level: r[1], status: r[2], assessedAt: r.length === 4 ? r[3] : FRESH_AT },
+    ]),
+  );
 }
 
 const executorP5: RequiredAtom = { atom_id: 'CYB.ATOM.TEST', role: 'executor', min: { P: 5 } };
@@ -176,6 +196,80 @@ describe('evaluateRequiredAtom: coverage', () => {
   });
 });
 
+describe('evaluateRequiredAtom: freshness (stale_or_unverified)', () => {
+  it('is a NON-critical gap even for the role-critical dimension (partial, not no_match)', () => {
+    const gap = evaluateRequiredAtom(executorP5, atom(), states([['P', 9, 'confirmed', STALE_AT]]));
+    expect(gap).toMatchObject({
+      reason: 'stale_or_unverified',
+      critical: false,
+      missingDimensions: ['P'],
+      dimensionReasons: { P: 'stale_or_unverified' },
+    });
+  });
+
+  it('accepts a fresh confirmation', () => {
+    expect(evaluateRequiredAtom(executorP5, atom(), states([['P', 9, 'confirmed', FRESH_AT]]))).toBeNull();
+  });
+
+  it('treats to_calibrate and a missing policy as unverified, not fresh', () => {
+    const toCalibrate = { content_change_rate: 'medium', practice_review_policy: 'to_calibrate' } as FreshnessPolicy;
+    for (const freshness_policy of [toCalibrate, null, undefined]) {
+      const gap = evaluateRequiredAtom(
+        executorP5,
+        atom({ freshness_policy }),
+        states([['P', 9, 'confirmed', FRESH_AT]]),
+      );
+      expect(gap, String(freshness_policy?.practice_review_policy)).toMatchObject({
+        reason: 'stale_or_unverified',
+        critical: false,
+      });
+    }
+  });
+
+  it('treats a covering level without an active assessment date as unverified', () => {
+    const gap = evaluateRequiredAtom(executorP5, atom(), states([['P', 9, 'confirmed', null]]));
+    expect(gap).toMatchObject({ reason: 'stale_or_unverified', dimensionReasons: { P: 'stale_or_unverified' } });
+  });
+
+  it('checks freshness only after the level covers: below_minimum wins over stale', () => {
+    const gap = evaluateRequiredAtom(executorP5, atom(), states([['P', 2, 'confirmed', STALE_AT]]));
+    expect(gap).toMatchObject({ reason: 'missing_dimensions', critical: true, dimensionReasons: { P: 'below_minimum' } });
+  });
+
+  it('does not let staleness hide a genuinely critical gap in another dimension', () => {
+    const req: RequiredAtom = { atom_id: 'CYB.ATOM.TEST', role: 'executor', min: { P: 5, U: 5 } };
+    const gap = evaluateRequiredAtom(
+      req,
+      atom(),
+      states([['P', 2, 'confirmed', FRESH_AT], ['U', 9, 'confirmed', STALE_AT]]),
+    );
+    expect(gap).toMatchObject({
+      reason: 'missing_dimensions',
+      critical: true,
+      dimensionReasons: { P: 'below_minimum', U: 'stale_or_unverified' },
+    });
+  });
+
+  it('keeps applicability_undetermined as the top-level reason when mixed with stale', () => {
+    const req: RequiredAtom = { atom_id: 'CYB.ATOM.TEST', role: 'executor', min: { U: 5, P: 5 } };
+    const gap = evaluateRequiredAtom(
+      req,
+      atom({ dimension_applicability: { ...ALL_APPLICABLE, U: undefined } as EvaluatorAtom['dimension_applicability'] }),
+      states([['P', 9, 'confirmed', STALE_AT]]),
+    );
+    expect(gap).toMatchObject({ reason: 'applicability_undetermined', critical: true });
+  });
+
+  it('never evaluates freshness for dimensions explicitly not applicable', () => {
+    const gap = evaluateRequiredAtom(
+      executorP5,
+      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { applicable: false, reason: 'outside scope' } } }),
+      states([['P', 9, 'confirmed', STALE_AT]]),
+    );
+    expect(gap).toBeNull();
+  });
+});
+
 describe('matching.ts must not re-implement requirement rules (§4.8)', () => {
   const source = readFileSync(fileURLToPath(new URL('./matching.ts', import.meta.url)), 'utf8');
 
@@ -188,6 +282,7 @@ describe('matching.ts must not re-implement requirement rules (§4.8)', () => {
       'isDimensionApplicable',
       'isDimensionApplicabilityResolved',
       'isAssessmentCriterionReady',
+      'evaluateFreshness',
       "'atom_not_approved'",
       "'criteria_not_approved'",
     ]) {

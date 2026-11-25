@@ -20,7 +20,8 @@
 // загрузка данных, permit-gap, агрегация статуса и сортировка.
 // «Покрыто» = level >= min[dim] И status ∈ {confirmed, provisional};
 // неприменимые (решено явно) измерения не проверяем, а нерешённая
-// применимость — критичный gap `applicability_undetermined`.
+// применимость — критичный gap `applicability_undetermined`. Покрытое по уровню,
+// но не свежее подтверждение даёт НЕкритичный gap `stale_or_unverified` (partial).
 //
 // access_log: пополняется при чтении чужого паспорта (matching / candidates).
 //
@@ -57,6 +58,24 @@ import { recordAccess } from './visibility.js';
 // Проверка профиля для одного участника (правила — в requirement-evaluator)
 // ─────────────────────────────────────────────────────────────────────
 
+/** Строка person_atom_states + дата активной оценки (подзапрос assessed_at). */
+interface StateWithDateRow {
+  atom_id: string;
+  dimension: Dimension;
+  level: number | null;
+  status: string;
+  assessed_at: Date | null;
+}
+
+function toEvaluatorState(r: StateWithDateRow): EvaluatorState {
+  return {
+    dimension: r.dimension,
+    level: r.level,
+    status: r.status,
+    assessedAt: r.assessed_at,
+  };
+}
+
 async function applyProfile(
   participantId: UUID,
   profile: TaskProfile,
@@ -64,23 +83,30 @@ async function applyProfile(
   const atomIds = profile.requiredAtoms.map((a) => a.atom_id);
 
   const atoms = await query<EvaluatorAtom>(
-    `SELECT atom_id, status, assessment_criteria, dimension_applicability
+    `SELECT atom_id, status, assessment_criteria, dimension_applicability,
+            freshness_policy
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
   );
   const atomsById = new Map(atoms.map((a) => [a.atom_id, a]));
 
-  const stateRows = await query<EvaluatorState & { atom_id: string }>(
-    `SELECT atom_id, dimension, level, status
-       FROM person_atom_states
-      WHERE participant_id = $1 AND atom_id = ANY($2::text[])`,
+  const stateRows = await query<StateWithDateRow>(
+    `SELECT s.atom_id, s.dimension, s.level, s.status,
+            (SELECT max(a.created_at) FROM passport_assessments a
+              WHERE a.participant_id = s.participant_id
+                AND a.atom_id = s.atom_id
+                AND a.dimension = s.dimension
+                AND a.status = 'active') AS assessed_at
+       FROM person_atom_states s
+      WHERE s.participant_id = $1 AND s.atom_id = ANY($2::text[])`,
     [participantId, atomIds],
   );
+  const now = new Date();
   const statesByAtom = new Map<string, Map<Dimension, EvaluatorState>>();
   for (const r of stateRows) {
     let m = statesByAtom.get(r.atom_id);
     if (!m) { m = new Map(); statesByAtom.set(r.atom_id, m); }
-    m.set(r.dimension, { dimension: r.dimension, level: r.level, status: r.status });
+    m.set(r.dimension, toEvaluatorState(r));
   }
 
   const gaps: MatchGap[] = [];
@@ -89,6 +115,7 @@ async function applyProfile(
       req,
       atomsById.get(req.atom_id),
       statesByAtom.get(req.atom_id),
+      now,
     );
     if (gap) {gaps.push(gap);}
   }
@@ -254,24 +281,25 @@ export async function getCandidates(
 
   // 2. Применимость атомов — один запрос.
   const atoms = await query<EvaluatorAtom>(
-    `SELECT atom_id, status, assessment_criteria, dimension_applicability
+    `SELECT atom_id, status, assessment_criteria, dimension_applicability,
+            freshness_policy
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
   );
   const atomsById = new Map(atoms.map((a) => [a.atom_id, a]));
+  const now = new Date();
 
   // 3. Все состояния для (participants × atoms) — один запрос.
-  const states = await query<{
-    participant_id: string;
-    atom_id: string;
-    dimension: Dimension;
-    level: number | null;
-    status: string;
-  }>(
-    `SELECT participant_id, atom_id, dimension, level, status
-       FROM person_atom_states
-      WHERE participant_id = ANY($1::uuid[])
-        AND atom_id = ANY($2::text[])`,
+  const states = await query<StateWithDateRow & { participant_id: string }>(
+    `SELECT s.participant_id, s.atom_id, s.dimension, s.level, s.status,
+            (SELECT max(a.created_at) FROM passport_assessments a
+              WHERE a.participant_id = s.participant_id
+                AND a.atom_id = s.atom_id
+                AND a.dimension = s.dimension
+                AND a.status = 'active') AS assessed_at
+       FROM person_atom_states s
+      WHERE s.participant_id = ANY($1::uuid[])
+        AND s.atom_id = ANY($2::text[])`,
     [participantIds, atomIds],
   );
   const statesByKey = new Map<string, Map<Dimension, EvaluatorState>>();
@@ -279,7 +307,7 @@ export async function getCandidates(
     const key = `${s.participant_id}|${s.atom_id}`;
     let m = statesByKey.get(key);
     if (!m) { m = new Map(); statesByKey.set(key, m); }
-    m.set(s.dimension, { dimension: s.dimension, level: s.level, status: s.status });
+    m.set(s.dimension, toEvaluatorState(s));
   }
 
   // 4. Permits — один запрос на всех.
@@ -363,6 +391,7 @@ export async function getCandidates(
         req,
         atomsById.get(req.atom_id),
         statesByKey.get(`${p.id}|${req.atom_id}`),
+        now,
       );
       if (gap) {atomGaps.push(gap);}
     }

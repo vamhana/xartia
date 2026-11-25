@@ -15,6 +15,8 @@
 //        нет текста критерия для измерения          → assessment_criteria_invalid
 //        нет подтверждённого уровня                 → not_assessed
 //        уровень ниже минимума                      → below_minimum
+//        уровень покрывает, но подтверждение не свежее
+//          (stale, to_calibrate, нет политики/даты)  → stale_or_unverified
 //
 // Верхнеуровневый `reason` сохраняет совместимость со старым контрактом
 // (missing_dimensions для not_assessed/below_minimum); точные причины по
@@ -23,14 +25,18 @@
 // «Покрыто» = level не null И status ∈ {confirmed, provisional} И level >= min.
 // Уровень 0 — это измеренный ноль, а не отсутствие оценки.
 //
-// Свежесть (stale_or_unverified) здесь пока не учитывается: добавляется
-// отдельным шагом, т.к. требует данных об активных оценках и решения о том,
-// блокирует ли stale назначение.
+// Свежесть: stale — метка, а не понижение уровня (§7.5). Поэтому
+// `stale_or_unverified` — НЕКРИТИЧНЫЙ gap даже для критичного измерения роли:
+// статус становится partial (назначение возможно только через override с
+// обоснованием), а не no_match. Свежесть проверяется лишь для измерений,
+// которые уже покрыты по уровню: below_minimum / not_assessed сильнее.
 
+import { evaluateFreshness } from './freshness-policy.js';
 import type {
   AssessmentCriteria,
   Dimension,
   DimensionApplicability,
+  FreshnessPolicy,
   MatchGap,
   MatchGapDimensionReason,
   RequiredAtom,
@@ -56,6 +62,7 @@ export interface EvaluatorAtom {
   status: string;
   assessment_criteria: AssessmentCriteria | null | undefined;
   dimension_applicability: DimensionApplicability | null | undefined;
+  freshness_policy: FreshnessPolicy | null | undefined;
 }
 
 /** Состояние участника по одному измерению атома. */
@@ -63,6 +70,8 @@ export interface EvaluatorState {
   dimension: Dimension;
   level: number | null;
   status: string;
+  /** Дата активной (active) оценки, на которой держится уровень; null — её нет. */
+  assessedAt: Date | null;
 }
 
 const COVERING_STATUSES: ReadonlySet<string> = new Set(['confirmed', 'provisional']);
@@ -81,6 +90,7 @@ export function evaluateRequiredAtom(
   req: RequiredAtom,
   atom: EvaluatorAtom | undefined,
   states: ReadonlyMap<Dimension, EvaluatorState> | undefined,
+  now: Date,
 ): MatchGap | null {
   const requiredDims = Object.keys(req.min) as Dimension[];
 
@@ -144,6 +154,14 @@ export function evaluateRequiredAtom(
     if (state.level < min) {
       missing.push(dim);
       dimensionReasons[dim] = 'below_minimum';
+      continue;
+    }
+    // Уровень покрывает — проверяем, что подтверждение свежее.
+    const fresh = state.assessedAt !== null
+      && evaluateFreshness(atom.freshness_policy, state.assessedAt, now).state === 'fresh';
+    if (!fresh) {
+      missing.push(dim);
+      dimensionReasons[dim] = 'stale_or_unverified';
     }
   }
 
@@ -155,15 +173,23 @@ export function evaluateRequiredAtom(
   const undetermined = reasons.includes('applicability_undetermined');
   const invalid = reasons.includes('assessment_criteria_invalid');
   const roleCritical = ROLE_CRITICAL[req.role];
+  // stale_or_unverified не делает gap критичным, даже для критичной роли.
+  const criticalMissing = missing.some(
+    (d) => roleCritical.includes(d) && dimensionReasons[d] !== 'stale_or_unverified',
+  );
 
   return {
     atomId: req.atom_id,
     role: req.role,
     missingDimensions: missing,
-    critical: undetermined || invalid || missing.some((d) => roleCritical.includes(d)),
+    critical: undetermined || invalid || criticalMissing,
     reason: undetermined
       ? 'applicability_undetermined'
-      : invalid ? 'assessment_criteria_invalid' : 'missing_dimensions',
+      : invalid
+        ? 'assessment_criteria_invalid'
+        : reasons.every((r) => r === 'stale_or_unverified')
+          ? 'stale_or_unverified'
+          : 'missing_dimensions',
     dimensionReasons,
   };
 }
