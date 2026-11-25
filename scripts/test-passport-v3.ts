@@ -31,6 +31,8 @@ import {
   submitAssessment,
   submitEvidence,
   createPath,
+  createTask,
+  createTaskProfile,
   getMe,
   backdateAssessment,
 } from './lib/passport-fixtures.js';
@@ -415,6 +417,78 @@ async function main(): Promise<void> {
     } else {
       fail('8c. stale does not demote level', { u });
     }
+  }
+
+  // ─── 8d–8g. Фаза 1, этап 2b: просроченное подтверждение в Matching ──
+  // stale_or_unverified — НЕкритичный gap: статус partial (не no_match), даже
+  // для критичного измерения роли; matchTask и getCandidates обязаны совпадать.
+  {
+    type MatchRes = {
+      status?: string;
+      gaps?: Array<{
+        reason: string;
+        critical: boolean;
+        dimensionReasons?: Record<string, string>;
+      }>;
+    };
+    type CandidatesRes = { data?: Array<{ participantId: string; status: string }> };
+
+    // Отдельный субъект, чтобы не зависеть от состояния секций выше.
+    const staleSubj = await ensureActor(admin.token, { name: 'v3 stale-match subject' });
+    const staleAs = await submitAssessment(
+      assessor.token, staleSubj.id, 'CYB.ATOM.0009', 'U', 5, 'exam',
+    );
+    await backdateAssessment(staleAs, 13); // политика атома 0009 — P12M
+
+    const taskId = await createTask(admin.token, 'v3 stale matching');
+    const prof = await createTaskProfile(admin.token, taskId, [
+      // consultant: U критично, но stale всё равно не должен давать no_match.
+      { atom_id: 'CYB.ATOM.0009', role: 'consultant', min: { U: 3 } },
+    ]);
+    expectEq('8d. task profile created', prof.status, 201);
+
+    const matchingUrl = `/passport/tasks/${taskId}/matching?participantId=${staleSubj.id}`;
+    const candidatesUrl = `/passport/tasks/${taskId}/candidates?limit=100`;
+
+    const m1 = await request<MatchRes>('GET', matchingUrl, undefined, admin.token);
+    const g1 = m1.data?.gaps?.[0];
+    if (
+      m1.status === 200
+      && m1.data?.status === 'partial'
+      && m1.data.gaps?.length === 1
+      && g1?.reason === 'stale_or_unverified'
+      && g1.critical === false
+      && g1.dimensionReasons?.['U'] === 'stale_or_unverified'
+    ) {
+      pass('8e. matchTask: stale → partial / stale_or_unverified (non-critical)');
+    } else {
+      fail('8e. matchTask: stale → partial / stale_or_unverified (non-critical)', {
+        status: m1.status, data: m1.data,
+      });
+    }
+
+    const c1 = await request<CandidatesRes>('GET', candidatesUrl, undefined, admin.token);
+    expectEq(
+      '8f. getCandidates agrees with matchTask (partial)',
+      c1.data?.data?.find((c) => c.participantId === staleSubj.id)?.status ?? 'absent',
+      'partial',
+    );
+
+    // Свежая оценка вытесняет старую → match, и оба пути снова совпадают.
+    await submitAssessment(assessor.token, staleSubj.id, 'CYB.ATOM.0009', 'U', 5, 'exam');
+
+    const m2 = await request<MatchRes>('GET', matchingUrl, undefined, admin.token);
+    if (m2.status === 200 && m2.data?.status === 'match' && (m2.data.gaps?.length ?? 0) === 0) {
+      pass('8g. matchTask: fresh re-assessment → match');
+    } else {
+      fail('8g. matchTask: fresh re-assessment → match', { status: m2.status, data: m2.data });
+    }
+    const c2 = await request<CandidatesRes>('GET', candidatesUrl, undefined, admin.token);
+    expectEq(
+      '8h. getCandidates agrees with matchTask (match)',
+      c2.data?.data?.find((c) => c.participantId === staleSubj.id)?.status ?? 'absent',
+      'match',
+    );
   }
 
   // ─── 9. P1: reuse (шаг 8) ───────────────────────────────────────────
