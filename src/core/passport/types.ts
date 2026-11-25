@@ -755,6 +755,14 @@ export interface DirectionRef {
 
 export type MatchStatus = 'match' | 'partial' | 'no_match';
 
+/** Причина, по которой конкретное измерение атома не покрыто. */
+export type MatchGapDimensionReason =
+  | 'applicability_undetermined'
+  | 'assessment_criteria_invalid'
+  | 'not_assessed'
+  | 'below_minimum'
+  | 'stale_or_unverified';
+
 export interface MatchGap {
   /**
    * null — permit-gap (не привязан к атому). Строка — atom-gap.
@@ -767,7 +775,21 @@ export interface MatchGap {
   missingDimensions: Dimension[];
   /** Критичный gap: не покрыто измерение, критичное для роли. */
   critical: boolean;
-  reason: 'missing_dimensions' | 'missing_permit' | 'atom_not_found' | 'atom_not_approved' | 'criteria_not_approved' | 'applicability_unresolved';
+  /**
+   * Верхнеуровневая причина (совместимость со старым контрактом).
+   * Точные причины по измерениям — в `dimensionReasons`.
+   */
+  reason:
+    | 'missing_dimensions'
+    | 'missing_permit'
+    | 'atom_not_found'
+    | 'atom_not_approved'
+    | 'criteria_not_approved'
+    | 'assessment_criteria_invalid'
+    | 'applicability_undetermined'
+    | 'stale_or_unverified';
+  /** Машинная причина по каждому не покрытому измерению (atom-gap). */
+  dimensionReasons?: Partial<Record<Dimension, MatchGapDimensionReason>>;
   /**
    * При наличии 'missing_permit':
    * 'absent' (нет записи), 'expired' (истёк), 'revoked' (отозван).
