@@ -269,6 +269,42 @@ async function main(): Promise<void> {
     }
   }
 
+  // ─── 8. Фаза 1, этап 3: строгая валидация payload (ничего не создаётся) ──
+  {
+    const base = (): Record<string, unknown> => ({
+      cluster: 'requirements_and_computational_thinking',
+      name: 'v4 strict-validation atom',
+      definition: 'test',
+      boundary_includes: [],
+      boundary_excludes: [],
+      assessment_criteria: { status: 'draft' },
+      assessment_methods: [],
+      dimension_applicability: { U: { applicable: true } },
+      freshness_policy: { content_change_rate: 'slow', practice_review_policy: 'P24M' },
+      version: '0.1.0',
+    });
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ['8a. new_atom с approved-критериями → 422', { ...base(), assessment_criteria: { status: 'approved' } }],
+      ['8b. practice_review_policy P1Y → 422', {
+        ...base(),
+        freshness_policy: { content_change_rate: 'slow', practice_review_policy: 'P1Y' },
+      }],
+      ['8c. неизвестное поле payload.status → 422', { ...base(), status: 'approved' }],
+      ['8d. неизвестный ключ в assessment_criteria → 422', {
+        ...base(), assessment_criteria: { status: 'draft', Z: 'x' },
+      }],
+      ['8e. version не semver → 422', { ...base(), version: '0.1' }],
+    ];
+    for (const [label, payload] of cases) {
+      const r = await createCatalogProposal(admin.token, 'new_atom', payload);
+      expectEq(label, r.status, 422);
+    }
+    const u = await createCatalogProposal(
+      admin.token, 'update_atom', { name: {} }, 'CYB.ATOM.0001',
+    );
+    expectEq('8f. update_atom с name не строкой → 422', u.status, 422);
+  }
+
   console.log('');
   if (failed > 0) {
     console.error(`FAILED: ${failed}`);

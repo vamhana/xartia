@@ -25,6 +25,34 @@ export type FreshnessState =
   | { state: 'unverified'; policy: string | null; reason: FreshnessUnverifiedReason };
 
 const PERIOD_RE = /^P(\d+)M$/;
+const TO_CALIBRATE = 'to_calibrate';
+const PROBE_DATE = new Date(Date.UTC(2026, 0, 1));
+
+/** Длина периода в месяцах для `P<n>M` (n — целое > 0); иначе null. */
+export function parseReviewPeriodMonths(policy: string): number | null {
+  const match = PERIOD_RE.exec(policy);
+  if (!match) {
+    return null;
+  }
+  const months = Number(match[1]);
+  return Number.isSafeInteger(months) && months > 0 ? months : null;
+}
+
+/**
+ * Политику понимает движок свежести: `to_calibrate` либо `P<n>M`, при этом
+ * период не должен выходить за диапазон Date. Единственный источник грамматики
+ * для evaluateFreshness и валидации каталожных предложений.
+ */
+export function isSupportedPracticeReviewPolicy(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  if (value === TO_CALIBRATE) {
+    return true;
+  }
+  const months = parseReviewPeriodMonths(value);
+  return months !== null && !Number.isNaN(addCalendarMonthsUTC(PROBE_DATE, months).getTime());
+}
 
 /** Прибавляет календарные месяцы в UTC с обрезкой по концу месяца. */
 export function addCalendarMonthsUTC(date: Date, months: number): Date {
@@ -61,12 +89,11 @@ export function evaluateFreshness(
   if (typeof raw !== 'string') {
     return { state: 'unverified', policy: null, reason: 'invalid_policy' };
   }
-  if (raw === 'to_calibrate') {
+  if (raw === TO_CALIBRATE) {
     return { state: 'unverified', policy: raw, reason: 'to_calibrate' };
   }
-  const match = PERIOD_RE.exec(raw);
-  const months = match ? Number(match[1]) : Number.NaN;
-  if (!Number.isSafeInteger(months) || months <= 0) {
+  const months = parseReviewPeriodMonths(raw);
+  if (months === null) {
     return { state: 'unverified', policy: raw, reason: 'invalid_policy' };
   }
   const until = addCalendarMonthsUTC(assessedAt, months);

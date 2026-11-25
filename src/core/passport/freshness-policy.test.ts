@@ -4,6 +4,8 @@ import {
   addCalendarMonthsUTC,
   computeStaleUntil,
   evaluateFreshness,
+  isSupportedPracticeReviewPolicy,
+  parseReviewPeriodMonths,
 } from './freshness-policy.js';
 import type { FreshnessPolicy } from './types.js';
 
@@ -112,5 +114,33 @@ describe('computeStaleUntil (legacy contract)', () => {
       .toEqual({ staleSince: null, policy: 'to_calibrate' });
     expect(computeStaleUntil(undefined, assessed))
       .toEqual({ staleSince: null, policy: 'to_calibrate' });
+  });
+});
+
+describe('review policy grammar (single source for engine and validation)', () => {
+  it('parses P<n>M to a positive integer month count', () => {
+    expect(parseReviewPeriodMonths('P12M')).toBe(12);
+    expect(parseReviewPeriodMonths('P120M')).toBe(120);
+    for (const bad of ['P0M', 'P1Y', 'to_calibrate', 'p12m', 'P12', '', ' P12M', 'P1.5M', 'P99999999999999999999M']) {
+      expect(parseReviewPeriodMonths(bad), bad).toBeNull();
+    }
+  });
+
+  it('supports exactly to_calibrate and P<n>M within the Date range', () => {
+    for (const ok of ['to_calibrate', 'P3M', 'P6M', 'P12M', 'P24M', 'P120M']) {
+      expect(isSupportedPracticeReviewPolicy(ok), ok).toBe(true);
+    }
+    for (const bad of ['P1Y', 'P0M', 'banana', '', 'P999999999999M', 12, null, undefined, {}]) {
+      expect(isSupportedPracticeReviewPolicy(bad), String(bad)).toBe(false);
+    }
+  });
+
+  it('never accepts a policy that evaluateFreshness reports as invalid', () => {
+    const assessed = d('2024-03-15T00:00:00.000Z');
+    for (const p of ['to_calibrate', 'P3M', 'P12M', 'P24M', 'P1Y', 'P0M', 'banana', 'P999999999999M']) {
+      const f = evaluateFreshness(policy(p), assessed, d('2030-01-01T00:00:00.000Z'));
+      const invalidForEngine = f.state === 'unverified' && f.reason === 'invalid_policy';
+      expect(isSupportedPracticeReviewPolicy(p), p).toBe(!invalidForEngine);
+    }
   });
 });

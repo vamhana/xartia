@@ -26,8 +26,12 @@ import {
 } from '../errors.js';
 import type { UUID } from '../types.js';
 
+import {
+  validateDeprecateAtomPayload,
+  validateNewAtomPayload,
+  validateUpdateAtomPayload,
+} from './catalog-payload-validation.js';
 import type {
-  AtomCluster,
   CatalogProposal,
   CatalogProposalRow,
   CatalogProposalStatus,
@@ -36,18 +40,6 @@ import type {
 
 const REVIEWER_ROLES = ['FIRST_ARCHITECT', 'COUNCIL_MEMBER'] as const;
 
-const ALLOWED_CLUSTERS: readonly AtomCluster[] = [
-  'requirements_and_computational_thinking',
-  'software_development',
-  'data_and_databases',
-  'server_interfaces_and_api',
-  'testing_and_quality',
-  'software_security',
-  'infrastructure_and_operations',
-];
-
-const ALLOWED_CONTENT_RATES = ['permanent', 'slow', 'medium', 'fast', 'very_fast'];
-const ALLOWED_DIMENSIONS = ['U', 'X', 'D', 'P', 'E'];
 const ATOM_ID_RE = /^CYB\.ATOM\.\d{4}$/;
 
 // ─────────────────────────────────────────────────────────────────────
@@ -82,115 +74,6 @@ async function atomExists(atomId: string): Promise<boolean> {
 // ─────────────────────────────────────────────────────────────────────
 // Валидация payload
 // ─────────────────────────────────────────────────────────────────────
-
-function validateDimensionApplicability(value: unknown): void {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new ValidationError('dimension_applicability must be object');
-  }
-  const entries = value as Record<string, unknown>;
-  for (const [d, rawEntry] of Object.entries(entries)) {
-    if (!ALLOWED_DIMENSIONS.includes(d)) {
-      throw new ValidationError(`dimension_applicability.${d} invalid`);
-    }
-    if (typeof rawEntry !== 'object' || rawEntry === null || Array.isArray(rawEntry)) {
-      throw new ValidationError(`dimension_applicability.${d} must be an object`);
-    }
-    const entry = rawEntry as Record<string, unknown>;
-    if (typeof entry.applicable !== 'boolean') {
-      throw new ValidationError(`dimension_applicability.${d}.applicable must be boolean`);
-    }
-    if (entry.applicable === false &&
-        (typeof entry.reason !== 'string' || !entry.reason.trim())) {
-      throw new ValidationError(
-        `dimension_applicability.${d}.reason is required when applicable=false`,
-      );
-    }
-  }
-}
-
-function validateFreshnessPolicy(value: unknown): void {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new ValidationError('freshness_policy must be object');
-  }
-  const v = value as Record<string, unknown>;
-  if (typeof v.content_change_rate !== 'string' ||
-      !ALLOWED_CONTENT_RATES.includes(v.content_change_rate)) {
-    throw new ValidationError(
-      'freshness_policy.content_change_rate must be permanent|slow|medium|fast|very_fast',
-    );
-  }
-  if (typeof v.practice_review_policy !== 'string' || !v.practice_review_policy) {
-    throw new ValidationError(
-      'freshness_policy.practice_review_policy must be non-empty string',
-    );
-  }
-}
-
-function validateNewAtomPayload(payload: Record<string, unknown>): void {
-  const required = [
-    'cluster', 'name', 'definition',
-    'boundary_includes', 'boundary_excludes',
-    'assessment_criteria', 'assessment_methods',
-    'dimension_applicability', 'freshness_policy', 'version',
-  ];
-  for (const f of required) {
-    if (!(f in payload)) {
-      throw new ValidationError(`new_atom payload missing required field: ${f}`);
-    }
-  }
-  if (typeof payload.name !== 'string' || !payload.name.trim()) {
-    throw new ValidationError('name must be non-empty string');
-  }
-  if (typeof payload.definition !== 'string' || !payload.definition.trim()) {
-    throw new ValidationError('definition must be non-empty string');
-  }
-  if (!Array.isArray(payload.boundary_includes)) {
-    throw new ValidationError('boundary_includes must be array');
-  }
-  if (!Array.isArray(payload.boundary_excludes)) {
-    throw new ValidationError('boundary_excludes must be array');
-  }
-  if (!Array.isArray(payload.assessment_methods)) {
-    throw new ValidationError('assessment_methods must be array');
-  }
-  if (typeof payload.cluster !== 'string' ||
-      !ALLOWED_CLUSTERS.includes(payload.cluster as AtomCluster)) {
-    throw new ValidationError(`cluster must be one of ${ALLOWED_CLUSTERS.join('|')}`);
-  }
-  if (typeof payload.assessment_criteria !== 'object' || payload.assessment_criteria === null) {
-    throw new ValidationError('assessment_criteria must be object');
-  }
-  validateDimensionApplicability(payload.dimension_applicability);
-  validateFreshnessPolicy(payload.freshness_policy);
-  if (typeof payload.version !== 'string' || !payload.version) {
-    throw new ValidationError('version must be non-empty string');
-  }
-}
-
-function validateUpdateAtomPayload(payload: Record<string, unknown>): void {
-  const allowed = [
-    'name', 'definition', 'boundary_includes', 'boundary_excludes',
-    'context', 'input', 'outcome',
-    'assessment_criteria', 'assessment_methods',
-    'dimension_applicability', 'freshness_policy',
-  ];
-  const present = allowed.filter((f) => f in payload);
-  if (present.length === 0) {
-    throw new ValidationError('update_atom payload must change at least one field');
-  }
-  if ('dimension_applicability' in payload) {
-    validateDimensionApplicability(payload.dimension_applicability);
-  }
-  if ('freshness_policy' in payload) {
-    validateFreshnessPolicy(payload.freshness_policy);
-  }
-}
-
-function validateDeprecateAtomPayload(payload: Record<string, unknown>): void {
-  if (typeof payload.reason !== 'string' || !payload.reason.trim()) {
-    throw new ValidationError('deprecate_atom payload.reason must be non-empty string');
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────
 // Маппинг
@@ -516,6 +399,7 @@ export async function mergeProposal(
 
     if (row.proposal_type === 'new_atom') {
       const p = row.payload;
+      validateNewAtomPayload(p); // payload мог быть создан до ужесточения правил
       newAtomId = await nextAtomId(client);
 
       await client.query(
@@ -559,6 +443,7 @@ export async function mergeProposal(
       const newVersion = bumpVersion(currentVersion, bumpKind);
 
       const p = row.payload;
+      validateUpdateAtomPayload(p); // payload мог быть создан до ужесточения правил
       await client.query(
         `UPDATE competency_atoms SET
            name = COALESCE($2, name),
@@ -595,6 +480,7 @@ export async function mergeProposal(
       if (!row.atom_id) {
         throw new ValidationError('deprecate_atom: atom_id missing in proposal');
       }
+      validateDeprecateAtomPayload(row.payload);
       await client.query(
         `UPDATE competency_atoms
             SET status = 'deprecated', updated_at = now()

@@ -179,7 +179,8 @@ export interface FreshnessPolicy {
   content_change_rate: ContentChangeRate;
   /**
    * Правило/срок переподтверждения практики.
-   * В Фазе 1: строка 'to_calibrate' либо ISO-8601 duration, либо имя правила.
+   * Поддерживается ровно 'to_calibrate' либо 'P<n>M' (n >= 1 календарных
+   * месяцев, UTC); см. freshness-policy.ts (isSupportedPracticeReviewPolicy).
    */
   practice_review_policy: string;
 }
