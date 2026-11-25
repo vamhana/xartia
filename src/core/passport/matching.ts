@@ -15,9 +15,12 @@
 //   partial   — есть gaps, но все в не-критичных dimension;
 //   no_match  — есть хотя бы один критичный gap.
 //
-// «Покрыто» = для каждой применяемой dimension атома:
-//   level >= min[dim] И status ∈ {confirmed, provisional}.
-// Если dimension_applicability[dim].applicable = false, измерение не проверяем.
+// Правила проверки одного required_atom живут в requirement-evaluator.ts и
+// едины для matchTask() и getCandidates() (§4.8 фазы 1). Здесь — только
+// загрузка данных, permit-gap, агрегация статуса и сортировка.
+// «Покрыто» = level >= min[dim] И status ∈ {confirmed, provisional};
+// неприменимые (решено явно) измерения не проверяем, а нерешённая
+// применимость — критичный gap `applicability_undetermined`.
 //
 // access_log: пополняется при чтении чужого паспорта (matching / candidates).
 //
@@ -34,118 +37,24 @@ import { NotFoundError } from '../errors.js';
 import type { UUID } from '../types.js';
 
 import { pickEffectiveValidUntil } from './permits.js';
+import {
+  evaluateRequiredAtom,
+  type EvaluatorAtom,
+  type EvaluatorState,
+} from './requirement-evaluator.js';
 import { getTaskProfile } from './task-profile.js';
 import type {
   Dimension,
   MatchGap,
   MatchStatus,
-  RequiredAtom,
   TaskCandidate,
   TaskMatching,
   TaskProfile,
-  TaskProfileRole,
-} from './types.js';
-import {
-  DIMENSIONS, isDimensionApplicable, isDimensionApplicabilityResolved,
-  isAssessmentCriterionReady,
 } from './types.js';
 import { recordAccess } from './visibility.js';
 
 // ─────────────────────────────────────────────────────────────────────
-// Роли → критические измерения
-// ─────────────────────────────────────────────────────────────────────
-
-const ROLE_CRITICAL: Record<TaskProfileRole, Dimension[]> = {
-  executor: ['P'],
-  assessor: ['E'],
-  designer: ['D'],
-  consultant: ['U', 'X'],
-};
-
-// ─────────────────────────────────────────────────────────────────────
-// Проверка одного required_atom
-// ─────────────────────────────────────────────────────────────────────
-
-interface AtomApplicabilityRow {
-  atom_id: string;
-  status: string;
-  assessment_criteria: { status?: string; U?: string; X?: string; D?: string; P?: string; E?: string };
-  dimension_applicability: Record<string, { applicable?: boolean }>;
-}
-
-interface StateRow {
-  dimension: Dimension;
-  level: number | null;
-  status: string;
-}
-
-function isCovered(state: StateRow | undefined, minLevel: number): boolean {
-  if (!state) {return false;}
-  if (state.status !== 'confirmed' && state.status !== 'provisional') {return false;}
-  if (state.level === null) {return false;}
-  return state.level >= minLevel;
-}
-
-async function checkRequiredAtom(
-  participantId: UUID,
-  req: RequiredAtom,
-  applicability: AtomApplicabilityRow,
-): Promise<MatchGap | null> {
-  const states = await query<StateRow>(
-    `SELECT dimension, level, status
-       FROM person_atom_states
-      WHERE participant_id = $1 AND atom_id = $2`,
-    [participantId, req.atom_id],
-  );
-  const byDim = new Map(states.map((s) => [s.dimension, s]));
-  const app = applicability.dimension_applicability as Parameters<
-    typeof isDimensionApplicable
-  >[0];
-
-  const missingDimensions: Dimension[] = [];
-  let applicabilityUnresolved = false;
-  let criteriaUnready = false;
-
-  for (const [dim, minLevel] of Object.entries(req.min) as Array<
-    [Dimension, number]
-  >) {
-    if (!isDimensionApplicabilityResolved(app, dim)) {
-      missingDimensions.push(dim);
-      applicabilityUnresolved = true;
-      continue;
-    }
-    if (!isDimensionApplicable(app, dim)) {continue;}
-    if (!isAssessmentCriterionReady(
-      applicability.assessment_criteria as import('./types.js').AssessmentCriteria, dim,
-    )) {
-      criteriaUnready = true;
-      missingDimensions.push(dim);
-      continue;
-    }
-    if (!isCovered(byDim.get(dim), minLevel)) {
-      missingDimensions.push(dim);
-    }
-  }
-
-  if (missingDimensions.length === 0) {return null;}
-
-  const criticalDims = ROLE_CRITICAL[req.role];
-  const critical = applicabilityUnresolved || criteriaUnready
-    || missingDimensions.some((d) => criticalDims.includes(d));
-
-  return {
-    atomId: req.atom_id,
-    role: req.role,
-    missingDimensions,
-    critical,
-    reason: applicabilityUnresolved
-      ? 'applicability_unresolved'
-      : criteriaUnready ? 'criteria_not_approved' : 'missing_dimensions',
-  };
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Проверка participant vs TaskProfile (для matchTask)
+// Проверка профиля для одного участника (правила — в requirement-evaluator)
 // ─────────────────────────────────────────────────────────────────────
 
 async function applyProfile(
@@ -154,45 +63,33 @@ async function applyProfile(
 ): Promise<{ gaps: MatchGap[]; checkedCount: number }> {
   const atomIds = profile.requiredAtoms.map((a) => a.atom_id);
 
-  const atoms = await query<AtomApplicabilityRow>(
+  const atoms = await query<EvaluatorAtom>(
     `SELECT atom_id, status, assessment_criteria, dimension_applicability
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
   );
   const atomsById = new Map(atoms.map((a) => [a.atom_id, a]));
 
+  const stateRows = await query<EvaluatorState & { atom_id: string }>(
+    `SELECT atom_id, dimension, level, status
+       FROM person_atom_states
+      WHERE participant_id = $1 AND atom_id = ANY($2::text[])`,
+    [participantId, atomIds],
+  );
+  const statesByAtom = new Map<string, Map<Dimension, EvaluatorState>>();
+  for (const r of stateRows) {
+    let m = statesByAtom.get(r.atom_id);
+    if (!m) { m = new Map(); statesByAtom.set(r.atom_id, m); }
+    m.set(r.dimension, { dimension: r.dimension, level: r.level, status: r.status });
+  }
+
   const gaps: MatchGap[] = [];
   for (const req of profile.requiredAtoms) {
-    const atom = atomsById.get(req.atom_id);
-    if (!atom) {
-      // Профиль ссылается на неизвестный атом — не должен случаться
-      // после валидации, но защищаемся.
-      gaps.push({
-        atomId: req.atom_id,
-        role: req.role,
-        missingDimensions: [...DIMENSIONS],
-        critical: true,
-        reason: 'atom_not_found',
-      });
-      continue;
-    }
-    if (atom.status !== 'approved') {
-      gaps.push({
-        atomId: req.atom_id, role: req.role,
-        missingDimensions: Object.keys(req.min) as Dimension[],
-        critical: true, reason: 'atom_not_approved',
-      });
-      continue;
-    }
-    if (atom.assessment_criteria?.status !== 'approved') {
-      gaps.push({
-        atomId: req.atom_id, role: req.role,
-        missingDimensions: Object.keys(req.min) as Dimension[],
-        critical: true, reason: 'criteria_not_approved',
-      });
-      continue;
-    }
-    const gap = await checkRequiredAtom(participantId, req, atom);
+    const gap = evaluateRequiredAtom(
+      req,
+      atomsById.get(req.atom_id),
+      statesByAtom.get(req.atom_id),
+    );
     if (gap) {gaps.push(gap);}
   }
 
@@ -356,11 +253,7 @@ export async function getCandidates(
   const atomIds = profile.requiredAtoms.map((a) => a.atom_id);
 
   // 2. Применимость атомов — один запрос.
-  const atoms = await query<{
-    atom_id: string; status: string;
-    assessment_criteria: { status?: string };
-    dimension_applicability: Record<string, { applicable?: boolean }>;
-  }>(
+  const atoms = await query<EvaluatorAtom>(
     `SELECT atom_id, status, assessment_criteria, dimension_applicability
        FROM competency_atoms WHERE atom_id = ANY($1::text[])`,
     [atomIds],
@@ -381,7 +274,7 @@ export async function getCandidates(
         AND atom_id = ANY($2::text[])`,
     [participantIds, atomIds],
   );
-  const statesByKey = new Map<string, Map<Dimension, StateRow>>();
+  const statesByKey = new Map<string, Map<Dimension, EvaluatorState>>();
   for (const s of states) {
     const key = `${s.participant_id}|${s.atom_id}`;
     let m = statesByKey.get(key);
@@ -466,64 +359,12 @@ export async function getCandidates(
   for (const p of participants) {
     const atomGaps: MatchGap[] = [];
     for (const req of profile.requiredAtoms) {
-      const atom = atomsById.get(req.atom_id);
-      if (!atom) {
-        atomGaps.push({
-          atomId: req.atom_id, role: req.role,
-          missingDimensions: [...DIMENSIONS], critical: true,
-          reason: 'atom_not_found',
-        });
-        continue;
-      }
-      if (atom.status !== 'approved') {
-        atomGaps.push({
-          atomId: req.atom_id, role: req.role,
-          missingDimensions: Object.keys(req.min) as Dimension[],
-          critical: true, reason: 'atom_not_approved',
-        });
-        continue;
-      }
-      if (atom.assessment_criteria?.status !== 'approved') {
-        atomGaps.push({
-          atomId: req.atom_id, role: req.role,
-          missingDimensions: Object.keys(req.min) as Dimension[],
-          critical: true, reason: 'criteria_not_approved',
-        });
-        continue;
-      }
-      const statesMap = statesByKey.get(`${p.id}|${req.atom_id}`) ?? new Map<Dimension, StateRow>();
-      const app = atom.dimension_applicability as Parameters<
-        typeof isDimensionApplicable
-      >[0];
-      const missing: Dimension[] = [];
-      let applicabilityUnresolved = false;
-      let criteriaUnready = false;
-      for (const [dim, min] of Object.entries(req.min) as Array<[Dimension, number]>) {
-        if (!isDimensionApplicabilityResolved(app, dim)) {
-          missing.push(dim); applicabilityUnresolved = true; continue;
-        }
-        if (!isDimensionApplicable(app, dim)) {continue;}
-        if (!isAssessmentCriterionReady(atom.assessment_criteria as import('./types.js').AssessmentCriteria, dim)) {
-          missing.push(dim); criteriaUnready = true; continue;
-        }
-        const st = statesMap.get(dim);
-        const covered =
-          st !== undefined && st.level !== null
-          && (st.status === 'confirmed' || st.status === 'provisional')
-          && st.level >= min;
-        if (!covered) {missing.push(dim);}
-      }
-      if (missing.length > 0) {
-        const critical = applicabilityUnresolved || criteriaUnready
-          || missing.some((d) => ROLE_CRITICAL[req.role].includes(d));
-        atomGaps.push({
-          atomId: req.atom_id, role: req.role,
-          missingDimensions: missing, critical,
-          reason: applicabilityUnresolved
-            ? 'applicability_unresolved'
-            : criteriaUnready ? 'criteria_not_approved' : 'missing_dimensions',
-        });
-      }
+      const gap = evaluateRequiredAtom(
+        req,
+        atomsById.get(req.atom_id),
+        statesByKey.get(`${p.id}|${req.atom_id}`),
+      );
+      if (gap) {atomGaps.push(gap);}
     }
 
     const permitGap = permitGapsByParticipant.get(p.id) ?? null;
