@@ -125,6 +125,39 @@ describe('evaluateRequiredAtom: applicability', () => {
   });
 });
 
+describe('evaluateRequiredAtom: canonical state format', () => {
+  it('blocks an explicitly undetermined dimension (not match, not skipped)', () => {
+    const gap = evaluateRequiredAtom(
+      executorP5,
+      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { state: 'undetermined' } } }),
+      states([['P', 9, 'confirmed']]),
+    );
+    expect(gap).toMatchObject({
+      reason: 'applicability_undetermined',
+      critical: true,
+      dimensionReasons: { P: 'applicability_undetermined' },
+    });
+  });
+
+  it('works with state: applicable and skips state: not_applicable with a reason', () => {
+    const decided = { U: { state: 'applicable' }, X: { state: 'applicable' }, D: { state: 'applicable' },
+      P: { state: 'applicable' }, E: { state: 'applicable' } } as EvaluatorAtom['dimension_applicability'];
+    expect(evaluateRequiredAtom(executorP5, atom({ dimension_applicability: decided }), states([['P', 5, 'confirmed']])))
+      .toBeNull();
+    const skipped = { ...decided, P: { state: 'not_applicable', reason: 'вне области' } } as EvaluatorAtom['dimension_applicability'];
+    expect(evaluateRequiredAtom(executorP5, atom({ dimension_applicability: skipped }), undefined)).toBeNull();
+  });
+
+  it('does not accept not_applicable without a reason as a decision', () => {
+    const gap = evaluateRequiredAtom(
+      executorP5,
+      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { state: 'not_applicable' } } }),
+      states([['P', 9, 'confirmed']]),
+    );
+    expect(gap).toMatchObject({ reason: 'applicability_undetermined', critical: true });
+  });
+});
+
 describe('evaluateRequiredAtom: criteria content', () => {
   it('flags an approved profile with empty text for the required dimension', () => {
     const gap = evaluateRequiredAtom(
