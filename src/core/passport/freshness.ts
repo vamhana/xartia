@@ -1,56 +1,39 @@
-// C.1.06.01 — Устаревание практики (§6.4.1, §7.5, A15).
+// C.1.06.01 — Устаревание практики (§6.4.1, §7.5, A15; фаза 1, §4.10).
 //
-// ВАЖНО (ревизия A15): считаем по `practice_review_policy`, а НЕ по
-// `content_change_rate`. Это разные процессы (§6.4.1). `to_calibrate`
-// → null (не помечаем stale). Конкретные P24M/P12M/P6M/P3M —
-// только у пилотных атомов (0001, 0009, 0017, 0041), остальные —
-// `to_calibrate`.
+// Считаем по `practice_review_policy`, а НЕ по `content_change_rate`.
+// Это разные процессы (§6.4.1).
+//
+// Формат `practice_review_policy`: 'to_calibrate' | 'P<n>M' (n календарных
+// месяцев, UTC). Вся чистая логика живёт в freshness-policy.ts (без БД,
+// покрыта unit-тестами); здесь остаётся только доступ к данным.
 //
 // Уровень не понижается (§7.5): stale — это метка, а не изменение
 // person_atom_states.level. Проверяется в test-passport-v3.
 //
-// Формат `practice_review_policy`:
-//   'to_calibrate' | 'P<n>M' (n месяцев) — на Фазе 2 больше не нужно.
-// Будущее расширение (Фаза 3): PnD, PnY, event-driven policy.
+// `to_calibrate`, отсутствующая или неизвестная политика не считаются
+// «свежим» подтверждением: см. evaluateFreshness (состояние `unverified`).
+// В staleAssessments попадают только состояния `stale`; `unverified`
+// используется Matching (этап 2 плана фазы 1).
 
 import { query } from '../../lib/db.js';
 import type { UUID } from '../types.js';
 
+import { evaluateFreshness } from './freshness-policy.js';
 import type {
   CompetencyAtomRow,
-  FreshnessPolicy,
   PassportAssessmentRow,
   StaleAssessment,
 } from './types.js';
 
-// ─────────────────────────────────────────────────────────────────────
-// computeStaleUntil
-// ─────────────────────────────────────────────────────────────────────
-
-const MONTH_MS = 30 * 24 * 60 * 60 * 1000; // приближение; не для юр. точности
-
-export function computeStaleUntil(
-  freshness: FreshnessPolicy | undefined,
-  assessedAt: Date,
-  now: Date = new Date(),
-): { staleSince: Date | null; policy: string } {
-  const policy = freshness?.practice_review_policy ?? 'to_calibrate';
-  if (policy === 'to_calibrate') {
-    return { staleSince: null, policy };
-  }
-  const m = /^P(\d+)M$/.exec(policy);
-  if (!m) {
-    return { staleSince: null, policy };
-  }
-  const months = Number(m[1]);
-  if (!Number.isFinite(months) || months <= 0) {
-    return { staleSince: null, policy };
-  }
-  const until = new Date(assessedAt.getTime() + months * MONTH_MS);
-  // staleSince = момент, когда подтверждение стало stale (until).
-  // Если until ещё в будущем — null (не stale).
-  return { staleSince: until <= now ? until : null, policy };
-}
+export {
+  addCalendarMonthsUTC,
+  computeStaleUntil,
+  evaluateFreshness,
+} from './freshness-policy.js';
+export type {
+  FreshnessState,
+  FreshnessUnverifiedReason,
+} from './freshness-policy.js';
 
 // ─────────────────────────────────────────────────────────────────────
 // getStaleAssessments
@@ -78,19 +61,15 @@ export async function getStaleAssessments(
 
   const out: StaleAssessment[] = [];
   for (const r of rows) {
-    const { staleSince, policy } = computeStaleUntil(
-      r.freshness_policy,
-      r.created_at,
-      now,
-    );
-    if (staleSince) {
+    const f = evaluateFreshness(r.freshness_policy, r.created_at, now);
+    if (f.state === 'stale') {
       out.push({
         atomId: r.atom_id,
         dimension: r.dimension,
         assessorId: r.assessor_id,
         assessedAt: r.created_at.toISOString(),
-        staleSince: staleSince.toISOString(),
-        policy,
+        staleSince: f.staleSince.toISOString(),
+        policy: f.policy,
       });
     }
   }
