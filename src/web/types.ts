@@ -952,6 +952,11 @@ export interface PassportAnchorExample {
   version: number;
   createdBy: UUID;
   createdAt: ISODateTime;
+  atomVersion?: string | null;
+  atomStatus?: string | null;
+  criteriaStatus?: string | null;
+  /** Материал создан, пока атом/критерии не были утверждены; null — неизвестно. */
+  pilot?: boolean | null;
 }
 
 export interface PassportCalibrationSession {
@@ -963,6 +968,10 @@ export interface PassportCalibrationSession {
   deadline: ISODateTime | null;
   createdAt: ISODateTime;
   closedAt: ISODateTime | null;
+  atomVersion?: string | null;
+  atomStatus?: string | null;
+  criteriaStatus?: string | null;
+  pilot?: boolean | null;
 }
 
 export interface PassportCalibrationAssignment {
@@ -1000,6 +1009,9 @@ export interface PassportCalibrationReport {
     unscoredCount: number;
     flaggedCount: number;
     overdue: boolean;
+    pilot?: boolean | null;
+    atomVersionChanged?: boolean | null;
+    currentAtomVersion?: string | null;
   };
 }
 

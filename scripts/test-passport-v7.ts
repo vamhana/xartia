@@ -6,6 +6,7 @@
 
 import 'dotenv/config';
 
+import { query, queryOne } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
 
 import {
@@ -322,6 +323,213 @@ async function main(): Promise<void> {
       });
     } else {
       fail('8d. graph filter=assessed', { status: ga.status });
+    }
+  }
+
+  // ─── 9. Фаза 1, этап 5: снимок атома, pilot, ограничения калибровки ───
+  // Калибровка по неутверждённому атому — материал подготовки (pilot), а не
+  // production; снимок неизменяем и не «взрослеет» при утверждении атома.
+  {
+    const ATOM = 'CYB.ATOM.0001';
+    interface AtomRow {
+      status: string;
+      version: string;
+      assessment_criteria: unknown;
+      dimension_applicability: unknown;
+    }
+    const readAtom = async (): Promise<AtomRow | null> => queryOne<AtomRow>(
+      `SELECT status, version, assessment_criteria, dimension_applicability
+         FROM competency_atoms WHERE atom_id = $1`,
+      [ATOM],
+    );
+    const original = await readAtom();
+    if (!original) {throw new Error(`${ATOM} not found`);}
+    const legacyIds: string[] = [];
+
+    try {
+      // Эталонная ситуация: candidate + draft-критерии; P применимо, U не решено,
+      // E явно неприменимо.
+      await query(
+        `UPDATE competency_atoms
+            SET status = 'candidate',
+                assessment_criteria = jsonb_set(assessment_criteria, '{status}', '"draft"'::jsonb, true),
+                dimension_applicability = $2::jsonb
+          WHERE atom_id = $1`,
+        [ATOM, JSON.stringify({
+          P: { state: 'applicable' },
+          U: { state: 'undetermined' },
+          E: { state: 'not_applicable', reason: 'v7 smoke: nothing to calibrate' },
+        })],
+      );
+      const before = await readAtom();
+
+      // 9a. production-материал: атом approved (фикстуры) → pilot=false.
+      const prodAnchor = await createAnchor(admin.token, {
+        atomId: 'CYB.ATOM.0009', dimension: 'P', level: 4, title: 'v7 9a production',
+      });
+      if (prodAnchor.status === 201 && prodAnchor.data.pilot === false
+          && prodAnchor.data.atomStatus === 'approved' && prodAnchor.data.criteriaStatus === 'approved'
+          && typeof prodAnchor.data.atomVersion === 'string') {
+        pass('9a. anchor по утверждённому атому: снимок approved/approved, pilot=false');
+      } else {
+        fail('9a. anchor по утверждённому атому: снимок approved/approved, pilot=false',
+          { status: prodAnchor.status, data: prodAnchor.data });
+      }
+
+      // 9b–9d. pilot-материал по candidate-атому.
+      const pilotAnchor = await createAnchor(admin.token, {
+        atomId: ATOM, dimension: 'P', level: 5, title: 'v7 9b pilot',
+      });
+      if (pilotAnchor.status === 201 && pilotAnchor.data.pilot === true
+          && pilotAnchor.data.atomStatus === 'candidate' && pilotAnchor.data.criteriaStatus === 'draft'
+          && pilotAnchor.data.atomVersion === original.version) {
+        pass('9b. anchor по candidate-атому: снимок candidate/draft, pilot=true');
+      } else {
+        fail('9b. anchor по candidate-атому: снимок candidate/draft, pilot=true',
+          { status: pilotAnchor.status, data: pilotAnchor.data });
+      }
+      const pilotSession = await createCalibrationSession(admin.token, ATOM, 'P');
+      if (pilotSession.status === 201 && pilotSession.data.pilot === true
+          && pilotSession.data.atomStatus === 'candidate') {
+        pass('9c. сессия по candidate-атому: pilot=true');
+      } else {
+        fail('9c. сессия по candidate-атому: pilot=true',
+          { status: pilotSession.status, data: pilotSession.data });
+      }
+      const undeterminedAnchor = await createAnchor(admin.token, {
+        atomId: ATOM, dimension: 'U', level: 3, title: 'v7 9d undetermined',
+      });
+      expectEq('9d. anchor по измерению undetermined разрешён (201)', undeterminedAnchor.status, 201);
+
+      // 9e. Калибровка не меняет атом (статус, критерии, версия, применимость).
+      const after = await readAtom();
+      expectEq('9e. создание anchor/сессий не изменило атом',
+        JSON.stringify(after), JSON.stringify(before));
+
+      // 9f. not_applicable → 409 dimension_not_applicable (anchor и сессия).
+      const naAnchor = await createAnchor(admin.token, {
+        atomId: ATOM, dimension: 'E', level: 3, title: 'v7 9f',
+      });
+      const naSession = await createCalibrationSession(admin.token, ATOM, 'E');
+      if (naAnchor.status === 409 && naAnchor.data.details?.reason === 'dimension_not_applicable'
+          && naSession.status === 409 && naSession.data.details?.reason === 'dimension_not_applicable') {
+        pass('9f. not_applicable → 409 dimension_not_applicable (anchor и сессия)');
+      } else {
+        fail('9f. not_applicable → 409 dimension_not_applicable (anchor и сессия)',
+          { anchor: [naAnchor.status, naAnchor.data], session: [naSession.status, naSession.data] });
+      }
+
+      // 9g. deprecated → 409 atom_deprecated (anchor и сессия).
+      await query(`UPDATE competency_atoms SET status = 'deprecated' WHERE atom_id = $1`, [ATOM]);
+      const depAnchor = await createAnchor(admin.token, {
+        atomId: ATOM, dimension: 'P', level: 5, title: 'v7 9g',
+      });
+      const depSession = await createCalibrationSession(admin.token, ATOM, 'P');
+      if (depAnchor.status === 409 && depAnchor.data.details?.reason === 'atom_deprecated'
+          && depSession.status === 409 && depSession.data.details?.reason === 'atom_deprecated') {
+        pass('9g. deprecated → 409 atom_deprecated (anchor и сессия)');
+      } else {
+        fail('9g. deprecated → 409 atom_deprecated (anchor и сессия)',
+          { anchor: [depAnchor.status, depAnchor.data], session: [depSession.status, depSession.data] });
+      }
+
+      // 9h. Атом позже утверждён: старый pilot-материал остаётся pilot, новый — production.
+      await query(
+        `UPDATE competency_atoms
+            SET status = 'approved',
+                assessment_criteria = jsonb_set(assessment_criteria, '{status}', '"approved"'::jsonb, true)
+          WHERE atom_id = $1`,
+        [ATOM],
+      );
+      const list = await listAnchors(admin.token, ATOM, 'P');
+      const oldOne = list.data.data.find((a) => a.id === pilotAnchor.data.id);
+      expectEq('9h. старый anchor остаётся pilot=true после утверждения атома', oldOne?.pilot, true);
+      const newAnchor = await createAnchor(admin.token, {
+        atomId: ATOM, dimension: 'P', level: 6, title: 'v7 9h new',
+      });
+      expectEq('9i. новый anchor после утверждения: pilot=false', newAnchor.data.pilot, false);
+
+      // 9j. Отчёт: pilot по сессии, версия атома в снимке против текущей.
+      if (pilotSession.data.id && pilotAnchor.data.id) {
+        const asg = await assignAnchor(admin.token, pilotSession.data.id, pilotAnchor.data.id, assessorA.id);
+        expectEq('9j. assign в pilot-сессию (201)', asg.status, 201);
+        const rep1 = await getSessionReport(admin.token, pilotSession.data.id);
+        if (rep1.status === 200 && rep1.data.summary.pilot === true
+            && rep1.data.summary.atomVersionChanged === false
+            && rep1.data.summary.currentAtomVersion === original.version) {
+          pass('9k. отчёт: pilot=true, версия атома не менялась');
+        } else {
+          fail('9k. отчёт: pilot=true, версия атома не менялась',
+            { status: rep1.status, summary: rep1.data.summary });
+        }
+        await query(`UPDATE competency_atoms SET version = '9.9.9' WHERE atom_id = $1`, [ATOM]);
+        const rep2 = await getSessionReport(admin.token, pilotSession.data.id);
+        if (rep2.status === 200 && rep2.data.summary.atomVersionChanged === true
+            && rep2.data.summary.currentAtomVersion === '9.9.9') {
+          pass('9l. отчёт: версия атома изменилась после создания сессии → atomVersionChanged');
+        } else {
+          fail('9l. отчёт: версия атома изменилась после создания сессии → atomVersionChanged',
+            { status: rep2.status, summary: rep2.data.summary });
+        }
+      } else {
+        fail('9j. нет id pilot-сессии/anchor', { pilotSession: pilotSession.data, pilotAnchor: pilotAnchor.data });
+      }
+
+      // 9m. Production-отчёт: сессия по утверждённому атому → pilot=false.
+      const prodSession = await createCalibrationSession(admin.token, 'CYB.ATOM.0009', 'P');
+      if (prodSession.data.id && prodAnchor.data.id) {
+        await assignAnchor(admin.token, prodSession.data.id, prodAnchor.data.id, assessorB.id);
+        const rep3 = await getSessionReport(admin.token, prodSession.data.id);
+        if (rep3.status === 200 && rep3.data.summary.pilot === false
+            && rep3.data.summary.atomVersionChanged === false) {
+          pass('9m. отчёт по утверждённому атому: pilot=false');
+        } else {
+          fail('9m. отчёт по утверждённому атому: pilot=false', { status: rep3.status, summary: rep3.data.summary });
+        }
+      }
+
+      // 9n. Старая запись без снимка: pilot=null (неизвестно), не production.
+      const legacy = await queryOne<{ id: string }>(
+        `INSERT INTO anchor_examples (atom_id, dimension, level, title, created_by)
+         VALUES ('CYB.ATOM.0009', 'P', 1, 'v7 legacy no snapshot', $1)
+         RETURNING id`,
+        [admin.id],
+      );
+      if (legacy) {legacyIds.push(legacy.id);}
+      const listLegacy = await listAnchors(admin.token, 'CYB.ATOM.0009', 'P');
+      expectEq('9n. запись без снимка: pilot=null',
+        listLegacy.data.data.find((a) => a.id === legacy?.id)?.pilot, null);
+
+      // 9o. Снимок неизменяем на уровне БД (в том числе «дозаполнение» NULL).
+      let refused = 0;
+      const attempts: Array<[string, string | undefined]> = [
+        // Снимок production-anchor — approved; ставим ДРУГОЕ значение (то же не изменение).
+        [`UPDATE anchor_examples SET atom_status = 'candidate' WHERE id = $1`, prodAnchor.data.id],
+        [`UPDATE anchor_examples
+             SET criteria_status = 'approved', atom_status = 'approved', atom_version = '0.2.0'
+           WHERE id = $1`, legacy?.id],
+      ];
+      for (const [sql, id] of attempts) {
+        try {
+          await query(sql, [id]);
+        } catch (e) {
+          if (e instanceof Error && /immutable/.test(e.message)) {refused++;}
+        }
+      }
+      expectEq('9o. снимок нельзя изменить (в т.ч. дозаполнить NULL): оба UPDATE отклонены', refused, 2);
+    } finally {
+      // Возвращаем атом в исходное состояние и убираем служебные записи.
+      await query(
+        `UPDATE competency_atoms
+            SET status = $2, version = $3,
+                assessment_criteria = $4::jsonb, dimension_applicability = $5::jsonb
+          WHERE atom_id = $1`,
+        [ATOM, original.status, original.version,
+          JSON.stringify(original.assessment_criteria), JSON.stringify(original.dimension_applicability)],
+      );
+      for (const id of legacyIds) {
+        await query('DELETE FROM anchor_examples WHERE id = $1', [id]);
+      }
     }
   }
 

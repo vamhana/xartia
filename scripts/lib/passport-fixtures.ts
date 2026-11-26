@@ -699,11 +699,24 @@ export interface CreateAnchorOpts {
   content?: Record<string, unknown>;
 }
 
+/** Поля калибровочного материала (anchor / сессия), включая снимок (этап 5 фазы 1). */
+export interface CalibrationMaterial {
+  id?: string;
+  status?: string;
+  atomVersion?: string | null;
+  atomStatus?: string | null;
+  criteriaStatus?: string | null;
+  pilot?: boolean | null;
+  /** Поля ответа-ошибки. */
+  code?: string;
+  details?: { reason?: string };
+}
+
 export async function createAnchor(
   token: string,
   opts: CreateAnchorOpts,
   base: string = BASE,
-): Promise<{ status: number; data: { id?: string } }> {
+): Promise<{ status: number; data: CalibrationMaterial }> {
   return request('POST', '/passport/calibration/anchors', opts, token, base);
 }
 
@@ -712,7 +725,7 @@ export async function listAnchors(
   atomId?: string,
   dimension?: string,
   base: string = BASE,
-): Promise<{ status: number; data: { data: Array<{ id: string }> } }> {
+): Promise<{ status: number; data: { data: Array<{ id: string; pilot?: boolean | null }> } }> {
   const qs = new URLSearchParams();
   if (atomId) {qs.set('atomId', atomId);}
   if (dimension) {qs.set('dimension', dimension);}
@@ -726,7 +739,7 @@ export async function createCalibrationSession(
   dimension: 'U' | 'X' | 'D' | 'P' | 'E',
   deadline?: string,
   base: string = BASE,
-): Promise<{ status: number; data: { id?: string; status?: string } }> {
+): Promise<{ status: number; data: CalibrationMaterial }> {
   return request(
     'POST', '/passport/calibration/sessions',
     { atomId, dimension, ...(deadline ? { deadline } : {}) },
@@ -772,7 +785,7 @@ export interface ReportWork {
 }
 
 export interface CalibrationReport {
-  session: { id: string; status: string; overdue?: boolean };
+  session: { id: string; status: string; overdue?: boolean; pilot?: boolean | null };
   works: ReportWork[];
   summary: {
     worksCount: number;
@@ -780,6 +793,9 @@ export interface CalibrationReport {
     unscoredCount: number;
     flaggedCount: number;
     overdue: boolean;
+    pilot?: boolean | null;
+    atomVersionChanged?: boolean | null;
+    currentAtomVersion?: string | null;
   };
 }
 

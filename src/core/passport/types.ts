@@ -1045,6 +1045,10 @@ export interface AnchorExampleRow {
   version: number;
   created_by: UUID;
   created_at: Date;
+  /** Снимок атома на момент создания (миграция 074); NULL — неизвестно. */
+  atom_version: string | null;
+  atom_status: string | null;
+  criteria_status: string | null;
 }
 
 export interface AnchorExample {
@@ -1058,6 +1062,12 @@ export interface AnchorExample {
   version: number;
   createdBy: UUID;
   createdAt: ISODateTime;
+  /** Снимок атома на момент создания (неизменяем); null — неизвестно (до 074). */
+  atomVersion: string | null;
+  atomStatus: string | null;
+  criteriaStatus: string | null;
+  /** Материал создан, пока атом/критерии не были утверждены; null — неизвестно. */
+  pilot: boolean | null;
 }
 
 export interface CalibrationSessionRow {
@@ -1069,6 +1079,10 @@ export interface CalibrationSessionRow {
   deadline: Date | null;
   created_at: Date;
   closed_at: Date | null;
+  /** Снимок атома на момент создания (миграция 074); NULL — неизвестно. */
+  atom_version: string | null;
+  atom_status: string | null;
+  criteria_status: string | null;
 }
 
 export interface CalibrationSession {
@@ -1080,6 +1094,12 @@ export interface CalibrationSession {
   deadline: ISODateTime | null;
   createdAt: ISODateTime;
   closedAt: ISODateTime | null;
+  /** Снимок атома на момент создания (неизменяем); null — неизвестно (до 074). */
+  atomVersion: string | null;
+  atomStatus: string | null;
+  criteriaStatus: string | null;
+  /** Сессия создана, пока атом/критерии не были утверждены; null — неизвестно. */
+  pilot: boolean | null;
 }
 
 export interface CalibrationAssignmentRow {
@@ -1152,6 +1172,12 @@ export interface CalibrationReport {
     unscoredCount: number;
     flaggedCount: number;
     overdue: boolean;
+    /** true — есть pilot-материал; null — нет pilot, но есть неизвестные; false — всё production. */
+    pilot: boolean | null;
+    /** Версия атома сейчас отличается от версии в снимке сессии; null — сравнить нельзя. */
+    atomVersionChanged: boolean | null;
+    /** Текущая версия атома (для сравнения со снимком). */
+    currentAtomVersion: string | null;
   };
 }
 
