@@ -11,17 +11,6 @@ import {
 const asApp = (entry: unknown, d: Dimension = 'U'): DimensionApplicability =>
   ({ [d]: entry }) as DimensionApplicability;
 
-/** Точная копия логики ДО этапа 4: оракул для проверки обратной совместимости. */
-function legacyResolved(a: DimensionApplicability, d: Dimension): boolean {
-  const entry = a[d] as { applicable?: unknown; reason?: unknown } | undefined;
-  if (!entry || typeof entry.applicable !== 'boolean') {return false;}
-  return entry.applicable
-    || (typeof entry.reason === 'string' && entry.reason.trim().length > 0);
-}
-function legacyApplicable(a: DimensionApplicability, d: Dimension): boolean {
-  return legacyResolved(a, d) && (a[d] as { applicable?: unknown }).applicable === true;
-}
-
 describe('getDimensionApplicabilityState: new canonical format', () => {
   it('reads explicit states', () => {
     expect(getDimensionApplicabilityState(asApp({ state: 'applicable' }), 'U')).toBe('applicable');
@@ -43,7 +32,7 @@ describe('getDimensionApplicabilityState: new canonical format', () => {
     }
   });
 
-  it('lets state win over the legacy boolean when both are present', () => {
+  it('ignores a leftover legacy boolean when state is present', () => {
     expect(getDimensionApplicabilityState(asApp({ state: 'undetermined', applicable: true }), 'U'))
       .toBe('undetermined');
     expect(getDimensionApplicabilityState(asApp({ state: 'applicable', applicable: false }), 'U'))
@@ -68,32 +57,23 @@ describe('getDimensionApplicabilityState: missing data', () => {
   });
 });
 
-describe('legacy boolean format is read exactly as before (no behaviour change in 4a)', () => {
+describe('legacy boolean format is no longer interpreted (4d): fail-safe undetermined', () => {
   const dims: Dimension[] = ['U', 'X', 'D', 'P', 'E'];
   const legacyEntries: unknown[] = [
-    undefined, null, {}, { name: 'x' },
-    { applicable: true }, { applicable: true, reason: 'r' }, { applicable: true, name: 'Понимание' },
-    { applicable: false }, { applicable: false, reason: '' }, { applicable: false, reason: '   ' },
-    { applicable: false, reason: 'вне области' }, { applicable: false, reason: 5 },
+    { applicable: true }, { applicable: true, name: 'Понимание' },
+    { applicable: false }, { applicable: false, reason: 'вне области' },
     { applicable: 'yes' }, { applicable: 1 }, { applicable: null },
   ];
 
-  it('matches the pre-stage-4 implementation on a matrix of entries', () => {
+  it('never turns a legacy entry into a decision, in either direction', () => {
     for (const entry of legacyEntries) {
       for (const d of dims) {
-        const a = (entry === undefined ? {} : { [d]: entry }) as DimensionApplicability;
-        expect(isDimensionApplicabilityResolved(a, d), `${JSON.stringify(entry)} resolved`)
-          .toBe(legacyResolved(a, d));
-        expect(isDimensionApplicable(a, d), `${JSON.stringify(entry)} applicable`)
-          .toBe(legacyApplicable(a, d));
+        const a = { [d]: entry } as DimensionApplicability;
+        expect(getDimensionApplicabilityState(a, d), JSON.stringify(entry)).toBe('undetermined');
+        expect(isDimensionApplicabilityResolved(a, d), JSON.stringify(entry)).toBe(false);
+        expect(isDimensionApplicable(a, d), JSON.stringify(entry)).toBe(false);
       }
     }
-  });
-
-  it('maps legacy values to the canonical states', () => {
-    expect(getDimensionApplicabilityState(asApp({ applicable: true }), 'U')).toBe('applicable');
-    expect(getDimensionApplicabilityState(asApp({ applicable: false, reason: 'r' }), 'U')).toBe('not_applicable');
-    expect(getDimensionApplicabilityState(asApp({ applicable: false }), 'U')).toBe('undetermined');
   });
 });
 
