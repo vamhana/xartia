@@ -18,19 +18,19 @@ describe('passport approval gate primitives', () => {
   });
 
   it('treats an explicit false applicability decision as resolved and not applicable', () => {
-    const applicability = { P: { applicable: false, reason: 'outside atom boundary' } };
+    const applicability = { P: { state: 'not_applicable' as const, reason: 'outside atom boundary' } };
     expect(isDimensionApplicabilityResolved(applicability, 'P')).toBe(true);
     expect(isDimensionApplicable(applicability, 'P')).toBe(false);
   });
 
-  it('does not treat false applicability without a reason as a resolved decision', () => {
-    const applicability = { P: { applicable: false } };
+  it('does not treat not_applicable without a reason as a resolved decision', () => {
+    const applicability = { P: { state: 'not_applicable' as const } };
     expect(isDimensionApplicabilityResolved(applicability, 'P')).toBe(false);
     expect(isDimensionApplicable(applicability, 'P')).toBe(false);
   });
 
   it('recognizes an explicit positive applicability decision', () => {
-    const applicability = { P: { applicable: true } };
+    const applicability = { P: { state: 'applicable' as const } };
     expect(isDimensionApplicabilityResolved(applicability, 'P')).toBe(true);
     expect(isDimensionApplicable(applicability, 'P')).toBe(true);
   });
@@ -45,8 +45,8 @@ describe('passport approval gate primitives', () => {
       updated_at: new Date(),
     }));
     const incomplete = {
-      U: { applicable: true }, X: { applicable: true },
-      D: { applicable: true }, P: { applicable: true },
+      U: { state: 'applicable' as const }, X: { state: 'applicable' as const },
+      D: { state: 'applicable' as const }, P: { state: 'applicable' as const },
     };
     expect(atomCountsForWidth([...states], incomplete)).toBe(false);
     expect(atomCountsForDepthExecution([...states], incomplete)).toBe(true);

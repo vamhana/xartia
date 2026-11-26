@@ -175,13 +175,8 @@ export type ContentChangeRate =
 export type ApplicabilityState = 'applicable' | 'not_applicable' | 'undetermined';
 
 export interface DimensionApplicabilityEntry {
-  /** Каноническое состояние. Если задано, приоритетнее устаревшего `applicable`. */
+  /** Каноническое состояние. Запись без валидного `state` читается как undetermined. */
   state?: ApplicabilityState;
-  /**
-   * УСТАРЕЛО (boolean-форма до этапа 4 фазы 1): читается только для
-   * совместимости, пока данные не мигрированы. Новым записям не использовать.
-   */
-  applicable?: boolean;
   name?: string;
   /** Обязательно для not_applicable (см. паспорт 3.2, 5.1). */
   reason?: string;
@@ -1174,12 +1169,12 @@ export function isValidLevel(v: unknown): v is number {
  * каноническое состояние. Все потребители (assessment, Matching, projection,
  * graph, teaching) обязаны ходить через неё или через helper-ы ниже.
  *
- * Читает ОБА формата, пока данные не мигрированы:
- *   новый:    { state: 'applicable' | 'not_applicable' | 'undetermined', reason? }
- *   старый:   { applicable: boolean, reason? }  — true → applicable,
- *             false + reason → not_applicable, иначе undetermined.
- * Если заданы оба, побеждает `state`. Мусор, отсутствующая запись и
- * not_applicable без причины дают undetermined, а не «неприменимо».
+ * Читает только каноническую форму (миграция 073):
+ *   { state: 'applicable' | 'not_applicable' | 'undetermined', reason? }
+ * Всё остальное, включая устаревший boolean `applicable` (до этапа 4d он
+ * читался как совместимость), мусор, отсутствующую запись и not_applicable без
+ * причины, даёт undetermined: безопасный отказ, который блокирует оценку и
+ * Matching, но никогда не «разрешает» и не «исключает» измерение по ошибке.
  */
 export function getDimensionApplicabilityState(
   a: DimensionApplicability | null | undefined,
@@ -1193,8 +1188,6 @@ export function getDimensionApplicabilityState(
     if (entry.state === 'not_applicable') {return hasReason ? 'not_applicable' : 'undetermined';}
     return 'undetermined';
   }
-  if (entry.applicable === true) {return 'applicable';}
-  if (entry.applicable === false) {return hasReason ? 'not_applicable' : 'undetermined';}
   return 'undetermined';
 }
 

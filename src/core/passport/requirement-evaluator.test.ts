@@ -8,7 +8,7 @@ import {
   type EvaluatorAtom,
   type EvaluatorState,
 } from './requirement-evaluator.js';
-import type { Dimension, FreshnessPolicy, RequiredAtom } from './types.js';
+import type { Dimension, DimensionApplicability, FreshnessPolicy, RequiredAtom } from './types.js';
 
 const NOW = new Date('2026-06-01T00:00:00.000Z');
 const FRESH_AT = new Date('2026-01-15T00:00:00.000Z'); // P12M → до 2027-01-15
@@ -22,12 +22,12 @@ const evaluateRequiredAtom = (
   st: ReadonlyMap<Dimension, EvaluatorState> | undefined,
 ) => evaluateAt(req, a, st, NOW);
 
-const ALL_APPLICABLE = {
-  U: { applicable: true },
-  X: { applicable: true },
-  D: { applicable: true },
-  P: { applicable: true },
-  E: { applicable: true },
+const ALL_APPLICABLE: DimensionApplicability = {
+  U: { state: 'applicable' },
+  X: { state: 'applicable' },
+  D: { state: 'applicable' },
+  P: { state: 'applicable' },
+  E: { state: 'applicable' },
 };
 
 function atom(over: Partial<EvaluatorAtom> = {}): EvaluatorAtom {
@@ -106,10 +106,10 @@ describe('evaluateRequiredAtom: applicability', () => {
     });
   });
 
-  it('treats applicable=false without a reason as undetermined', () => {
+  it('treats not_applicable without a reason as undetermined', () => {
     const gap = evaluateRequiredAtom(
       executorP5,
-      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { applicable: false } } }),
+      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { state: 'not_applicable' } } }),
       states([['P', 9, 'confirmed']]),
     );
     expect(gap).toMatchObject({ reason: 'applicability_undetermined' });
@@ -118,7 +118,7 @@ describe('evaluateRequiredAtom: applicability', () => {
   it('skips a dimension explicitly decided as not applicable (with a reason)', () => {
     const gap = evaluateRequiredAtom(
       executorP5,
-      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { applicable: false, reason: 'outside scope' } } }),
+      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { state: 'not_applicable', reason: 'outside scope' } } }),
       undefined,
     );
     expect(gap).toBeNull();
@@ -296,7 +296,7 @@ describe('evaluateRequiredAtom: freshness (stale_or_unverified)', () => {
   it('never evaluates freshness for dimensions explicitly not applicable', () => {
     const gap = evaluateRequiredAtom(
       executorP5,
-      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { applicable: false, reason: 'outside scope' } } }),
+      atom({ dimension_applicability: { ...ALL_APPLICABLE, P: { state: 'not_applicable', reason: 'outside scope' } } }),
       states([['P', 9, 'confirmed', STALE_AT]]),
     );
     expect(gap).toBeNull();
