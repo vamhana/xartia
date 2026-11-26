@@ -9,6 +9,13 @@
 //     Медиана не применяется (§6.5 п.3).
 //   * assignment append-only по духу: score = UPDATE только с NULL level.
 //
+// Фаза 1, этап 5 (§4.10): anchor и сессию можно создавать по неутверждённому
+// атому как материал подготовки (по deprecated и по not_applicable-измерению
+// нельзя). При создании фиксируется неизменяемый снимок атома (версия, статус
+// атома, статус критериев); pilot вычисляется из снимка и не становится
+// production, когда атом позже утвердят. Калибровка НИКОГДА не меняет
+// competency_atoms и не утверждает критерии (см. calibration-snapshot.ts).
+//
 // Калибровка не пишет в passport_history_events (методологическая
 // активность). Аудит — через system_events/audit_log, если понадобится.
 //
@@ -22,6 +29,13 @@ import {
 } from '../errors.js';
 import type { UUID } from '../types.js';
 
+import {
+  assertCalibrationAllowed,
+  combinePilot,
+  isCalibrationStale,
+  isPilotSnapshot,
+  type CalibrationAtomInfo,
+} from './calibration-snapshot.js';
 import type {
   AnchorExample,
   AnchorExampleRow,
@@ -56,12 +70,21 @@ async function hasAnyRole(
   return (row?.n ?? 0) > 0;
 }
 
-async function assertAtomExists(atomId: string): Promise<void> {
-  const r = await queryOne<{ atom_id: string }>(
-    `SELECT atom_id FROM competency_atoms WHERE atom_id = $1`,
+/**
+ * Читает атом и проверяет, что по нему (и измерению) можно создавать
+ * калибровочный материал. NotFound — нет атома; Conflict — deprecated или
+ * not_applicable (машинная причина в details.reason).
+ */
+async function assertCalibrationTarget(atomId: string, dimension: Dimension): Promise<void> {
+  const atom = await queryOne<CalibrationAtomInfo>(
+    `SELECT atom_id, status, version,
+            assessment_criteria ->> 'status' AS criteria_status,
+            dimension_applicability
+       FROM competency_atoms WHERE atom_id = $1`,
     [atomId],
   );
-  if (!r) {throw new NotFoundError('Atom', atomId);}
+  if (!atom) {throw new NotFoundError('Atom', atomId);}
+  assertCalibrationAllowed(atom, dimension);
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -80,6 +103,14 @@ function toAnchor(r: AnchorExampleRow): AnchorExample {
     version: r.version,
     createdBy: r.created_by,
     createdAt: r.created_at.toISOString(),
+    atomVersion: r.atom_version ?? null,
+    atomStatus: r.atom_status ?? null,
+    criteriaStatus: r.criteria_status ?? null,
+    pilot: isPilotSnapshot({
+      atomVersion: r.atom_version ?? null,
+      atomStatus: r.atom_status ?? null,
+      criteriaStatus: r.criteria_status ?? null,
+    }),
   };
 }
 
@@ -93,6 +124,14 @@ function toSession(r: CalibrationSessionRow): CalibrationSession {
     deadline: r.deadline ? r.deadline.toISOString() : null,
     createdAt: r.created_at.toISOString(),
     closedAt: r.closed_at ? r.closed_at.toISOString() : null,
+    atomVersion: r.atom_version ?? null,
+    atomStatus: r.atom_status ?? null,
+    criteriaStatus: r.criteria_status ?? null,
+    pilot: isPilotSnapshot({
+      atomVersion: r.atom_version ?? null,
+      atomStatus: r.atom_status ?? null,
+      criteriaStatus: r.criteria_status ?? null,
+    }),
   };
 }
 
@@ -139,15 +178,22 @@ export async function createAnchor(
     throw new ValidationError('content must be object');
   }
 
-  await assertAtomExists(input.atomId);
+  await assertCalibrationTarget(input.atomId, input.dimension);
 
   const id = newUUID();
+  // Снимок атома берётся тем же оператором, что и вставка (INSERT ... SELECT).
   const ins = await query<AnchorExampleRow>(
     `INSERT INTO anchor_examples
-       (id, atom_id, dimension, level, title, description, content, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8)
+       (id, atom_id, dimension, level, title, description, content, created_by,
+        atom_version, atom_status, criteria_status)
+     SELECT $1::uuid, ca.atom_id, $3::char(1), $4::smallint, $5::text, $6::text,
+            $7::jsonb, $8::uuid,
+            ca.version, ca.status, ca.assessment_criteria ->> 'status'
+       FROM competency_atoms ca
+      WHERE ca.atom_id = $2::text
      RETURNING id, atom_id, dimension, level, title, description, content,
-               version, created_by, created_at`,
+               version, created_by, created_at,
+               atom_version, atom_status, criteria_status`,
     [
       id,
       input.atomId,
@@ -159,7 +205,8 @@ export async function createAnchor(
       actorId,
     ],
   );
-  return toAnchor(ins[0]!);
+  if (!ins[0]) {throw new NotFoundError('Atom', input.atomId);}
+  return toAnchor(ins[0]);
 }
 
 export async function listAnchors(opts: {
@@ -179,7 +226,8 @@ export async function listAnchors(opts: {
   const where = cond.length > 0 ? `WHERE ${cond.join(' AND ')}` : '';
   const rows = await query<AnchorExampleRow>(
     `SELECT id, atom_id, dimension, level, title, description, content,
-            version, created_by, created_at
+            version, created_by, created_at,
+            atom_version, atom_status, criteria_status
        FROM anchor_examples ${where}
       ORDER BY atom_id, dimension, level, created_at DESC`,
     params,
@@ -204,15 +252,21 @@ export async function createSession(
   if (!(DIMENSIONS as readonly string[]).includes(input.dimension)) {
     throw new ValidationError(`Unknown dimension '${input.dimension}'`);
   }
-  await assertAtomExists(input.atomId);
+  await assertCalibrationTarget(input.atomId, input.dimension);
 
   const id = newUUID();
   const ins = await query<CalibrationSessionRow>(
     `INSERT INTO calibration_sessions
-       (id, atom_id, dimension, status, created_by, deadline)
-     VALUES ($1,$2,$3,'draft',$4,$5::timestamptz)
+       (id, atom_id, dimension, status, created_by, deadline,
+        atom_version, atom_status, criteria_status)
+     SELECT $1::uuid, ca.atom_id, $3::char(1), 'draft', $4::uuid,
+            $5::timestamptz,
+            ca.version, ca.status, ca.assessment_criteria ->> 'status'
+       FROM competency_atoms ca
+      WHERE ca.atom_id = $2::text
      RETURNING id, atom_id, dimension, status, created_by, deadline,
-               created_at, closed_at`,
+               created_at, closed_at,
+               atom_version, atom_status, criteria_status`,
     [
       id,
       input.atomId,
@@ -221,7 +275,8 @@ export async function createSession(
       input.deadline ?? null,
     ],
   );
-  return toSession(ins[0]!);
+  if (!ins[0]) {throw new NotFoundError('Atom', input.atomId);}
+  return toSession(ins[0]);
 }
 
 export async function getSession(
@@ -229,7 +284,8 @@ export async function getSession(
 ): Promise<CalibrationSession | null> {
   const r = await queryOne<CalibrationSessionRow>(
     `SELECT id, atom_id, dimension, status, created_by, deadline,
-            created_at, closed_at
+            created_at, closed_at,
+            atom_version, atom_status, criteria_status
        FROM calibration_sessions WHERE id = $1`,
     [sessionId],
   );
@@ -247,7 +303,8 @@ export async function listSessions(
   }
   const rows = await query<CalibrationSessionRow>(
     `SELECT id, atom_id, dimension, status, created_by, deadline,
-            created_at, closed_at
+            created_at, closed_at,
+            atom_version, atom_status, criteria_status
        FROM calibration_sessions ${where}
       ORDER BY created_at DESC`,
     params,
@@ -472,6 +529,29 @@ export async function getSessionReport(
     new Date(session.deadline).getTime() < Date.now() &&
     session.status !== 'closed';
 
+  // Общий pilot: сессия + все использованные anchor. Версия атома сейчас — для
+  // признака «калибровка по устаревшей версии».
+  const anchorRows = await query<{ atom_version: string | null; atom_status: string | null; criteria_status: string | null }>(
+    `SELECT DISTINCT ae.id, ae.atom_version, ae.atom_status, ae.criteria_status
+       FROM calibration_assignments ca
+       JOIN anchor_examples ae ON ae.id = ca.anchor_example_id
+      WHERE ca.session_id = $1`,
+    [sessionId],
+  );
+  const current = await queryOne<{ version: string }>(
+    'SELECT version FROM competency_atoms WHERE atom_id = $1',
+    [session.atomId],
+  );
+  const currentAtomVersion = current?.version ?? null;
+  const pilot = combinePilot([
+    session.pilot,
+    ...anchorRows.map((a) => isPilotSnapshot({
+      atomVersion: a.atom_version,
+      atomStatus: a.atom_status,
+      criteriaStatus: a.criteria_status,
+    })),
+  ]);
+
   return {
     session,
     works,
@@ -481,6 +561,9 @@ export async function getSessionReport(
       unscoredCount,
       flaggedCount,
       overdue,
+      pilot,
+      atomVersionChanged: isCalibrationStale(session.atomVersion, currentAtomVersion),
+      currentAtomVersion,
     },
   };
 }
