@@ -89,10 +89,22 @@ async function main(): Promise<void> {
       throw new Error(`Unresolved applicability should be rejected with 422, got ${unresolved.status}: ${JSON.stringify(unresolved.data)}`);
     }
 
+    // 3b. Явное undetermined блокирует оценку так же, как отсутствие записи.
+    await query(
+      `UPDATE competency_atoms
+          SET dimension_applicability = jsonb_set(dimension_applicability, '{U}', '{"state":"undetermined"}'::jsonb, true)
+        WHERE atom_id = $1`,
+      [ATOM_ID],
+    );
+    const explicitUndetermined = await submit();
+    if (explicitUndetermined.status !== 422) {
+      throw new Error(`Explicit undetermined applicability should be rejected with 422, got ${explicitUndetermined.status}: ${JSON.stringify(explicitUndetermined.data)}`);
+    }
+
     // 4. Explicitly applicable, but without an approved criterion for U.
     await query(
       `UPDATE competency_atoms
-          SET dimension_applicability = jsonb_set(dimension_applicability, '{U}', '{"applicable":true}'::jsonb, true),
+          SET dimension_applicability = jsonb_set(dimension_applicability, '{U}', '{"state":"applicable"}'::jsonb, true),
               assessment_criteria = jsonb_set($2::jsonb, '{status}', '"approved"'::jsonb, true) - 'U'
         WHERE atom_id = $1`,
       [ATOM_ID, JSON.stringify(original.assessment_criteria)],
@@ -105,7 +117,7 @@ async function main(): Promise<void> {
     // 5. Explicit applicability + approved non-empty criterion permits assessment.
     await query(
       `UPDATE competency_atoms
-          SET dimension_applicability = jsonb_set(dimension_applicability, '{U}', '{"applicable":true}'::jsonb, true),
+          SET dimension_applicability = jsonb_set(dimension_applicability, '{U}', '{"state":"applicable"}'::jsonb, true),
               assessment_criteria = jsonb_set(
                 jsonb_set($2::jsonb, '{status}', '"approved"'::jsonb, true),
                 '{U}', '"CI approved criterion: explain the atom accurately"'::jsonb, true

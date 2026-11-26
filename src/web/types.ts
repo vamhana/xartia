@@ -635,7 +635,11 @@ export interface PassportAtomCard {
     boundary_excludes: string[];
     assessment_criteria: Record<string, string>;
     assessment_methods: string[];
-    dimension_applicability: Partial<Record<PassportDimension, { applicable: boolean; name?: string }>>;
+    dimension_applicability: Partial<Record<PassportDimension, {
+      state: 'applicable' | 'not_applicable' | 'undetermined';
+      name?: string;
+      reason?: string;
+    }>>;
     status: PassportAtomStatus;
     version: string;
   };

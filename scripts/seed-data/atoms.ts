@@ -11,12 +11,16 @@ import type {
   FreshnessPolicy,
 } from '../../src/core/passport/types.js';
 
+// Пилотные атомы — candidate: решение о применимости измерений ещё не принято
+// и подтверждается явно при утверждении атома (§4.5 фазы 1). Поэтому здесь
+// undetermined, а не applicable. CI-фикстуры (prepare-passport-test-fixtures)
+// задают applicable явно для атомов, которые они утверждают.
 export const DEFAULT_APPLICABILITY: DimensionApplicability = {
-  U: { applicable: true, name: 'Понимание' },
-  X: { applicable: true, name: 'Объяснение' },
-  D: { applicable: true, name: 'Проектирование' },
-  P: { applicable: true, name: 'Выполнение' },
-  E: { applicable: true, name: 'Оценка' },
+  U: { state: 'undetermined', name: 'Понимание' },
+  X: { state: 'undetermined', name: 'Объяснение' },
+  D: { state: 'undetermined', name: 'Проектирование' },
+  P: { state: 'undetermined', name: 'Выполнение' },
+  E: { state: 'undetermined', name: 'Оценка' },
 };
 
 export interface AtomSeed {

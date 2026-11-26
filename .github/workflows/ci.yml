@@ -163,6 +163,13 @@ jobs:
           set -o pipefail
           pnpm tsx scripts/seed-passport.ts | tee /tmp/seed-passport.log
 
+      # Прямой DB-скрипт: проверяет SQL-функцию конвертации применимости
+      # (миграция 073) по таблице правил §4.5. Ничего не пишет в БД.
+      - name: Smoke — конвертация применимости (миграция 073)
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-applicability-migration.ts 2>&1 | tee /tmp/smoke-applicability-migration.log
+
       - name: Smoke — система
         run: |
           set -o pipefail

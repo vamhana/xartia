@@ -5,7 +5,7 @@ import 'dotenv/config';
 
 import { query } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
-import { ATOM_SEEDS } from './seed-data/atoms.js';
+import { ATOM_SEEDS, DEFAULT_APPLICABILITY } from './seed-data/atoms.js';
 
 async function main(): Promise<void> {
   // Exact positive-path atoms referenced by the legacy passport smoke suite.
@@ -20,9 +20,20 @@ async function main(): Promise<void> {
     'CYB.ATOM.0045', 'CYB.ATOM.0046',
   ]);
   const ids = ATOM_SEEDS.filter((atom) => fixtureIds.has(atom.atom_id)).map((atom) => atom.atom_id);
+  // Утверждая атом, фикстура ЯВНО принимает решение о применимости (§4.5):
+  // все измерения applicable. В реальном каталоге это делает человек.
+  const fixtureApplicability = JSON.stringify(
+    Object.fromEntries(
+      Object.entries(DEFAULT_APPLICABILITY).map(([dim, entry]) => [
+        dim,
+        { state: 'applicable', ...(entry.name ? { name: entry.name } : {}) },
+      ]),
+    ),
+  );
   const result = await query<{ atom_id: string }>(
     `UPDATE competency_atoms
         SET status = 'approved',
+            dimension_applicability = $2::jsonb,
             assessment_criteria =
               jsonb_set(
                 COALESCE(assessment_criteria, '{}'::jsonb),
@@ -37,7 +48,7 @@ async function main(): Promise<void> {
               )
       WHERE atom_id = ANY($1::text[])
       RETURNING atom_id`,
-    [ids],
+    [ids, fixtureApplicability],
   );
   if (ids.length !== fixtureIds.size) {
     throw new Error(`Expected ${fixtureIds.size} declared fixture atoms, found ${ids.length}`);

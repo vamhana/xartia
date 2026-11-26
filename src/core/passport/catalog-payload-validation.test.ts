@@ -20,7 +20,7 @@ const validNew = (): Obj => ({
   boundary_excludes: [],
   assessment_criteria: { status: 'draft' },
   assessment_methods: [],
-  dimension_applicability: { U: { applicable: true } },
+  dimension_applicability: { U: { state: 'applicable' } },
   freshness_policy: { content_change_rate: 'slow', practice_review_policy: 'P24M' },
   version: '0.1.0',
 });
@@ -41,8 +41,8 @@ describe('validateNewAtomPayload', () => {
       boundary_includes: ['a'], assessment_methods: ['exam'],
       assessment_criteria: { status: 'in_review', U: 'понимает', P: 'выполняет' },
       dimension_applicability: {
-        U: { applicable: true, name: 'Понимание' },
-        E: { applicable: false, reason: 'не оценивается' },
+        U: { state: 'applicable', name: 'Понимание' },
+        E: { state: 'not_applicable', reason: 'не оценивается' },
       },
       freshness_policy: { content_change_rate: 'medium', practice_review_policy: 'to_calibrate' },
     };
@@ -109,12 +109,23 @@ describe('validateAssessmentCriteria', () => {
 });
 
 describe('validateDimensionApplicability', () => {
-  it('accepts the seed format (with name) and a reasoned not-applicable', () => {
+  it('accepts an empty map and a reasoned not-applicable', () => {
     expect(() => validateDimensionApplicability({})).not.toThrow();
     expect(() => validateDimensionApplicability({
-      U: { applicable: true, name: 'Понимание' },
-      P: { applicable: false, reason: 'вне области' },
+      U: { state: 'applicable', name: 'Понимание' },
+      P: { state: 'not_applicable', reason: 'вне области' },
     })).not.toThrow();
+  });
+
+  it('rejects the legacy boolean form with a pointer to state', () => {
+    for (const entry of [
+      { applicable: true },
+      { applicable: false, reason: 'вне области' },
+      { applicable: true, name: 'Понимание' },
+      { state: 'applicable', applicable: true },
+    ]) {
+      invalid(() => validateDimensionApplicability({ U: entry }), 'legacy boolean');
+    }
   });
 
   it('accepts the canonical state format', () => {
@@ -130,20 +141,16 @@ describe('validateDimensionApplicability', () => {
     invalid(() => validateDimensionApplicability({ U: { state: 5 } }), 'state must be');
     invalid(() => validateDimensionApplicability({ U: { state: 'not_applicable' } }), 'reason');
     invalid(() => validateDimensionApplicability({ U: { state: 'not_applicable', reason: ' ' } }), 'reason');
-    invalid(() => validateDimensionApplicability({ U: { state: 'applicable', applicable: true } }), 'not both');
-    invalid(() => validateDimensionApplicability({ U: { name: 'x' } }), 'must have state');
+    invalid(() => validateDimensionApplicability({ U: { name: 'x' } }), 'state must be');
   });
 
-  it('rejects wrong shape, unknown dimension/keys and a missing reason', () => {
+  it('rejects wrong shape, unknown dimension/keys and bad field types', () => {
     invalid(() => validateDimensionApplicability([]), 'object');
-    invalid(() => validateDimensionApplicability({ Z: { applicable: true } }), 'Z invalid');
+    invalid(() => validateDimensionApplicability({ Z: { state: 'applicable' } }), 'Z invalid');
     invalid(() => validateDimensionApplicability({ U: true }), 'must be an object');
-    invalid(() => validateDimensionApplicability({ U: { applicable: 'yes' } }), 'must have state');
-    invalid(() => validateDimensionApplicability({ U: { applicable: true, extra: 1 } }), 'U.extra');
-    invalid(() => validateDimensionApplicability({ U: { applicable: false } }), 'reason');
-    invalid(() => validateDimensionApplicability({ U: { applicable: false, reason: '  ' } }), 'reason');
-    invalid(() => validateDimensionApplicability({ U: { applicable: true, reason: 5 } }), 'reason must be string');
-    invalid(() => validateDimensionApplicability({ U: { applicable: true, name: 5 } }), 'name must be string');
+    invalid(() => validateDimensionApplicability({ U: { state: 'applicable', extra: 1 } }), 'U.extra');
+    invalid(() => validateDimensionApplicability({ U: { state: 'applicable', reason: 5 } }), 'reason must be string');
+    invalid(() => validateDimensionApplicability({ U: { state: 'applicable', name: 5 } }), 'name must be string');
   });
 });
 
@@ -203,7 +210,7 @@ describe('validateUpdateAtomPayload', () => {
 
   it('validates nested structures and an explicit bump', () => {
     invalid(() => validateUpdateAtomPayload({ assessment_criteria: { status: 'draft', Z: 'x' } }), 'assessment_criteria.Z');
-    invalid(() => validateUpdateAtomPayload({ dimension_applicability: { U: { applicable: false } } }), 'reason');
+    invalid(() => validateUpdateAtomPayload({ dimension_applicability: { U: { state: 'not_applicable' } } }), 'reason');
     invalid(() => validateUpdateAtomPayload({ freshness_policy: { content_change_rate: 'slow', practice_review_policy: 'P1Y' } }), 'practice_review_policy');
     for (const bump of ['huge', '', 1, null]) {
       invalid(() => validateUpdateAtomPayload({ definition: 'x', bump }), 'bump');

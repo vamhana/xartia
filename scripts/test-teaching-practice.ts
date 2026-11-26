@@ -81,7 +81,8 @@ async function main() {
   // Атом с применимым P (readiness требует P>=7).
   const atom = await queryOne<{ atom_id: string }>(
     `SELECT atom_id FROM competency_atoms
-      WHERE dimension_applicability->'P'->>'applicable' = 'true'
+      WHERE status = 'approved'
+          AND dimension_applicability->'P'->>'state' = 'applicable'
       ORDER BY atom_id LIMIT 1`,
   );
   if (!atom) {throw new Error('нет атома с P applicable');}

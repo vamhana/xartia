@@ -155,7 +155,7 @@ async function main(): Promise<void> {
       boundary_excludes: [],
       assessment_criteria: { status: 'draft' },
       assessment_methods: [],
-      dimension_applicability: { U: { applicable: true } },
+      dimension_applicability: { U: { state: 'applicable' } },
       freshness_policy: {
         content_change_rate: 'slow',
         practice_review_policy: 'P24M',

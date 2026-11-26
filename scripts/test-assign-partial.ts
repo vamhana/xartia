@@ -98,7 +98,8 @@ async function main() {
   // Для partial — атом с применимым U (некритично для executor).
   const atomPartial = await queryOne<{ atom_id: string }>(
     `SELECT atom_id FROM competency_atoms
-      WHERE dimension_applicability->'U'->>'applicable' = 'true'
+      WHERE status = 'approved'
+        AND dimension_applicability->'U'->>'state' = 'applicable'
       ORDER BY atom_id LIMIT 1`,
   );
   if (!atomPartial) {throw new Error('нет атома с применимым U');}
@@ -106,7 +107,8 @@ async function main() {
   // Для no_match — атом с применимым P (критично для executor).
   const atomNoMatch = await queryOne<{ atom_id: string }>(
     `SELECT atom_id FROM competency_atoms
-      WHERE dimension_applicability->'P'->>'applicable' = 'true'
+      WHERE status = 'approved'
+        AND dimension_applicability->'P'->>'state' = 'applicable'
       ORDER BY atom_id LIMIT 1`,
   );
   if (!atomNoMatch) {throw new Error('нет атома с применимым P');}

@@ -72,11 +72,11 @@ const ATOM_0055_PAYLOAD = {
     'Обратная связь от слушателя',
   ],
   dimension_applicability: {
-    U: { applicable: true, name: 'Понимание' },
-    X: { applicable: true, name: 'Объяснение' },
-    D: { applicable: true, name: 'Проектирование' },
-    P: { applicable: true, name: 'Практика' },
-    E: { applicable: true, name: 'Оценка' },
+    U: { state: 'undetermined', name: 'Понимание' },
+    X: { state: 'undetermined', name: 'Объяснение' },
+    D: { state: 'undetermined', name: 'Проектирование' },
+    P: { state: 'undetermined', name: 'Практика' },
+    E: { state: 'undetermined', name: 'Оценка' },
   },
   freshness_policy: {
     content_change_rate: 'slow',

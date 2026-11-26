@@ -166,7 +166,8 @@ async function main() {
 
     const atom = await queryOne<{ atom_id: string }>(
       `SELECT atom_id FROM competency_atoms
-        WHERE dimension_applicability->'P'->>'applicable' = 'true'
+        WHERE status = 'approved'
+          AND dimension_applicability->'P'->>'state' = 'applicable'
         ORDER BY atom_id LIMIT 1`,
     );
     if (!atom) {throw new Error('нет атома с P applicable');}
