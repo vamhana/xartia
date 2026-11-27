@@ -43,7 +43,7 @@ jobs:
       - name: Typecheck Web
         run: pnpm typecheck:web
       - name: Unit — passport approval gate
-        run: pnpm exec vitest run --root . src/core/passport/types.test.ts src/core/passport/freshness-policy.test.ts src/core/passport/requirement-evaluator.test.ts src/core/passport/catalog-payload-validation.test.ts src/core/passport/applicability.test.ts src/core/passport/calibration-snapshot.test.ts
+        run: pnpm exec vitest run --root . src/core/passport/types.test.ts src/core/passport/freshness-policy.test.ts src/core/passport/requirement-evaluator.test.ts src/core/passport/catalog-payload-validation.test.ts src/core/passport/applicability.test.ts src/core/passport/calibration-snapshot.test.ts src/core/passport/xsk-catalog-parse.test.ts scripts/xsk-real-file.test.ts
       - name: Build API (tsc)
         run: pnpm build
       - name: Build web (vite)
@@ -169,6 +169,13 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-applicability-migration.ts 2>&1 | tee /tmp/smoke-applicability-migration.log
+
+      # Прямой DB-скрипт: импорт закреплённого снимка каталога XSK (миграция 075),
+      # идемпотентность, неизменяемость и изоляция от атомов/паспортов.
+      - name: Smoke — каталог XSK (миграция 075)
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/test-xsk-catalog.ts 2>&1 | tee /tmp/smoke-xsk-catalog.log
 
       - name: Smoke — система
         run: |
