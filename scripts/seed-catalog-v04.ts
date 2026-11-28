@@ -21,7 +21,7 @@ import {
   login,
   request,
 } from './lib/passport-fixtures.js';
-
+import { refuseProduction } from './lib/refuse-production.js';
 const ARCHITECT_PHONE = process.env['TEST_ARCHITECT_PHONE'] ?? '+79001234567';
 const ARCHITECT_PASS = process.env['TEST_ARCHITECT_PASS'] ?? 'ChangeMe123456';
 
@@ -236,6 +236,7 @@ async function ensureAnchors(adminToken: string): Promise<void> {
 // ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  refuseProduction('seed-catalog-v04.ts');
   console.log(`BASE=${BASE}`);
   const admin = await login(ARCHITECT_PHONE, ARCHITECT_PASS);
   console.log(`admin: ${admin.id}`);

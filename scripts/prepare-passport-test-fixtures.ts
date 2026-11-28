@@ -5,9 +5,12 @@ import 'dotenv/config';
 
 import { query } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+
+import { refuseProduction } from './lib/refuse-production.js';
 import { ATOM_SEEDS, DEFAULT_APPLICABILITY } from './seed-data/atoms.js';
 
 async function main(): Promise<void> {
+  refuseProduction('prepare-passport-test-fixtures.ts');
   // Exact positive-path atoms referenced by the legacy passport smoke suite.
   // Other pilot atoms remain candidate/draft in this disposable test DB too.
   const fixtureIds = new Set([

@@ -36,7 +36,7 @@ import {
   getMe,
   backdateAssessment,
 } from './lib/passport-fixtures.js';
-
+import { refuseProduction } from './lib/refuse-production.js';
 const ARCHITECT_PHONE = process.env['TEST_ARCHITECT_PHONE'] ?? '+79001234567';
 const ARCHITECT_PASS = process.env['TEST_ARCHITECT_PASS'] ?? 'ChangeMe123456';
 
@@ -59,6 +59,7 @@ function expectEq<T>(label: string, actual: T, expected: T): void {
 // ─── main ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  refuseProduction('test-passport-v3.ts');
   console.log(`BASE=${BASE}`);
 
   // ─── setup ─────────────────────────────────────────────────────────

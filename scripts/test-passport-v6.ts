@@ -29,7 +29,7 @@ import {
   submitAssessment,
   submitEvidence,
 } from './lib/passport-fixtures.js';
-
+import { refuseProduction } from './lib/refuse-production.js';
 const ARCHITECT_PHONE = process.env['TEST_ARCHITECT_PHONE'] ?? '+79001234567';
 const ARCHITECT_PASS = process.env['TEST_ARCHITECT_PASS'] ?? 'ChangeMe123456';
 
@@ -52,6 +52,7 @@ function uniquePermitId(prefix: string): string {
 }
 
 async function main(): Promise<void> {
+  refuseProduction('test-passport-v6.ts');
   console.log(`BASE=${BASE}`);
 
   const admin = await login(ARCHITECT_PHONE, ARCHITECT_PASS);

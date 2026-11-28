@@ -43,7 +43,7 @@ jobs:
       - name: Typecheck Web
         run: pnpm typecheck:web
       - name: Unit — passport approval gate
-        run: pnpm exec vitest run --root . src/core/passport/types.test.ts src/core/passport/freshness-policy.test.ts src/core/passport/requirement-evaluator.test.ts src/core/passport/catalog-payload-validation.test.ts src/core/passport/applicability.test.ts src/core/passport/calibration-snapshot.test.ts src/core/passport/xsk-catalog-parse.test.ts scripts/xsk-real-file.test.ts
+        run: pnpm exec vitest run --root . src/core/passport/types.test.ts src/core/passport/freshness-policy.test.ts src/core/passport/requirement-evaluator.test.ts src/core/passport/catalog-payload-validation.test.ts src/core/passport/applicability.test.ts src/core/passport/calibration-snapshot.test.ts src/core/passport/xsk-catalog-parse.test.ts scripts/xsk-real-file.test.ts scripts/refuse-production.test.ts scripts/production-guards.test.ts scripts/audit-passport-history.test.ts
       - name: Build API (tsc)
         run: pnpm build
       - name: Build web (vite)
@@ -176,6 +176,14 @@ jobs:
         run: |
           set -o pipefail
           pnpm tsx scripts/test-xsk-catalog.ts 2>&1 | tee /tmp/smoke-xsk-catalog.log
+
+      # Read-only аудит исторических данных паспорта (транзакция READ ONLY):
+      # проверяет, что запросы совместимы со схемой, и не меняет БД.
+      - name: Audit — исторические данные паспорта (read-only)
+        run: |
+          set -o pipefail
+          pnpm tsx scripts/audit-passport-history.ts 2>&1 | tee /tmp/audit-passport-history.log
+          grep -q "AUDIT COMPLETE" /tmp/audit-passport-history.log
 
       - name: Smoke — система
         run: |
