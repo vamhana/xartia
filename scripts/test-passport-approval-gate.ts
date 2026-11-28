@@ -5,18 +5,20 @@ import 'dotenv/config';
 
 import { queryOne, query } from '../src/lib/db.js';
 import { gracefulShutdown } from '../src/lib/shutdown.js';
+
 import {
   ensureActor,
   login,
   request,
   BASE,
 } from './lib/passport-fixtures.js';
-
+import { refuseProduction } from './lib/refuse-production.js';
 const ARCHITECT_PHONE = process.env['TEST_ARCHITECT_PHONE'] ?? '+79001234567';
 const ARCHITECT_PASS = process.env['TEST_ARCHITECT_PASS'] ?? 'ChangeMe123456';
 const ATOM_ID = 'CYB.ATOM.0009';
 
 async function main(): Promise<void> {
+  refuseProduction('test-passport-approval-gate.ts');
   const admin = await login(ARCHITECT_PHONE, ARCHITECT_PASS, BASE);
   const subject = await ensureActor(admin.token, { name: 'approval-gate subject' }, BASE);
   const assessor = await ensureActor(

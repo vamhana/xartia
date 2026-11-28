@@ -5,6 +5,7 @@ import 'dotenv/config';
 
 import { query } from '../../src/lib/db.js';
 
+import { refuseProduction } from './refuse-production.js';
 export const BASE = process.env['API_URL'] ?? 'http://127.0.0.1:3000';
 
 export interface Res<T = unknown> {
@@ -423,6 +424,7 @@ export async function backdateAssessment(
   assessmentId: string,
   monthsAgo: number,
 ): Promise<void> {
+  refuseProduction('backdateAssessment');
   await query(
     `UPDATE passport_assessments
         SET created_at = now() - ($1::int || ' months')::interval

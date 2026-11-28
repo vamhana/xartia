@@ -26,6 +26,7 @@ import {
   request,
   submitAssessment,
 } from './lib/passport-fixtures.js';
+import { refuseProduction } from './lib/refuse-production.js';
 import { ATOM_SEEDS } from './seed-data/atoms.js';
 
 const ARCHITECT_PHONE = process.env['TEST_ARCHITECT_PHONE'] ?? '+79001234567';
@@ -45,6 +46,7 @@ function expectEq<T>(label: string, actual: T, expected: T): void {
 }
 
 async function main(): Promise<void> {
+  refuseProduction('test-passport-v8.ts');
   console.log(`BASE=${BASE}`);
   const admin = await login(ARCHITECT_PHONE, ARCHITECT_PASS);
   console.log(`admin: ${admin.id}`);
